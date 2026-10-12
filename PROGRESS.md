@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 in progress (P3-T01, T02, T12, T03, T04, T05 done) → next P3-T13 (launch + one TCG retry) · Updated: 2026-10-12
-- Blockers: none for the unit-testable parts of Phase 3 (T02–T07, T09, T10, T12–T14 use fakes). No QEMU on the Windows host: P3-T08 (real image build) and P3-T11 (real boot) run in WSL with TCG (x86_64 only); the first WHPX measurement needs an admin to enable Windows Hypervisor Platform.
-- Resume here: P3-T13 (`internal/vm/launch.go`: select accelerator via `Detector.Resolve`, build the argv, `qemu.Start`, dial agent+QMP chardevs concurrently, launch window 30 s ×4 under tcg = QMP ready + `query-status` running for 10 s, one TCG retry with a fresh overlay/socket dir, audit `accel_selected`/`accel_fallback`, exit 3 with both stderr excerpts) — **the first real run of the golden argv, in WSL with TCG**; it needs a bootable disk, so a throwaway image (e.g. the Debian cloud qcow2 or a tiny kernel) will be used until P3-T08 builds the real one. Then T14 (doctor), T06 (image manager), T07 (seed), T08 (image build), T09 (overlays), T10 (agent installer/client), T11 (milestone). Consider getting a QEMU for Windows onto this machine (winget manifest URL + SHA-256, extract without admin) to test WHPX for real — see TODO → Discovered.
+- Phase: P3 in progress (P3-T01, T02, T12, T03, T04, T05, T13 done) → next P3-T14 (`controlsnack doctor`) · Updated: 2026-10-12
+- Blockers: none for the unit-testable parts of Phase 3 (T02–T07, T09, T10, T12–T14 use fakes). No QEMU on the Windows host: P3-T08 (real image build) and P3-T11 (real boot) run in WSL with TCG (x86_64 only); whether WHPX works on this machine is unproven until a Windows QEMU runs here (D-44).
+- Resume here: P3-T14 (`internal/vm/doctor.go` + per-OS files: read-only report — host/CPU virtualization, per-OS checks, the same `Detector` as `run`, verdict `will use kvm|whpx|hvf|tcg (slow)` + numbered remediation; exit 3 when no VM can run; `--json`; must decide on the probe result, not the optional-feature state, D-44), then T06 (image manager), T07 (seed), T08 (image build — the real run in WSL with TCG), T09 (overlays), T10 (agent installer/client + minimal agent), T11 (milestone `run --no-llm --viewer none`). The launcher is proven against a real QEMU with a blank disk (D-48). Consider getting a QEMU for Windows onto this machine (winget manifest URL + SHA-256, extract without admin) to test WHPX for real — see TODO → Discovered.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -35,7 +35,7 @@
 | P0 | **done** 2026-10-12 | `go build ./...`, `go test ./...`, `go run ./tools/dev check` green; deviation/interpretation summary posted | gate steps: gofmt, mod-tidy, vet, lint, test (no -race locally: no C compiler), vuln, licenses, cross (5 host + 2 agent, CGO_ENABLED=0), repo |
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
-| P3 | in progress (T01, T02, T12, T03, T04, T05 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
+| P3 | in progress (T01, T02, T12, T03, T04, T05, T13 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
 | P4 | not started | | |
 | P5 | not started | | |
 | P6 | not started | | |
@@ -43,6 +43,11 @@
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-12 — P3-T13 — done
+- Changed: `internal/vm` — `launch.go` (`Launch`, `LaunchOptions`, `VM` with `Stop`/`Kill`, `Backend`, `Prepare`, `Events`, `LaunchError`), `backend.go` (`RealBackend`, `NewSocketDir`, `AllocateEndpoints`), `auditevents.go` (`AuditEvents` → lifecycle audit records). Decisions: D-48.
+- Tests: fake-backend suite for every branch (first-try success, hardware failure → one tcg retry with fresh resources and ordered cleanup, explicit accelerator also retried, tcg never retried, both failing = exit 3 with both excerpts, window ×4 under tcg, state changes during the stability hold, process exit during it, a process that will not die blocks the retry, preparation / command-line errors are exit 1 and not retried, cancel = no retry, dialers joined before cleanup, --allow-net port); real `audit.Log` round trip with a verified hash chain; `-race` ×3 on Linux.
+- **First real run of the golden argv (WSL, QEMU 8.2.2, TCG, blank disk):** accepted by QEMU including `-sandbox`; launch 2.15 s with a 2 s hold; `screendump` → real 3 KB PNG; `Stop` 3 ms; `Kill` 2 ms; explicit `kvm` refused by QEMU for real ("Could not access KVM kernel module: Permission denied") and the tcg retry took over with that text recorded.
+- Follow-ups: the session (P7-T06) supplies `Prepare` (overlay from the base image, kept VMs, UEFI vars copy), the terminal/viewer surfaces of the fallback, and the end-of-session summary line.
 ### 2026-10-12 — P3-T05 — done
 - Changed: `internal/vm/qmp` — `client.go` (greeting, `qmp_capabilities`, `Execute` with id matching and a closed command allowlist, bounded newline-delimited reader), `events.go` (256-event history, `WaitEvent`, `WaitPortOpen`/`PortOpen` following `VSERPORT_CHANGE`), `commands.go` (`QueryStatus`, `Quit`, `Stop`, `Cont`, `SystemPowerdown`, `Screendump`, `InputSendEvent`), `input.go` (`MoveTo`, `Button`, `Key`), `dial.go` (retrying dial, loopback only). Decisions: D-47.
 - Tests: fake-server suite (handshake failures, out-of-order replies, QMP error replies, commands outside the allowlist never reach QEMU, ctx timeout keeps the connection, quit variants, connection loss releases callers and waiters, oversize and non-JSON input, event history bounds and the late-waiter case, screendump/input argument shapes, pointer scaling, dial retry and loopback-only), fuzz `FuzzServerStream` (355k execs clean), real QEMU 8.2.2 in WSL under `-race`.

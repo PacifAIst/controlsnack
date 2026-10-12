@@ -33,7 +33,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P3-T03 Argv builders (§7.2): golden tests per arch × accel; forbidden-flag invariant
 - [x] (2026-10-12) P3-T04 Process supervisor (§7.4)
 - [x] (2026-10-12) P3-T05 QMP client
-- [ ] P3-T13 Launch with one TCG retry — launch.go (§7.9, D-31) *(R1)*
+- [x] (2026-10-12) P3-T13 Launch with one TCG retry — launch.go (§7.9, D-31) *(R1)*
 - [ ] P3-T14 `controlsnack doctor` (§7.10, D-33) *(R1)*
 - [ ] P3-T06 Image manager
 - [ ] P3-T07 Seed builder + guest templates
