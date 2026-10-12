@@ -109,6 +109,7 @@ Exit codes: 0 ok, 1 error, 2 usage, 3 environment (QEMU/accelerator), 4 image mi
 		a.newSchemaCmd(),
 		a.newVersionCmd(),
 		a.newConfigCmd(),
+		a.newReaperCmd(),
 	)
 	a.root = root
 	return a

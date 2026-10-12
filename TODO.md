@@ -31,7 +31,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P3-T02 QEMU discovery (§7.1)
 - [x] (2026-10-12) P3-T12 Accelerator detector — accel.go + per-OS files (§7.1, D-31, D-32) *(R1)*
 - [x] (2026-10-12) P3-T03 Argv builders (§7.2): golden tests per arch × accel; forbidden-flag invariant
-- [ ] P3-T04 Process supervisor (§7.4)
+- [x] (2026-10-12) P3-T04 Process supervisor (§7.4)
 - [ ] P3-T05 QMP client
 - [ ] P3-T13 Launch with one TCG retry — launch.go (§7.9, D-31) *(R1)*
 - [ ] P3-T14 `controlsnack doctor` (§7.10, D-33) *(R1)*
