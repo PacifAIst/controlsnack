@@ -370,3 +370,16 @@ existing entries are never rewritten. Add an entry *before* implementing any cho
   5. `Stop(ctx, quit, grace)` calls the QMP-quit callback, waits up to the grace period (3 s by caller), then kills; it returns only when the process is gone. `Kill` is idempotent and a no-op after exit.
 - Verified: unit tests on Windows (real Job Object: controller killed ⇒ child gone) and on Linux with `-race` (Pdeathsig and the reaper path both: controller killed ⇒ child gone; kill under the reaper ends QEMU itself). Measured kill switch → supervised process gone: 0.5 ms (Windows), 0.3 ms (Linux). **Not run on macOS** (no machine); the reaper logic is OS-neutral Unix code and only `Setpgid` differs.
 - Supersedes / superseded by: —
+
+## D-47 — QMP client
+- Status: Accepted (2026-10-12) · Type: Interpretation
+- Context: PLAN P3-T05 lists greeting, `qmp_capabilities`, commands, events, `screendump`, `input-send-event` and `quit`, tested against a fake server. QMP can also run arbitrary monitor commands, add backends and devices, and start migrations.
+- Decision:
+  1. **The client sends only a closed allowlist of commands**: `qmp_capabilities`, `query-status`, `query-version`, `query-chardev`, `quit`, `system_powerdown`, `stop`, `cont`, `screendump`, `input-send-event`. Anything else is `ErrCommandNotAllowed` and nothing is written. Adding a command means adding it here with a test, the same rule as the QEMU argv allowlist.
+  2. **Events are remembered** (last 256) so that waiting for one cannot lose a race with it: `WaitEvent` looks at the past first, and `WaitPortOpen(id)` follows the latest `VSERPORT_CHANGE` per port (it keeps waiting after a close, because the guest stub reopens the port when the agent is re-pushed). Waiters are released with the connection's error when it ends.
+  3. Messages are newline-delimited JSON, at most 4 MiB each; a longer or non-JSON message ends the connection. Replies are matched by a numeric `id`; a reply nobody waits for is dropped; a caller whose context ends stops waiting but the connection stays up.
+  4. `Quit` counts the connection closing as success (QEMU may exit before it answers). It is the graceful callback of `qemu.Process.Stop`.
+  5. `Dial` retries until its context ends (QEMU creates the chardevs one by one and `wait=on` serves them in turn; a socket that exists but is not served yet is retried too). TCP endpoints must be `127.0.0.1`.
+  6. `screendump` takes an absolute plain path and `png` or `ppm`; `input-send-event` takes at most 256 events built by `MoveTo` (absolute pointer scaled to 0..0x7fff over the screen, clamped), `Button` (left/middle/right/wheel/...) and `Key` (QEMU qcode names).
+- Verified: fake-server tests (handshake failures, out-of-order replies, errors, loss, oversize and garbage input, event history), a fuzz target over the byte stream (355k executions, clean), and against a real QEMU 8.2.2 in WSL under `-race`: greeting and version, `prelaunch` state, QEMU's own `GenericError` reply to a screendump without a console, `Stop` via `Quit` ends the process in 2 ms with `SHUTDOWN host-qmp-quit`.
+- Supersedes / superseded by: —

@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 in progress (P3-T01, T02, T12, T03, T04 done) → next P3-T05 (QMP client) · Updated: 2026-10-12
+- Phase: P3 in progress (P3-T01, T02, T12, T03, T04, T05 done) → next P3-T13 (launch + one TCG retry) · Updated: 2026-10-12
 - Blockers: none for the unit-testable parts of Phase 3 (T02–T07, T09, T10, T12–T14 use fakes). No QEMU on the Windows host: P3-T08 (real image build) and P3-T11 (real boot) run in WSL with TCG (x86_64 only); the first WHPX measurement needs an admin to enable Windows Hypervisor Platform.
-- Resume here: P3-T05 (`internal/vm/qmp`: dial unix/TCP endpoints with retry — QEMU creates the chardevs in order and `wait=on` blocks on each — greeting + `qmp_capabilities`, commands, events, `query-status`, `screendump`, `quit`; its `quit` is the callback for `qemu.Process.Stop`), then T13 (launch + one TCG retry: first real run of the golden argv, in WSL with TCG), T14 (doctor). Consider getting a QEMU for Windows onto this machine (winget manifest URL + SHA-256, extract without admin) to test WHPX for real — see TODO → Discovered.
+- Resume here: P3-T13 (`internal/vm/launch.go`: select accelerator via `Detector.Resolve`, build the argv, `qemu.Start`, dial agent+QMP chardevs concurrently, launch window 30 s ×4 under tcg = QMP ready + `query-status` running for 10 s, one TCG retry with a fresh overlay/socket dir, audit `accel_selected`/`accel_fallback`, exit 3 with both stderr excerpts) — **the first real run of the golden argv, in WSL with TCG**; it needs a bootable disk, so a throwaway image (e.g. the Debian cloud qcow2 or a tiny kernel) will be used until P3-T08 builds the real one. Then T14 (doctor), T06 (image manager), T07 (seed), T08 (image build), T09 (overlays), T10 (agent installer/client), T11 (milestone). Consider getting a QEMU for Windows onto this machine (winget manifest URL + SHA-256, extract without admin) to test WHPX for real — see TODO → Discovered.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -35,7 +35,7 @@
 | P0 | **done** 2026-10-12 | `go build ./...`, `go test ./...`, `go run ./tools/dev check` green; deviation/interpretation summary posted | gate steps: gofmt, mod-tidy, vet, lint, test (no -race locally: no C compiler), vuln, licenses, cross (5 host + 2 agent, CGO_ENABLED=0), repo |
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
-| P3 | in progress (T01, T02, T12, T03, T04 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
+| P3 | in progress (T01, T02, T12, T03, T04, T05 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
 | P4 | not started | | |
 | P5 | not started | | |
 | P6 | not started | | |
@@ -43,6 +43,11 @@
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-12 — P3-T05 — done
+- Changed: `internal/vm/qmp` — `client.go` (greeting, `qmp_capabilities`, `Execute` with id matching and a closed command allowlist, bounded newline-delimited reader), `events.go` (256-event history, `WaitEvent`, `WaitPortOpen`/`PortOpen` following `VSERPORT_CHANGE`), `commands.go` (`QueryStatus`, `Quit`, `Stop`, `Cont`, `SystemPowerdown`, `Screendump`, `InputSendEvent`), `input.go` (`MoveTo`, `Button`, `Key`), `dial.go` (retrying dial, loopback only). Decisions: D-47.
+- Tests: fake-server suite (handshake failures, out-of-order replies, QMP error replies, commands outside the allowlist never reach QEMU, ctx timeout keeps the connection, quit variants, connection loss releases callers and waiters, oversize and non-JSON input, event history bounds and the late-waiter case, screendump/input argument shapes, pointer scaling, dial retry and loopback-only), fuzz `FuzzServerStream` (355k execs clean), real QEMU 8.2.2 in WSL under `-race`.
+- **Verified for real (WSL):** greeting 8.2.2, `prelaunch`, `GenericError: There is no console to take a screendump from`, `Stop` through `Quit` → process gone in 2 ms, `SHUTDOWN reason=host-qmp-quit`.
+- Follow-ups: none.
 ### 2026-10-12 — P3-T04 — done
 - Changed: `internal/vm/qemu` — `process.go` (`Start`, `Process` with `Kill`/`Exited`/`Stop`/`Output`/`Result`, satisfies `killswitch.QEMU`), `ring.go` (64 KiB output ring), `process_{linux,unix_other,unix,windows}.go` (Setpgid + Pdeathsig / Job Object KILL_ON_JOB_CLOSE / group kill), `reaper*.go` (macOS wrapper logic, `RunReaper`), and `internal/cli/reaper.go` (hidden `__reaper` command). Decisions: D-46.
 - Tests: output/exit status, ring keeps the end, minimal environment and cwd, refusals (relative program, PATH lookup, missing binary, canceled context), Kill idempotent and fast, context cancel, kill switch → supervised process, graceful stop vs grace-period kill vs canceled context, **controller killed ⇒ child gone** (Windows job object; Linux Pdeathsig; reaper path), reaper passes status/output, kill under the reaper ends QEMU itself, reaper error report, orphan refusal; ring wraps at every size/chunk combination. `-race` green on Linux (WSL); lint clean for windows, linux, darwin.
