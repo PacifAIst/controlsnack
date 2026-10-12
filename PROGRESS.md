@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P1 complete → next P2-T01 (safety invariants and profiles) · Updated: 2026-10-12
-- Blockers: none for Phase 2. Phase 3 needs QEMU (not installed on the dev machine) — see Environment.
-- Resume here: start P2-T01. Phase 2 is pure Go and fully testable here; `internal/platform/listen.go` (the only file allowed to listen) is still to be created (TODO → Discovered).
+- Phase: P2 complete → next P3-T01 (protocol package) · Updated: 2026-10-12
+- Blockers: none for the unit-testable parts of Phase 3 (T01–T07, T09, T10, T12–T14 use fakes). QEMU is not installed: P3-T08 (real image build) and P3-T11 (real boot) need it, and so does the first WHPX measurement.
+- Resume here: start P3-T01 (`internal/protocol`: framing, messages, bootstrap lines, handshake types; fuzzed decoders), then P3-T02 → P3-T12 → P3-T03 as §12 orders them.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -20,6 +20,7 @@
 | Local LLM | none: 127.0.0.1:11434, :1234, :8080 closed; `ollama` not on PATH. Needed from Phase 5 (fakellm covers tests) | 2026-10-12 |
 | Browsers (viewer window) | Google Chrome and Microsoft Edge installed | 2026-10-12 |
 | Disk | 304.7 GB free on C: | 2026-10-12 |
+| WSL | WSL2 Ubuntu (default distro), gcc present, no Go and no QEMU. `scripts/wsl-go.sh` installs a private, SHA-256-verified Go 1.26.9 under `~/.cache/controlsnack-dev` on first use; with it `go test -race` and the Linux-only code run on real Linux (D-42). `apt install qemu-system-x86` would need sudo (not done) | 2026-10-12 |
 | Other | winget available; Node and Python 3.14 present (not used by the product) | 2026-10-12 |
 
 ### Appendix B items resolved so far
@@ -33,7 +34,7 @@
 |---|---|---|---|
 | P0 | **done** 2026-10-12 | `go build ./...`, `go test ./...`, `go run ./tools/dev check` green; deviation/interpretation summary posted | gate steps: gofmt, mod-tidy, vet, lint, test (no -race locally: no C compiler), vuln, licenses, cross (5 host + 2 agent, CGO_ENABLED=0), repo |
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
-| P2 | not started | | |
+| P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
 | P3 | not started | | needs QEMU on the dev machine |
 | P4 | not started | | |
 | P5 | not started | | |
@@ -42,6 +43,18 @@
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-12 — P2-T01…P2-T11 — done
+- Changed (all under `internal/safety/` unless noted):
+  - `safety` root: Verdict/Class, the nine invariants, `Profile` (safe vs unsafe, budgets clamped to the mode's bounds, `Apply` with `--step` winning over `--unsafe`), `AssertQEMUArgv` (closed allowlist of QEMU options and device models; refuses NICs, host sharing, non-loopback chardevs, paths outside the session dirs; `-nic user` only for provisioning). `platform.ListenLoopback` is the only function allowed to listen (enforced by `tools/dev check` → repo).
+  - `policy`: the exec engine (bash parsed with mvdan.cc/sh, whole-AST walk, wrapper peeling, `bash -c`/here-doc/`trap`/`find -exec`/script-file following through a ScriptReader), `default.yaml` with all §6.4 rules, rule-file loader (user rules, overrides, strict mode, invariant protection, content hash), GUI/browser rules (§6.5) with a11y hit-testing.
+  - `limits` (token bucket with a 2 s wait cap, budgets, check-in, session/idle timers, circuit breaker, loop detector, one-LLM gate, FakeClock), `confirm` (broker that cannot approve by itself), `audit` (hash chain, Verify, ls/show/prune, `schema/audit-record.schema.json`), `killswitch` (Killer, session lock + stale reaper, `controlsnack kill` client, `ControlHandler`), `untrusted` (fences), `secret` (tokens, redactor, password mask), `egress` (destination policy, dial-the-vetted-IP, limits).
+  - `platform`: per-OS state/config/cache dirs, process identity (PID + start time) for Linux/macOS/Windows.
+  - CLI: `audit show --raw`, `kill` now real, `audit` now real; `tools/dev check` gained the `coverage` step.
+- Tests: ~1,700 test cases across the safety packages, including 550+ exec-policy cases (every bypass form in the plan), tamper cases for the audit log, a real-process kill, boundary tables for every IPv4/IPv6 range. Fuzz targets: exec policy, fence, egress.
+- Real bugs found by the tests and fuzzers (each now has a regression case): `/dev/st*` matched `/dev/stderr` as a block device; `flock FILE -c 'cmd'` was not followed; `find /usr -exec rm -f {} +` escaped the root-wipe rule; `curl -fsSLo x.sh` (bundled `-o`) and `wget URL` (saves under the URL's name) defeated the script-written-in-the-same-action check; `chmod +x` wrongly erased a script's known content; `[` (the test command) looked like a glob; `nice $X` leaked a NUL marker into a message (fuzz); `[1.2.3.4]` parsed as an IPv4 literal; a `{a,b}{a,b}…` brace bomb would have exhausted memory; `isProtectedRoot("/.")` looped forever; a flaky confirm-timer test.
+- Decisions: D-39 (exec policy scope and invariant rules), D-40 (GUI rule IDs, argv allowlist, egress details), D-41 (audit/kill/lock details), D-42 (WSL validation).
+- Measured: trigger → process gone 1.1 ms (Windows, real child process standing in for QEMU).
+- Follow-ups: see TODO → Discovered (viewer mounts the control handler; session wires AssertQEMUArgv/ScriptReader/audit-failure kill).
 ### 2026-10-12 — P1-T01…P1-T05 — done
 - Changed: `internal/exitcode` (codes 0/1/2/3/4/5/6/70, `ErrNotImplemented`, `Pending(task)`); `internal/config` (typed `Config` with a single defaults table, viper-free injectable env layer, strict file parsing, flag↔key table, validation with flag-naming messages, redaction, API-key resolution); `internal/cli` (cobra tree: run, kill, image build|ls|rm|verify|import|path, vm ls|rm, audit verify|ls|show|prune, doctor, llm probe|models, schema, version, config show|path; zap logging; signal forwarding with force-exit on the second signal); service interfaces + exit-70 placeholders in session, killswitch, audit, image, overlay, vm, detect, schema; `cmd/controlsnack` now calls `cli.Main`.
 - Decisions: D-38 (flag-only `--unsafe`, loosening limits needs `--unsafe`, `--vm`/`--keep-vm` exclusive, `kill` never reads the config, etc.).
@@ -67,6 +80,6 @@
 |---|---|---|---|
 | Idle viewer bandwidth | < 50 KB/s | | |
 | 1080p WebP q70 frame | < 200 KB | | |
-| Kill → QEMU gone | < 500 ms | | |
+| Kill → QEMU gone | < 500 ms | 1.1 ms with a real child process as stand-in (real QEMU pending, P3-T11) | 2026-10-12 |
 | Boot → agent ready (accelerated) | < 45 s | | |
 | Boot → agent ready (tcg / `--slow`) | record | | |

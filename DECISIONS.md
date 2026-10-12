@@ -284,3 +284,38 @@ existing entries are never rewritten. Add an entry *before* implementing any cho
   9. A tiny leaf package `internal/exitcode` holds the codes and `ErrNotImplemented` so every layer can return a coded error without importing the CLI; each package that owns a command's behavior defines the service interface the command calls, with a placeholder that exits 70 and names the task that replaces it.
 - Consequences: PLAN.md §4.1 gains `internal/exitcode`; `internal/cli` groups some small commands per file instead of strictly one file per command.
 - Supersedes / superseded by: extends D-17, D-20, D-32
+
+## D-39 — Exec policy: scope, invariant rules and what is deliberately not analyzed
+- Status: Accepted (2026-10-12) · Type: Interpretation (PLAN.md §6.3, §6.4, P2-T02, P2-T03)
+- Context: the plan fixes the engine's behavior but leaves open which default rules a user policy may relax, how far wrappers and scripts are followed, and what happens with inputs that could make the analyzer itself a target.
+- Decision:
+  1. **Invariant rules** (a user policy can neither change nor disable them): DENY-UNPARSEABLE, DENY-DYNAMIC-CMD, DENY-NOT-ALLOWLISTED, DENY-PIPE-TO-SHELL (they keep the analysis sound: what cannot be read is not run) and DENY-PRIV-ESC, DENY-FIREWALL, DENY-KERNEL, DENY-RAW-DEV-WRITE (they defend the guest's own isolation layers, D-21). The rules that only protect a disposable guest (ROOT-WIPE, DISK, POWER, ACCOUNTS, MASS-KILL, FORK-BOMB, and every CONFIRM rule) can be relaxed with `override`.
+  2. **Every command is found by walking the whole AST** (syntax.Walk), so nesting cannot hide one; context (pipe position, background, redirects) comes from the ancestor stack. Wrappers are peeled and each layer is also judged (`sudo rm -rf /` hits both). Followed: `bash -c`, here-documents and here-strings, `trap`, `find -exec` (with `{}` replaced by the start paths and `rm` treated as recursive), `watch`, `flock -c`, `source`, script files via the ScriptReader hook, and scripts written earlier in the same action when their content is known (`cat > f` with a literal here-document, plain `echo`).
+  3. **Refused rather than guessed:** unparseable input, a command name from an expansion or containing a glob, nesting beyond 3, a script written and run in one action with unknown content (printf, echo -e, curl -o, cp, tee ...), more than 4000 commands or 12 scripts in one action, brace expansions above 256 words (a `{a,b}{a,b}...` memory bomb), a script the ScriptReader cannot read or that exceeds 64 KiB. Any panic inside the analysis is recovered and becomes DENY-UNPARSEABLE.
+  4. **Not analyzed (documented limitation):** the code of other interpreters (python, node, perl, awk's system(), vim...), compiled programs, and arguments whose value is only known at run time (they are allowed; a recursive delete of one is a confirmation). The exec policy is a guardrail; the VM is the boundary (D-16).
+  5. Rules are data (`default.yaml`, a small match DSL plus named Go detectors); user policies get strict parsing, IDs prefixed USER-/CONFIRM-REGEX-/DENY-REGEX-, RE2 regexes only, and a content hash for the audit log.
+- Consequences: the rule list in §6.4 gained engine-raised IDs (DENY-UNPARSEABLE, DENY-NOT-ALLOWLISTED) and the GUI rules of D-40.
+- Supersedes / superseded by: —
+
+## D-40 — GUI rule IDs, QEMU argv as a closed allowlist, egress details
+- Status: Accepted (2026-10-12) · Type: Interpretation (PLAN.md §6.5, §7.2, §6.11)
+- Decision:
+  1. §6.5 names no rule IDs; they are CONFIRM-GUI-DESTRUCTIVE (delete-like labels and shift+Delete), CONFIRM-GUI-NET-ACTION (send/pay/log-in-like labels, only with --allow-net), CONFIRM-PASSWORD-FIELD (typing into a password field, text redacted) and DENY-BROWSER-URL (anything but http, https, file; schemes are compared after dropping the characters browsers drop). Mouse clicks and drags are hit-tested against the innermost interactive element of the latest accessibility snapshot.
+  2. `safety.AssertQEMUArgv` is a **closed allowlist** of QEMU options and device models (not just the §7.2 deny-list), plus required `-nic none` and `-display none`, chardevs only on a local path or 127.0.0.1, file paths only inside the session, socket, VM and image directories, and `-nic user` only in the provisioning profile. New QEMU features therefore need an explicit entry and test. Both launch paths must call it before executing QEMU.
+  3. Egress: names are resolved once and refused if **any** answer is non-public; the vetted address is dialed (never the name) and re-checked in the dialer's Control hook; every numeric spelling of an address (inet_aton forms, mapped, compatible, NAT64) is judged as that address; single-label names, `localhost` and names ending in a numeric label are refused; with a domain allow list, address literals are refused too. IPv4-compatible IPv6 addresses are refused even when the embedded IPv4 is public (deprecated, never routed).
+- Supersedes / superseded by: —
+
+## D-41 — Audit chain, kill switch and session lock details
+- Status: Accepted (2026-10-12) · Type: Interpretation (PLAN.md §5.5, §5.6, §6.8, §6.9, P2-T07, P2-T08)
+- Decision:
+  1. **Audit.** One file per session, created O_EXCL, mode 0600, fsync per record, sticky write error (the session must stop when the trail cannot be written). A line must equal the canonical marshaling of the record it decodes to, so adding, reordering or re-spacing fields is detected. Truncation at a record boundary leaves a valid chain; it shows as "no end record", and `Report.LastHash` can be stored elsewhere to anchor the log. The chain is tamper-evident against edits, not authenticated against an attacker who recomputes it (no key is kept from the same-user adversary).
+  2. **Kill switch.** Order: flag, SIGKILL QEMU, cancel context, wait (bounded) for QEMU to exit, then teardown hooks (each bounded, panic-safe). A VM registered after the kill is killed at once; a hook added after teardown runs immediately. Measured trigger-to-gone against a real child process: about 1 ms.
+  3. **Lock.** `active.json` is created with full content by hard-linking a temp file (atomic, exclusive); a process is recognized by PID **and** start time (/proc stat on Linux, sysctl on macOS, GetProcessTimes on Windows), so PID reuse never gets an innocent process killed. A corrupt lock is reported, never deleted. `controlsnack kill` sends the bearer token only to a loopback IP literal over http; without an acknowledgement within 1 s it ends QEMU and then the controller directly (verified by start time) and removes the lock.
+  4. Interfaces changed from the Phase 1 placeholders: `Killer.Kill(ctx, w)` and `audit.Admin.Show(..., raw bool)` (`audit show --raw`).
+- Supersedes / superseded by: —
+
+## D-42 — Linux and race-detector validation through WSL
+- Status: Accepted (2026-10-12) · Type: Addition
+- Context: the Windows dev machine has no C compiler, so `go test -race` cannot run natively, and Linux-only code (the Phase 3/4 guest agent, /proc handling) would otherwise be untested until CI.
+- Decision: `scripts/wsl-go.sh` runs any command in WSL with a private Go toolchain installed under `~/.cache/controlsnack-dev` (version from go.dev's release feed, SHA-256 verified, no sudo, nothing outside that directory). `tools/dev check` stays Windows-native; the race run is `wsl -e bash scripts/wsl-go.sh env CGO_ENABLED=1 go test -race ./...`.
+- Supersedes / superseded by: —

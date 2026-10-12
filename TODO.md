@@ -14,17 +14,17 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P1-T05 Exit codes and signals
 
 ## Phase 2 — Safety: internal/safety (required test suite #1)
-- [ ] P2-T01 Invariants and profiles (§6.1, §6.2)
-- [ ] P2-T02 Exec policy engine (§6.3) with script-analysis hook interface
-- [ ] P2-T03 Default rules + rule-file loader (§6.4)
-- [ ] P2-T04 GUI and browser rules (§6.5), hit-testing against an a11y snapshot
-- [ ] P2-T05 Limits (§6.6): limiter, budgets, loop detector, circuit breaker
-- [ ] P2-T06 Confirmation broker (§6.7)
-- [ ] P2-T07 Audit log (§6.9, §5.5) + `audit verify|ls|show|prune`
-- [ ] P2-T08 Kill switch + session lock + stale reaper (§6.8, §5.6) + `controlsnack kill`
-- [ ] P2-T09 Untrusted fencing (§6.10)
-- [ ] P2-T10 Egress policy (§6.11)
-- [ ] P2-T11 Secrets, tokens and redaction helpers (§6.12)
+- [x] (2026-10-12) P2-T01 Invariants and profiles (§6.1, §6.2)
+- [x] (2026-10-12) P2-T02 Exec policy engine (§6.3) with script-analysis hook interface
+- [x] (2026-10-12) P2-T03 Default rules + rule-file loader (§6.4)
+- [x] (2026-10-12) P2-T04 GUI and browser rules (§6.5), hit-testing against an a11y snapshot
+- [x] (2026-10-12) P2-T05 Limits (§6.6): limiter, budgets, loop detector, circuit breaker
+- [x] (2026-10-12) P2-T06 Confirmation broker (§6.7)
+- [x] (2026-10-12) P2-T07 Audit log (§6.9, §5.5) + `audit verify|ls|show|prune`
+- [x] (2026-10-12) P2-T08 Kill switch + session lock + stale reaper (§6.8, §5.6) + `controlsnack kill`
+- [x] (2026-10-12) P2-T09 Untrusted fencing (§6.10)
+- [x] (2026-10-12) P2-T10 Egress policy (§6.11)
+- [x] (2026-10-12) P2-T11 Secrets, tokens and redaction helpers (§6.12)
 
 ## Phase 3 — VM: internal/protocol, internal/vm (required test suite #2)
 - [ ] P3-T01 Protocol package (§5.1)
@@ -102,13 +102,18 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 
 ## Discovered
 - [ ] P3-T12: verify on this machine that `WHvGetCapability` is the deciding signal, not the DLL — `WinHvPlatform.dll` exists in System32 although the "Windows Hypervisor Platform" feature is disabled (found in P0-T02; contradicts the PLAN §7.1 note "DLL missing = feature not enabled").
-- [ ] P2-T01: wire the `internal/safety` ≥ 85 % coverage gate (PLAN §13.2) into `tools/dev check`; tools/dev currently has no coverage step.
-- [ ] P2-T08 / P6-T01: create `internal/platform/listen.go` (the single 127.0.0.1-only listener helper). `tools/dev check` → `repo` already rejects any other file that opens a listener or binds a wildcard address.
+- [x] (2026-10-12) P2-T01: wire the `internal/safety` ≥ 85 % coverage gate (PLAN §13.2) into `tools/dev check`; tools/dev currently has no coverage step.
+- [x] (2026-10-12) P2-T08 / P6-T01: create `internal/platform/listen.go` (the single 127.0.0.1-only listener helper). `tools/dev check` → `repo` already rejects any other file that opens a listener or binds a wildcard address.
 - [ ] P3-T14: add the `controlsnack doctor --json` step (must exit 0 and print a verdict) to the Windows and macOS CI jobs (PLAN §13.5); not added in P0 because the command does not exist yet.
 - [ ] P3-T10 / P4-T12: make `tools/dev build` run `agent` first once the host embeds the guest agents (D-04); `agentbin` will use `//go:embed *` so a clean checkout (only PLACEHOLDER.txt) still compiles.
 - [ ] P6-T06: add the forbidden front-end API scan (innerHTML, eval, inline handlers…) to `tools/dev check` → `repo`.
 - [ ] P8-T02: `tools/dev licenses` only checks; add the `go-licenses report` → THIRD_PARTY_LICENSES.md generation (module path is `github.com/google/go-licenses/v2`).
 - [ ] P8-T05: verify the GitHub Actions versions in .github/workflows/ci.yml (checkout@v4, setup-go@v5, cache@v4) against current releases; the workflow could not be run locally.
+
+- [ ] P6-T01: mount `killswitch.ControlHandler` at `/control/kill` and `POST /api/kill` (cookie + CSRF) on the viewer server; bind only through `platform.ListenLoopback`.
+- [ ] P7-T06: call `safety.AssertQEMUArgv` before every QEMU launch (runtime and provisioning profiles); build the session's `policy.Engine` with `Options{NetEgress, Scripts: <file_peek reader>}` and feed `Profile.Apply` the engine's verdict; treat any `audit.Log.Append` error as fatal (kill source `audit_failure`).
+- [ ] P7-T06 / P4-T11: the net bridge uses `egress.Policy.Dial` and `egress.Tracker`; every decision goes to the audit log as kind `net`.
+- [ ] Cleanup: `internal/cli/simple.go` still groups the small commands in one file (D-38); split when convenient.
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)
