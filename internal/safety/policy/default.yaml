@@ -1,0 +1,232 @@
+# Built-in exec policy (PLAN.md section 6.4). Embedded in the binary; a user policy (--policy) is merged over it.
+#
+# A rule matches when ANY of its `match` entries matches; an entry matches when ALL the conditions it sets hold:
+#   command        command name after unwrapping env/nohup/timeout/xargs/busybox/bash -c ... (wildcards * ? [..])
+#   flags          any of these flags is present (short letters, bundled or not, or long names without dashes)
+#   without_flags  none of these flags is present
+#   args           any positional argument equals one of these
+#   arg_regex      any argument matches one of these regular expressions
+#   writes_to      the command writes a file in one of these named path sets (redirects included):
+#                  block_devices, account_files, kernel_paths, persist_files
+#   detect         a named detector implemented in Go: root-wipe, mass-kill, chmod-setuid, truncate-redirect,
+#                  pipe-to-shell
+# `structural` rules are raised by the engine itself (parse failures, dynamic command names, fork bombs, strict mode).
+# `invariant` rules cannot be changed or switched off by a user policy: they keep the analysis sound or defend the
+# guest's own isolation layers (no sudo, nftables, kernel, raw devices).
+version: 1
+
+# Used when a user policy says `mode: strict` without its own allowlist.
+strict_allowlist:
+  [ls, cat, echo, printf, pwd, cd, "true", "false", test, "[", grep, head, tail, wc, sort, uniq, cut, tr, date, uname,
+   whoami, id, hostname, basename, dirname, realpath, readlink, stat, file, du, df, which, sleep, mkdir, touch, diff,
+   cmp, tee, sed, awk, find, xargs, python3, git, xdg-open, mousepad, xfce4-terminal, chromium]
+
+rules:
+  # ---- structural, raised by the engine ---------------------------------------------------------------------
+  - id: DENY-UNPARSEABLE
+    class: deny
+    invariant: true
+    structural: true
+    explain: >-
+      The command could not be parsed or reviewed (syntax error, nested shells deeper than 3 levels, a script that is
+      too large or unreadable, or too complex), so it is not run. Rewrite it more simply.
+
+  - id: DENY-DYNAMIC-CMD
+    class: deny
+    invariant: true
+    structural: true
+    explain: >-
+      The name of the command to run comes from an expansion ($var, $(...), a glob), so it cannot be reviewed. Write
+      the command name out literally.
+
+  - id: DENY-NOT-ALLOWLISTED
+    class: deny
+    invariant: true
+    structural: true
+    explain: The policy is in strict mode and this command is not on its allowlist.
+
+  - id: DENY-FORK-BOMB
+    class: deny
+    structural: true
+    explain: A function that calls itself in a pipeline or in the background is a fork bomb.
+
+  # ---- deny -------------------------------------------------------------------------------------------------
+  - id: DENY-ROOT-WIPE
+    class: deny
+    explain: >-
+      Recursively deleting /, the home directory or a system directory (/etc, /usr, /var, /boot, /bin, /lib*, /opt,
+      /root, /srv, ...) would destroy the guest.
+    match:
+      - detect: root-wipe
+
+  - id: DENY-DISK
+    class: deny
+    explain: Creating, wiping or repartitioning file systems and disks is not allowed.
+    match:
+      - command: ["mkfs*", mke2fs, mkdosfs, mkntfs, mkswap, wipefs, fdisk, sfdisk, gdisk, sgdisk, parted, cfdisk, format, blkdiscard]
+      - command: badblocks
+        flags: [w]
+
+  - id: DENY-RAW-DEV-WRITE
+    class: deny
+    invariant: true
+    explain: >-
+      Writing to a block device or to raw memory (/dev/sd*, /dev/vd*, /dev/nvme*, /dev/mapper/*, /dev/mem, ...) is
+      not allowed, whether by dd, a redirect, tee, cp or shred.
+    match:
+      - writes_to: [block_devices]
+
+  - id: DENY-POWER
+    class: deny
+    explain: Shutting down, rebooting or suspending the VM would end the session.
+    match:
+      - command: [shutdown, reboot, halt, poweroff, telinit, pm-suspend, pm-hibernate]
+      - command: init
+        args: ["0", "6"]
+      - command: systemctl
+        args: [poweroff, reboot, halt, kexec, suspend, hibernate, hybrid-sleep, suspend-then-hibernate, soft-reboot]
+      - command: loginctl
+        args: [poweroff, reboot, halt, suspend, hibernate, hybrid-sleep]
+      - command: xfce4-session-logout
+        flags: [halt, reboot, suspend, hibernate]
+
+  - id: DENY-ACCOUNTS
+    class: deny
+    explain: Creating or changing user accounts, passwords or sudo configuration is not allowed.
+    match:
+      - command: [useradd, userdel, usermod, adduser, deluser, addgroup, delgroup, groupadd, groupdel, groupmod, gpasswd,
+                  passwd, chpasswd, chsh, chfn, vipw, vigr, visudo, newusers]
+      - writes_to: [account_files]
+
+  - id: DENY-PRIV-ESC
+    class: deny
+    invariant: true
+    explain: >-
+      Privilege escalation (sudo, su, doas, pkexec, setcap, setuid or setgid bits) is not allowed: the agent and
+      everything it runs stay an unprivileged user (PLAN.md D-21).
+    match:
+      - command: [sudo, sudoedit, su, doas, pkexec, run0, setcap, gksu]
+      - detect: chmod-setuid
+
+  - id: DENY-KERNEL
+    class: deny
+    invariant: true
+    explain: Loading kernel modules, changing kernel parameters or writing to /proc/sys, /sys or sysrq is not allowed.
+    match:
+      - command: [insmod, rmmod, modprobe, depmod, kexec]
+      - command: sysctl
+        flags: [w, write, p, load, system]
+      - command: sysctl
+        arg_regex: ['^[A-Za-z0-9_.-]+=']
+      - writes_to: [kernel_paths]
+
+  - id: DENY-PIPE-TO-SHELL
+    class: deny
+    invariant: true
+    explain: >-
+      Running code that was not reviewed is not allowed: piping into a shell or interpreter, eval, sourcing a
+      process substitution or dynamic path, or a shell -c string built from an expansion. Save the code to a file,
+      read it, then run the file.
+    match:
+      - detect: pipe-to-shell
+
+  - id: DENY-FIREWALL
+    class: deny
+    invariant: true
+    explain: Changing the guest firewall is not allowed; it is a defense-in-depth layer (PLAN.md section 7.5).
+    match:
+      - command: ["iptables*", "ip6tables*", nft, nftables, ufw, firewall-cmd, ebtables, arptables]
+
+  - id: DENY-MASS-KILL
+    class: deny
+    explain: Killing every process or process 1 would take the session down.
+    match:
+      - command: killall5
+      - detect: mass-kill
+
+  # ---- confirm ----------------------------------------------------------------------------------------------
+  - id: CONFIRM-DELETE
+    class: confirm
+    explain: This deletes files or directories, and a deleted file cannot be recovered inside the VM.
+    match:
+      - command: [rm, rmdir, unlink, shred, truncate, trash, trash-put, trash-empty]
+      - command: find
+        flags: [delete]
+      - command: git
+        args: [clean]
+      - command: git
+        args: [reset]
+        flags: [hard]
+      - command: gio
+        args: [trash]
+
+  - id: CONFIRM-OVERWRITE
+    class: confirm
+    explain: This can overwrite existing files (cp, mv, install, rsync, dd, tee, sed -i, perl -i, or a > redirect outside /tmp).
+    match:
+      - command: [cp, mv, install, rsync, dd]
+      - command: tee
+        without_flags: [a, append]
+      - command: sed
+        flags: [i, in-place]
+      - command: perl
+        flags: [i]
+      - detect: truncate-redirect
+
+  - id: CONFIRM-NET-EXPOSE
+    class: confirm
+    explain: This starts a network listener or tunnel, or binds to 0.0.0.0.
+    match:
+      - command: [nc, ncat, netcat, nc.openbsd, nc.traditional]
+        flags: [l, L, listen]
+      - command: socat
+        arg_regex: ['(?i)^[a-z0-9]+-l(isten)?(:|,|$)']
+      - command: ["python*"]
+        args: [http.server, SimpleHTTPServer]
+      - command: php
+        flags: [S]
+      - command: ssh
+        flags: [R, L, D]
+      - command: [ngrok, cloudflared, tailscale, tailscaled, bore, frpc]
+      - command: "*"
+        arg_regex: ['(^|[=:@\s])0\.0\.0\.0([:/\s]|$)', '(^|[=:@\s])\[::\]']
+
+  - id: CONFIRM-NET-EGRESS
+    class: confirm
+    net_egress_only: true
+    explain: This can send data out to the internet (upload, POST/PUT/DELETE, push, mail).
+    match:
+      - command: curl
+        flags: [T, d, F, upload-file, data, data-raw, data-binary, data-urlencode, data-ascii, form, form-string, json]
+      - command: curl
+        flags: [X, request]
+        args: [POST, PUT, DELETE, PATCH, post, put, delete, patch]
+      - command: curl
+        arg_regex: ['(?i)^-X(POST|PUT|DELETE|PATCH)$', '(?i)^--request=(POST|PUT|DELETE|PATCH)$']
+      - command: wget
+        flags: [post-data, post-file]
+      - command: wget
+        arg_regex: ['(?i)^--method=(POST|PUT|DELETE|PATCH)$']
+      - command: [scp, sftp, sendmail, mail, mailx, mutt, msmtp, ssmtp, swaks]
+      - command: rsync
+        arg_regex: ['^[A-Za-z0-9._@-]+:[^\s]', '^rsync://']
+      - command: git
+        args: [push]
+
+  - id: CONFIRM-PERMS
+    class: confirm
+    explain: This changes permissions or ownership recursively, or changes file attributes.
+    match:
+      - command: [chmod, chown, chgrp]
+        flags: [R, recursive]
+      - command: [chattr, setfacl]
+
+  - id: CONFIRM-PERSIST
+    class: confirm
+    explain: This makes something run later or at every login (cron, at, user services, shell profile, autostart).
+    match:
+      - command: [crontab, at, batch]
+      - command: systemctl
+        flags: [user]
+        args: [enable, link, edit, mask]
+      - writes_to: [persist_files]

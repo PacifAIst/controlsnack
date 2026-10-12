@@ -45,4 +45,5 @@ require (
 	golang.org/x/tools v0.52.0 // indirect
 	golang.org/x/vuln v1.9.0 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
+	mvdan.cc/sh/v3 v3.14.1 // indirect
 )
