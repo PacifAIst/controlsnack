@@ -126,6 +126,15 @@ func (a *app) newAuditCmd() *cobra.Command {
 		RunE:        group,
 		Annotations: map[string]string{annotationConfig: cfgLoad},
 	}
+	var raw bool
+	show := &cobra.Command{
+		Use: "show REF", Short: "Print an audit log (a file path or a session id)", Args: exactArgs(1, "a log file or session id"),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return a.env.Services.Audit.Show(cmd.Context(), a.env.Stdout, args[0], raw)
+		},
+	}
+	show.Flags().BoolVar(&raw, "raw", false, "print the JSON lines as stored instead of one readable line per record")
+
 	var olderThan string
 	prune := &cobra.Command{
 		Use:   "prune",
@@ -157,12 +166,7 @@ func (a *app) newAuditCmd() *cobra.Command {
 				return a.env.Services.Audit.List(cmd.Context(), a.env.Stdout)
 			},
 		},
-		&cobra.Command{
-			Use: "show REF", Short: "Print an audit log (a file path or a session id)", Args: exactArgs(1, "a log file or session id"),
-			RunE: func(cmd *cobra.Command, args []string) error {
-				return a.env.Services.Audit.Show(cmd.Context(), a.env.Stdout, args[0])
-			},
-		},
+		show,
 		prune,
 	)
 	return cmd

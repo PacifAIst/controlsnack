@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/audit-record.json",
+  "title": "ControlSnack audit record",
+  "description": "One line of an audit log (PLAN.md section 5.5). The hash chain is verified by `controlsnack audit verify`; this schema describes the shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "seq", "ts", "session", "kind", "prev", "hash"],
+  "properties": {
+    "v": { "const": 1 },
+    "seq": { "type": "integer", "minimum": 1 },
+    "ts": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$" },
+    "session": { "type": "string", "pattern": "^[A-Za-z0-9_-]{3,64}$" },
+    "kind": { "enum": ["lifecycle", "config", "user", "llm", "action", "net", "error"] },
+    "event": { "type": "string", "maxLength": 64 },
+    "actor": { "enum": ["llm", "user", "system"] },
+    "turn": { "type": "integer", "minimum": 0 },
+    "action_id": { "type": "string", "maxLength": 64 },
+    "tool": { "type": "string", "maxLength": 64 },
+    "args": {},
+    "reason": { "type": "string", "maxLength": 1024 },
+    "verdict": { "type": "string", "maxLength": 64 },
+    "rules": { "type": "array", "items": { "type": "string", "maxLength": 64 } },
+    "screenshot_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "result": {},
+    "llm": {},
+    "data": {},
+    "prev": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "action" } }, "required": ["kind"] },
+      "then": { "required": ["tool", "verdict"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "lifecycle" } }, "required": ["kind"] },
+      "then": { "required": ["event"] }
+    }
+  ]
+}

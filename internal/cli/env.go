@@ -9,6 +9,7 @@ import (
 	"runtime"
 
 	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
+	"github.com/PacifAIst/controlsnack-local/internal/platform"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
 	"github.com/PacifAIst/controlsnack-local/internal/session"
@@ -38,11 +39,20 @@ func DefaultServices() Services {
 		Killer: killswitch.NewClient(),
 		Images: image.NewManager(),
 		VMs:    overlay.NewStore(),
-		Audit:  audit.NewAdmin(),
+		Audit:  audit.NewAdmin(auditDir),
 		Doctor: vm.NewDoctor(),
 		LLM:    detect.NewService(),
 		Schema: schema.NewPrinter(),
 	}
+}
+
+// auditDir locates the audit directory when an audit command runs.
+func auditDir() (string, error) {
+	d, err := platform.DefaultDirs()
+	if err != nil {
+		return "", err
+	}
+	return d.AuditDir(), nil
 }
 
 // Env is everything the command tree takes from the outside world, so tests can run it hermetically.

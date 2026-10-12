@@ -11,11 +11,14 @@ tool (
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.28.0
 	go.yaml.in/yaml/v3 v3.0.5
+	golang.org/x/time v0.16.0
+	mvdan.cc/sh/v3 v3.14.1
 )
 
 require (
@@ -42,9 +45,7 @@ require (
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/telemetry v0.0.0-20261010193011-f71dc92da45e // indirect
 	golang.org/x/text v0.43.0 // indirect
-	golang.org/x/time v0.16.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	golang.org/x/vuln v1.9.0 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
-	mvdan.cc/sh/v3 v3.14.1 // indirect
 )

@@ -144,11 +144,6 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 		{"image", "path"},
 		{"vm", "ls"},
 		{"vm", "rm", "lab"},
-		{"audit", "verify", "log.jsonl"},
-		{"audit", "ls"},
-		{"audit", "show", "s_1"},
-		{"audit", "prune"},
-		{"audit", "prune", "--older-than", "2w"},
 		{"doctor"},
 		{"doctor", "--json"},
 		{"llm", "probe"},
@@ -468,8 +463,8 @@ func (f *fakeAudit) Verify(_ context.Context, _ io.Writer, file string) error {
 	f.file = file
 	return nil
 }
-func (f *fakeAudit) List(context.Context, io.Writer) error         { return nil }
-func (f *fakeAudit) Show(context.Context, io.Writer, string) error { return nil }
+func (f *fakeAudit) List(context.Context, io.Writer) error               { return nil }
+func (f *fakeAudit) Show(context.Context, io.Writer, string, bool) error { return nil }
 func (f *fakeAudit) Prune(_ context.Context, _ io.Writer, age time.Duration) error {
 	f.pruned = age
 	return nil
