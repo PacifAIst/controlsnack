@@ -49,7 +49,7 @@ broken, and falls back to ending QEMU and the controller directly if the session
 		Args:        noArgs,
 		Annotations: map[string]string{annotationConfig: cfgNone},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return a.env.Services.Killer.Kill(cmd.Context())
+			return a.env.Services.Killer.Kill(cmd.Context(), a.env.Stdout)
 		},
 	}
 }

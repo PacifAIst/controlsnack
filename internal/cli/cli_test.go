@@ -36,7 +36,7 @@ func (f *fakeRunner) Run(_ context.Context, cfg config.Config) error {
 
 type fakeKiller struct{ called int }
 
-func (f *fakeKiller) Kill(context.Context) error { f.called++; return nil }
+func (f *fakeKiller) Kill(context.Context, io.Writer) error { f.called++; return nil }
 
 // result is what one CLI invocation produced.
 type result struct {
@@ -135,7 +135,6 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 	// Every command that is not built yet must say so and exit 70 rather than pretend.
 	cmds := [][]string{
 		{"run", "--task", "x"},
-		{"kill"},
 		{"image", "build", "--yes"},
 		{"image", "ls"},
 		{"image", "rm", "abc"},

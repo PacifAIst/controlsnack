@@ -36,7 +36,7 @@ type Services struct {
 func DefaultServices() Services {
 	return Services{
 		Runner: session.NewRunner(),
-		Killer: killswitch.NewClient(),
+		Killer: killswitch.NewClient(sessionsDir),
 		Images: image.NewManager(),
 		VMs:    overlay.NewStore(),
 		Audit:  audit.NewAdmin(auditDir),
@@ -53,6 +53,15 @@ func auditDir() (string, error) {
 		return "", err
 	}
 	return d.AuditDir(), nil
+}
+
+// sessionsDir locates the directory of the active-session lock when `kill` runs.
+func sessionsDir() (string, error) {
+	d, err := platform.DefaultDirs()
+	if err != nil {
+		return "", err
+	}
+	return d.SessionsDir(), nil
 }
 
 // Env is everything the command tree takes from the outside world, so tests can run it hermetically.
