@@ -98,3 +98,28 @@ func TestReleaseTargetsMatchThePlan(t *testing.T) {
 		}
 	}
 }
+
+func TestParseCoverTotal(t *testing.T) {
+	out := "pkg/a.go:10:\tF\t\t100.0%\npkg/b.go:5:\tG\t\t50.0%\ntotal:\t\t\t\t\t(statements)\t87.4%\n"
+	got, err := parseCoverTotal(out)
+	if err != nil || got != 87.4 {
+		t.Fatalf("got %v, %v", got, err)
+	}
+	for _, bad := range []string{"", "no total here", "total:", "total:\t(statements)\tlots%"} {
+		if _, err := parseCoverTotal(bad); err == nil {
+			t.Errorf("%q should be an error", bad)
+		}
+	}
+}
+
+func TestSafetyHasACoverageFloor(t *testing.T) {
+	found := false
+	for _, g := range coverageGates {
+		if g.pattern == "./internal/safety/..." && g.min >= 85 {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("PLAN.md section 13.2: internal/safety must be gated at 85 percent")
+	}
+}

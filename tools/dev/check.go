@@ -27,7 +27,7 @@ type step struct {
 // failure, so one invocation shows everything that needs fixing.
 func cmdCheck(args []string) error {
 	flags := flag.NewFlagSet("check", flag.ContinueOnError)
-	skipFlag := flags.String("skip", "", "comma-separated step names to skip (gofmt, mod-tidy, vet, lint, test, vuln, licenses, cross, repo)")
+	skipFlag := flags.String("skip", "", "comma-separated step names to skip (gofmt, mod-tidy, vet, lint, test, coverage, vuln, licenses, cross, repo)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -44,6 +44,7 @@ func cmdCheck(args []string) error {
 		{"vet", stepVet},
 		{"lint", stepLint},
 		{"test", stepTest},
+		{"coverage", stepCoverage},
 		{"vuln", stepVuln},
 		{"licenses", stepLicenses},
 		{"cross", stepCross},
@@ -212,4 +213,63 @@ func stepCross() (string, error) {
 	}
 	defer func() { _ = os.RemoveAll(tmp) }()
 	return "", crossBuild(tmp, true)
+}
+
+// coverageGates are the packages with a hard coverage floor (PLAN.md section 13.2). The safety layer is the part
+// whose bugs are security bugs, so it is held to 85 percent of statements, measured across the whole tree: a test in
+// one package may cover code in another.
+var coverageGates = []struct {
+	pattern string
+	min     float64
+}{
+	{"./internal/safety/...", 85},
+}
+
+// stepCoverage runs the gated packages with coverage and fails below the floor.
+func stepCoverage() (string, error) {
+	tmp, err := os.MkdirTemp("", "controlsnack-cover-")
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = os.RemoveAll(tmp) }()
+
+	for _, g := range coverageGates {
+		profile := filepath.Join(tmp, "cover.out")
+		if err := run(nil, "go", "test", "-count=1", "-coverprofile="+profile, "-coverpkg="+g.pattern, g.pattern); err != nil {
+			return "", err
+		}
+		out, err := capture(nil, "go", "tool", "cover", "-func="+profile)
+		if err != nil {
+			return "", err
+		}
+		pct, err := parseCoverTotal(out)
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", g.pattern, err)
+		}
+		fmt.Printf("coverage of %s: %.1f%% (floor %.0f%%)\n", g.pattern, pct, g.min)
+		if pct < g.min {
+			return "", fmt.Errorf("coverage of %s is %.1f%%, below the floor of %.0f%%", g.pattern, pct, g.min)
+		}
+	}
+	return "", nil
+}
+
+// parseCoverTotal reads the "total:" line printed by `go tool cover -func`.
+func parseCoverTotal(out string) (float64, error) {
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "total:") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			break
+		}
+		var pct float64
+		if _, err := fmt.Sscanf(strings.TrimSuffix(fields[len(fields)-1], "%"), "%f", &pct); err != nil {
+			return 0, fmt.Errorf("cannot read the coverage total from %q", line)
+		}
+		return pct, nil
+	}
+	return 0, fmt.Errorf("no coverage total in the report")
 }
