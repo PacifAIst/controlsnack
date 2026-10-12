@@ -1,0 +1,28 @@
+# build output
+/dist/
+/bin/
+*.exe
+*.test
+*.out
+coverage.*
+cover.out
+
+# generated guest agent (go run ./tools/dev agent); PLACEHOLDER.txt stays committed
+/internal/vm/agentbin/*.gz
+/internal/vm/agentbin/SHA256SUMS
+
+# VM artefacts
+*.qcow2
+*.iso
+*.img
+serial.log
+
+# local config / secrets
+config.local.yaml
+.env
+
+# editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
