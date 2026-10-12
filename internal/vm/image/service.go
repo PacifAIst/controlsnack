@@ -5,10 +5,16 @@ package image
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
+	"path/filepath"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/PacifAIst/controlsnack-local/internal/config"
 	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
+	"github.com/PacifAIst/controlsnack-local/internal/platform"
 )
 
 // BuildOptions are the flags of `controlsnack image build`.
@@ -28,24 +34,191 @@ type Manager interface {
 	Path(ctx context.Context, w io.Writer, id string) error
 }
 
-// NewManager returns the placeholder until P3-T06 and P3-T08 implement the image pipeline.
-func NewManager() Manager { return pendingManager{} }
+// FileManager is the Manager over a Store on disk.
+type FileManager struct {
+	// Dir returns the image directory; the default is <user cache dir>/controlsnack/images.
+	Dir func() (string, error)
+	// Arch is the guest architecture for "the newest image" (default: the host's).
+	Arch string
+}
 
-type pendingManager struct{}
+// NewManager returns the manager for the current user's image store.
+func NewManager() Manager { return &FileManager{} }
 
-func (pendingManager) Build(context.Context, io.Writer, config.Config, BuildOptions) error {
+// DefaultDir is <user cache dir>/controlsnack/images.
+func DefaultDir() (string, error) {
+	d, err := platform.DefaultDirs()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(d.Cache, "images"), nil
+}
+
+func (m *FileManager) store() (Store, error) {
+	dir := m.Dir
+	if dir == nil {
+		dir = DefaultDir
+	}
+	d, err := dir()
+	if err != nil {
+		return Store{}, err
+	}
+	return Store{Dir: d}, nil
+}
+
+func (m *FileManager) arch() string {
+	if m.Arch != "" {
+		return m.Arch
+	}
+	return hostArch()
+}
+
+// imageMissing marks "no such image" with exit code 4.
+func imageMissing(err error) error {
+	if errors.Is(err, ErrNoImage) {
+		return exitcode.New(exitcode.ImageMissing, err)
+	}
+	return err
+}
+
+// Build is implemented by P3-T08.
+func (m *FileManager) Build(context.Context, io.Writer, config.Config, BuildOptions) error {
 	return exitcode.Pending("P3-T08")
 }
-func (pendingManager) List(context.Context, io.Writer) error { return exitcode.Pending("P3-T06") }
-func (pendingManager) Remove(context.Context, io.Writer, string) error {
-	return exitcode.Pending("P3-T06")
+
+// List prints the images, newest first.
+func (m *FileManager) List(_ context.Context, w io.Writer) error {
+	s, err := m.store()
+	if err != nil {
+		return err
+	}
+	images, problems, err := s.List()
+	if err != nil {
+		return err
+	}
+	if len(images) == 0 {
+		fmt.Fprintln(w, "No base images. Build one with: controlsnack image build")
+	} else {
+		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+		fmt.Fprintln(tw, "ID\tARCH\tCREATED\tSIZE\tUPSTREAM\tRECIPE")
+		for _, im := range images {
+			mf := im.Manifest
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", mf.ID, mf.Arch, mf.Created.Local().Format("2006-01-02 15:04"), humanSize(mf.Size),
+				upstreamLabel(mf.Upstream), mf.RecipeSHA256[:12])
+		}
+		if err := tw.Flush(); err != nil {
+			return err
+		}
+	}
+	for _, p := range problems {
+		fmt.Fprintln(w, "problem:", p)
+	}
+	return nil
 }
-func (pendingManager) Verify(context.Context, io.Writer, string) error {
-	return exitcode.Pending("P3-T06")
+
+func upstreamLabel(u Upstream) string {
+	name := u.URL[strings.LastIndex(u.URL, "/")+1:]
+	return fmt.Sprintf("%s (sha512 %s…)", name, u.SHA512[:8])
 }
-func (pendingManager) Import(context.Context, io.Writer, string, string) error {
-	return exitcode.Pending("P3-T06")
+
+func humanSize(n int64) string {
+	const unit = 1024
+	if n < unit {
+		return fmt.Sprintf("%d B", n)
+	}
+	div, exp := int64(unit), 0
+	for v := n / unit; v >= unit; v /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
 }
-func (pendingManager) Path(context.Context, io.Writer, string) error {
-	return exitcode.Pending("P3-T06")
+
+// Remove deletes an image by id or id prefix.
+func (m *FileManager) Remove(_ context.Context, w io.Writer, id string) error {
+	s, err := m.store()
+	if err != nil {
+		return err
+	}
+	im, err := s.Remove(id)
+	if err != nil {
+		return imageMissing(err)
+	}
+	fmt.Fprintf(w, "removed image %s (%s)\n", im.Manifest.ID, humanSize(im.Manifest.Size))
+	return nil
+}
+
+// Verify hashes one image, or all of them when id is empty.
+func (m *FileManager) Verify(ctx context.Context, w io.Writer, id string) error {
+	s, err := m.store()
+	if err != nil {
+		return err
+	}
+	var images []Image
+	if id == "" {
+		images, _, err = s.List()
+		if err != nil {
+			return err
+		}
+		if len(images) == 0 {
+			return exitcode.New(exitcode.ImageMissing, fmt.Errorf("%w: build one with 'controlsnack image build'", ErrNoImage))
+		}
+	} else {
+		im, ferr := s.Find(id)
+		if ferr != nil {
+			return imageMissing(ferr)
+		}
+		images = []Image{im}
+	}
+	failed := 0
+	for _, im := range images {
+		res, err := s.Verify(ctx, im)
+		if err != nil {
+			return err
+		}
+		if res.OK {
+			fmt.Fprintf(w, "ok      %s  %s\n", im.Manifest.ID, im.Path)
+			continue
+		}
+		failed++
+		fmt.Fprintf(w, "FAILED  %s  %s\n", im.Manifest.ID, im.Path)
+		for _, p := range res.Problems {
+			fmt.Fprintf(w, "        %s\n", p)
+		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("%d of %d images do not match their manifests: remove them with 'controlsnack image rm' and build again", failed, len(images))
+	}
+	return nil
+}
+
+// Import copies an image and its manifest into the store.
+func (m *FileManager) Import(ctx context.Context, w io.Writer, qcow2, manifest string) error {
+	s, err := m.store()
+	if err != nil {
+		return err
+	}
+	im, err := s.Import(ctx, qcow2, manifest)
+	if err != nil {
+		if errors.Is(err, ErrBadImage) {
+			return exitcode.New(exitcode.Failure, err)
+		}
+		return err
+	}
+	fmt.Fprintf(w, "imported image %s (%s, %s)\n", im.Manifest.ID, im.Manifest.Arch, humanSize(im.Manifest.Size))
+	return nil
+}
+
+// Path prints the path of an image, one line, nothing else.
+func (m *FileManager) Path(_ context.Context, w io.Writer, id string) error {
+	s, err := m.store()
+	if err != nil {
+		return err
+	}
+	im, err := s.Resolve(id, m.arch())
+	if err != nil {
+		return imageMissing(err)
+	}
+	fmt.Fprintln(w, im.Path)
+	return nil
 }

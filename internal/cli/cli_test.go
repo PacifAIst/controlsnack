@@ -20,6 +20,7 @@ import (
 
 	"github.com/PacifAIst/controlsnack-local/internal/config"
 	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
+	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
 )
 
 type fakeRunner struct {
@@ -136,11 +137,6 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 	cmds := [][]string{
 		{"run", "--task", "x"},
 		{"image", "build", "--yes"},
-		{"image", "ls"},
-		{"image", "rm", "abc"},
-		{"image", "verify"},
-		{"image", "import", "x.qcow2", "--manifest", "m.json"},
-		{"image", "path"},
 		{"vm", "ls"},
 		{"vm", "rm", "lab"},
 		{"llm", "probe"},
@@ -616,5 +612,46 @@ func TestDoctorCommandReachesTheServiceWithTheVMSettings(t *testing.T) {
 	fd = &fakeDoctor{err: exitcode.New(exitcode.Environment, errors.New("no VM can run"))}
 	if r := runCLI(t, nil, "linux", Services{Doctor: fd}, "doctor"); r.code != exitcode.Environment {
 		t.Errorf("%+v", r)
+	}
+}
+
+type fakeImages struct{ calls []string }
+
+func (f *fakeImages) rec(s string) error { f.calls = append(f.calls, s); return nil }
+func (f *fakeImages) Build(_ context.Context, _ io.Writer, _ config.Config, o image.BuildOptions) error {
+	return f.rec(fmt.Sprintf("build yes=%v force=%v", o.Yes, o.Force))
+}
+func (f *fakeImages) List(context.Context, io.Writer) error { return f.rec("ls") }
+func (f *fakeImages) Remove(_ context.Context, _ io.Writer, id string) error {
+	return f.rec("rm " + id)
+}
+func (f *fakeImages) Verify(_ context.Context, _ io.Writer, id string) error {
+	return f.rec("verify " + id)
+}
+func (f *fakeImages) Import(_ context.Context, _ io.Writer, q, m string) error {
+	return f.rec("import " + q + " " + m)
+}
+func (f *fakeImages) Path(_ context.Context, _ io.Writer, id string) error {
+	return f.rec("path " + id)
+}
+
+func TestImageCommandsReachTheManager(t *testing.T) {
+	for _, tt := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"image", "ls"}, "ls"},
+		{[]string{"image", "rm", "abcd1234"}, "rm abcd1234"},
+		{[]string{"image", "verify"}, "verify "},
+		{[]string{"image", "verify", "abcd"}, "verify abcd"},
+		{[]string{"image", "path"}, "path "},
+		{[]string{"image", "path", "abcd"}, "path abcd"},
+		{[]string{"image", "import", "x.qcow2", "--manifest", "m.json"}, "import x.qcow2 m.json"},
+		{[]string{"image", "build", "--yes", "--force"}, "build yes=true force=true"},
+	} {
+		f := &fakeImages{}
+		if r := runCLI(t, nil, "linux", Services{Images: f}, tt.args...); r.code != 0 || len(f.calls) != 1 || f.calls[0] != tt.want {
+			t.Errorf("%v: code %d calls %v (%s)", tt.args, r.code, f.calls, r.errOut)
+		}
 	}
 }
