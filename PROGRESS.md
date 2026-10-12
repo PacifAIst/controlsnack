@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P0 complete → next P1-T01 · Updated: 2026-10-12
-- Blockers: none for Phases 1–2. Phase 3 needs QEMU (not installed on the dev machine) — see Environment.
-- Resume here: start P1-T01 (cobra root command, zap logging, `version`); first `go get` of cobra/viper/zap, then re-run `go run ./tools/dev check`.
+- Phase: P1 complete → next P2-T01 (safety invariants and profiles) · Updated: 2026-10-12
+- Blockers: none for Phase 2. Phase 3 needs QEMU (not installed on the dev machine) — see Environment.
+- Resume here: start P2-T01. Phase 2 is pure Go and fully testable here; `internal/platform/listen.go` (the only file allowed to listen) is still to be created (TODO → Discovered).
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -32,7 +32,7 @@
 | Phase | Status | Exit criteria | Notes |
 |---|---|---|---|
 | P0 | **done** 2026-10-12 | `go build ./...`, `go test ./...`, `go run ./tools/dev check` green; deviation/interpretation summary posted | gate steps: gofmt, mod-tidy, vet, lint, test (no -race locally: no C compiler), vuln, licenses, cross (5 host + 2 agent, CGO_ENABLED=0), repo |
-| P1 | not started | | |
+| P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | not started | | |
 | P3 | not started | | needs QEMU on the dev machine |
 | P4 | not started | | |
@@ -42,6 +42,12 @@
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-12 — P1-T01…P1-T05 — done
+- Changed: `internal/exitcode` (codes 0/1/2/3/4/5/6/70, `ErrNotImplemented`, `Pending(task)`); `internal/config` (typed `Config` with a single defaults table, viper-free injectable env layer, strict file parsing, flag↔key table, validation with flag-naming messages, redaction, API-key resolution); `internal/cli` (cobra tree: run, kill, image build|ls|rm|verify|import|path, vm ls|rm, audit verify|ls|show|prune, doctor, llm probe|models, schema, version, config show|path; zap logging; signal forwarding with force-exit on the second signal); service interfaces + exit-70 placeholders in session, killswitch, audit, image, overlay, vm, detect, schema; `cmd/controlsnack` now calls `cli.Main`.
+- Decisions: D-38 (flag-only `--unsafe`, loosening limits needs `--unsafe`, `--vm`/`--keep-vm` exclusive, `kill` never reads the config, etc.).
+- Tests: config (defaults==struct keys, tags agree, Appendix C values, 4-layer precedence, strict parsing, unsafe not from file/env, ~65 validation cases, redaction, API key order, hermetic env), exitcode, cli (usage errors→2, every placeholder→70, run flags reach the config, flag defaults equal config defaults, broken config doesn't block `kill`/`version`/`--help`, runner errors→exit codes, `config show` never prints the API key, signal forwarding, logger formats). `go run ./tools/dev check` green. Built binary smoke-tested: `--version`, `run` (70), `run --memory 100` (2, names `--memory (vm.memory_mib)`), unknown command (2), `doctor` (70).
+- Verified: `go-licenses` really enforces the policy (allowing only MIT fails on cobra/pflag/fsnotify).
+- Follow-ups: small commands share `internal/cli/simple.go` instead of one file each (D-38); `-race` still unavailable locally.
 ### 2026-10-12 — P0-T03 — done
 - Changed: go.mod (`go 1.26.0`, `toolchain go1.26.9`, tools govulncheck + go-licenses/v2 via `go get -tool`); the full §4.1 package layout with an untagged `doc.go` per package (49 packages, SPDX headers); `internal/buildinfo` (+ tests); `cmd/controlsnack` (identifies the build, exits 70) and `cmd/controlsnack-agent` (linux main + non-linux stub); `tools/dev` with `check build cross agent licenses fuzz e2e release` (+ unit tests); `.golangci.yml` (v2); `.github/workflows/ci.yml` (§13.5); `internal/vm/agentbin/PLACEHOLDER.txt`.
 - Tests: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./tools/dev check` all green (9 steps). Agent builds are byte-identical across runs (amd64 1.6 MB raw / 725 KB gz, arm64 1.6 MB / 667 KB gz). `build` produced a working windows/amd64 binary (exit 70, as designed).

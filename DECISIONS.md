@@ -268,3 +268,19 @@ existing entries are never rewritten. Add an entry *before* implementing any cho
 - Decision: go.mod keeps `go 1.26.0` as the language floor (D-35) and adds `toolchain go1.26.9`. With the default `GOTOOLCHAIN=auto` the go command fetches that official, checksum-verified toolchain into the module cache and uses it for this module only; nothing is installed system-wide. CI's `setup-go` reads the same line. Bump the `toolchain` line (new decision) when a newer patch fixes a reachable advisory.
 - Consequences: first `go` invocation in a fresh checkout downloads the toolchain (~70 MB, once). `govulncheck` reports 0 vulnerabilities on go1.26.9 as of 2026-10-12.
 - Supersedes / superseded by: refines D-35
+
+## D-38 — Phase 1 CLI and configuration rules the plan left open
+- Status: Accepted (2026-10-12) · Type: Interpretation
+- Context: PLAN.md P1-T02…T05 list flags, precedence and exit codes but not several edge rules that a safety tool has to settle one way or the other.
+- Decision:
+  1. **`--unsafe` is flag-only.** It is not a config key and is rejected in the config file and in `CONTROLSNACK_SAFETY_UNSAFE`, so nothing outside the command line can silently relax the safety layer for every later run (extends D-17).
+  2. **Limits can be tightened freely; loosening them needs `--unsafe`.** The defaults of Appendix C are the safe maxima (2 actions/s, 3 per response, 60 per task, 100 turns, 60 min). Under `--unsafe` the maxima become the §6.2 values (10, 10, 500, 500, 8 h). Values outside the applicable range are usage errors that name the flag.
+  3. **`--viewer none` needs `--unsafe` unless `--no-llm`** (D-20). A non-loopback `--base-url` must be `https` unless `--unsafe` (D-08). A `--base-url` needs an explicit `--llm` so the protocol is known; URLs with credentials are refused.
+  4. **`--vm` (resume a kept VM) and `--keep-vm` (create one) are mutually exclusive.** `--keep-vm` without a value means a generated name (`auto`); a name must be written `--keep-vm=NAME`. `--no-llm` conflicts with `--task`.
+  5. **`--allow-domain` / `--allow-port` typed without `--allow-net` is a usage error;** the same keys coming from a file or the environment only produce a warning. `net.allow_ports` are ports *in addition to* 80 and 443. `net.deny_domains` is config-file only.
+  6. **The environment layer is read through an injectable `Getenv`** and merged above the file and below the flags; an empty variable counts as unset. Unknown keys in the config file are errors (typos must not be silently ignored).
+  7. **`kill`, `version`, `schema`, `--help` and the bare command never read the config file** so a broken file cannot block the emergency stop or the help. `config show` prints first and validates after, so the values that are wrong can be seen. `doctor` accepts `--accel`, `--slow` and `--qemu` so the verdict can be checked for a forced setting (extends D-32).
+  8. **Exit code 5 covers interruption** (Ctrl+C/SIGTERM/SIGHUP, a canceled context) as well as the kill switch. A second signal ends the process immediately.
+  9. A tiny leaf package `internal/exitcode` holds the codes and `ErrNotImplemented` so every layer can return a coded error without importing the CLI; each package that owns a command's behavior defines the service interface the command calls, with a placeholder that exits 70 and names the task that replaces it.
+- Consequences: PLAN.md §4.1 gains `internal/exitcode`; `internal/cli` groups some small commands per file instead of strictly one file per command.
+- Supersedes / superseded by: extends D-17, D-20, D-32

@@ -7,11 +7,11 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P0-T03 Skeleton (layout, go.mod, tools/dev, CI) — print tree + go.mod
 
 ## Phase 1 — CLI: cmd/controlsnack, internal/cli, internal/config
-- [ ] P1-T01 Root command, logging, build info
-- [ ] P1-T02 Typed config (defaults, viper, validation, redaction; `config show|path`)
-- [ ] P1-T03 Command tree (run, kill, image, vm, audit, doctor --json, llm, schema, version; `image build` takes --accel/--slow)
-- [ ] P1-T04 `run` flags (incl. --accel auto|kvm|whpx|hvf|tcg and --slow) + validation and mutual exclusions
-- [ ] P1-T05 Exit codes and signals
+- [x] (2026-10-12) P1-T01 Root command, logging, build info
+- [x] (2026-10-12) P1-T02 Typed config (defaults, viper, validation, redaction; `config show|path`)
+- [x] (2026-10-12) P1-T03 Command tree (run, kill, image, vm, audit, doctor --json, llm, schema, version; `image build` takes --accel/--slow)
+- [x] (2026-10-12) P1-T04 `run` flags (incl. --accel auto|kvm|whpx|hvf|tcg and --slow) + validation and mutual exclusions
+- [x] (2026-10-12) P1-T05 Exit codes and signals
 
 ## Phase 2 — Safety: internal/safety (required test suite #1)
 - [ ] P2-T01 Invariants and profiles (§6.1, §6.2)
