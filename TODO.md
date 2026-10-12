@@ -36,7 +36,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P3-T13 Launch with one TCG retry — launch.go (§7.9, D-31) *(R1)*
 - [x] (2026-10-12) P3-T14 `controlsnack doctor` (§7.10, D-33) *(R1)*
 - [x] (2026-10-12) P3-T06 Image manager
-- [ ] P3-T07 Seed builder + guest templates
+- [x] (2026-10-12) P3-T07 Seed builder + guest templates
 - [ ] P3-T08 `image build` orchestration (§7.5)
 - [ ] P3-T09 Overlays and kept VMs (§7.6) + `vm ls|rm`
 - [ ] P3-T10 Agent installer + client (§7.7) and minimal agent

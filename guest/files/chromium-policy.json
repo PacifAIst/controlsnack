@@ -1,0 +1,18 @@
+{
+  "ProxyMode": "fixed_servers",
+  "ProxyServer": "127.0.0.1:3128",
+  "PasswordManagerEnabled": false,
+  "SyncDisabled": true,
+  "BrowserSignin": 0,
+  "DefaultBrowserSettingEnabled": false,
+  "MetricsReportingEnabled": false,
+  "TranslateEnabled": false,
+  "AutofillAddressEnabled": false,
+  "AutofillCreditCardEnabled": false,
+  "BrowserAddPersonEnabled": false,
+  "PromptForDownloadLocation": false,
+  "DownloadDirectory": "/home/cs/Downloads",
+  "HomepageLocation": "about:blank",
+  "RestoreOnStartup": 5,
+  "ExtensionInstallBlocklist": ["*"]
+}

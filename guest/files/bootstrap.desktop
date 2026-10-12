@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ControlSnack bootstrap
+Comment=Waits for the host to push the guest agent
+Exec=/usr/local/lib/controlsnack/bootstrap.sh
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Phase=Initialization

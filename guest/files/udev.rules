@@ -1,0 +1,2 @@
+# ControlSnack: the virtio-serial ports to the host belong to the desktop user and to nobody else.
+SUBSYSTEM=="virtio-ports", ATTR{name}=="org.controlsnack.*", OWNER="cs", GROUP="cs", MODE="0600"
