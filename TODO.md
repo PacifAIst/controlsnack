@@ -2,9 +2,9 @@
 Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dropped (reason + D-xx)
 
 ## Phase 0 — Bootstrap and tracking
-- [~] P0-T01 Tracking files and identity
-- [ ] P0-T02 Environment check
-- [ ] P0-T03 Skeleton (layout, go.mod, tools/dev, CI) — print tree + go.mod
+- [x] (2026-10-12) P0-T01 Tracking files and identity
+- [x] (2026-10-12) P0-T02 Environment check
+- [x] (2026-10-12) P0-T03 Skeleton (layout, go.mod, tools/dev, CI) — print tree + go.mod
 
 ## Phase 1 — CLI: cmd/controlsnack, internal/cli, internal/config
 - [ ] P1-T01 Root command, logging, build info
@@ -102,6 +102,13 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 
 ## Discovered
 - [ ] P3-T12: verify on this machine that `WHvGetCapability` is the deciding signal, not the DLL — `WinHvPlatform.dll` exists in System32 although the "Windows Hypervisor Platform" feature is disabled (found in P0-T02; contradicts the PLAN §7.1 note "DLL missing = feature not enabled").
+- [ ] P2-T01: wire the `internal/safety` ≥ 85 % coverage gate (PLAN §13.2) into `tools/dev check`; tools/dev currently has no coverage step.
+- [ ] P2-T08 / P6-T01: create `internal/platform/listen.go` (the single 127.0.0.1-only listener helper). `tools/dev check` → `repo` already rejects any other file that opens a listener or binds a wildcard address.
+- [ ] P3-T14: add the `controlsnack doctor --json` step (must exit 0 and print a verdict) to the Windows and macOS CI jobs (PLAN §13.5); not added in P0 because the command does not exist yet.
+- [ ] P3-T10 / P4-T12: make `tools/dev build` run `agent` first once the host embeds the guest agents (D-04); `agentbin` will use `//go:embed *` so a clean checkout (only PLACEHOLDER.txt) still compiles.
+- [ ] P6-T06: add the forbidden front-end API scan (innerHTML, eval, inline handlers…) to `tools/dev check` → `repo`.
+- [ ] P8-T02: `tools/dev licenses` only checks; add the `go-licenses report` → THIRD_PARTY_LICENSES.md generation (module path is `github.com/google/go-licenses/v2`).
+- [ ] P8-T05: verify the GitHub Actions versions in .github/workflows/ci.yml (checkout@v4, setup-go@v5, cache@v4) against current releases; the workflow could not be run locally.
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)

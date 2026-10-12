@@ -261,3 +261,10 @@ existing entries are never rewritten. Add an entry *before* implementing any cho
 - Decision: ControlSnack Local lives in its own repository at `C:\Users\pc\Projects\controlsnack-local` (its own `git init`, `main` branch). Nothing in `paranoidchat` is touched. Every Go source file starts with `// SPDX-FileCopyrightText: 2026 Dr. Manuel Herrador` and `// SPDX-License-Identifier: AGPL-3.0-only` (D-00).
 - Consequences: none for the design; the module path in D-00 still names the future GitHub location.
 - Supersedes / superseded by: —
+
+## D-37 — go.mod pins `toolchain go1.26.9`
+- Status: Accepted (2026-10-12) · Type: Interpretation · Refines the Consequences of D-35
+- Context: the dev machine's Go 1.26.5 carries 21 known standard-library advisories (govulncheck: fixed in 1.26.6 and 1.26.9; none reachable from our code yet, but `net/http`, `crypto/tls` and `archive/*` will make them reachable from Phase 1 on). Upgrading the system Go is the user's machine, not ours to change; the `go` command can use a newer toolchain for one module on its own.
+- Decision: go.mod keeps `go 1.26.0` as the language floor (D-35) and adds `toolchain go1.26.9`. With the default `GOTOOLCHAIN=auto` the go command fetches that official, checksum-verified toolchain into the module cache and uses it for this module only; nothing is installed system-wide. CI's `setup-go` reads the same line. Bump the `toolchain` line (new decision) when a newer patch fixes a reachable advisory.
+- Consequences: first `go` invocation in a fresh checkout downloads the toolchain (~70 MB, once). `govulncheck` reports 0 vulnerabilities on go1.26.9 as of 2026-10-12.
+- Supersedes / superseded by: refines D-35

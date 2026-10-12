@@ -1,0 +1,84 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      e2e:
+        description: "Run the end-to-end tests on Ubuntu with KVM"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  CI: "true"
+
+jobs:
+  check:
+    name: check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+        env:
+          GOTOOLCHAIN: local
+      # The quality gate: gofmt, mod tidy, vet, lint, tests (-race where a C toolchain exists, which is always
+      # the case on the Linux and macOS runners), govulncheck, license policy, cross-build smoke, repo checks.
+      - name: go run ./tools/dev check
+        run: go run ./tools/dev check
+
+  ubuntu-extras:
+    name: ubuntu extras
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Cross-build all release targets
+        run: go run ./tools/dev cross -o dist/cross
+      - name: Fuzz smoke (30 s per target)
+        run: go run ./tools/dev fuzz -time 30s
+      - name: Guest agent integration tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb at-spi2-core tesseract-ocr libwebp7
+          xvfb-run -a go test -tags integration -count=1 ./internal/agent/...
+        # Chromium for CDP comes from the runner's preinstalled Google Chrome.
+
+  e2e:
+    name: e2e (Ubuntu + KVM)
+    if: github.event_name == 'workflow_dispatch' && inputs.e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Check for KVM
+        run: |
+          if [ -e /dev/kvm ]; then ls -l /dev/kvm; else echo "no /dev/kvm: the e2e run will use TCG"; fi
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils
+      - name: Cache the base image
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/controlsnack/images
+          key: base-image-${{ hashFiles('guest/**') }}
+      - name: go run ./tools/dev e2e
+        run: go run ./tools/dev e2e

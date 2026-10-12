@@ -1,0 +1,44 @@
+# golangci-lint v2 configuration (PLAN.md section 13.1, step 3).
+version: "2"
+
+run:
+  timeout: 10m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - gosec
+    - bodyclose
+    - noctx
+    - errorlint
+    - misspell
+  settings:
+    misspell:
+      locale: US
+    gosec:
+      excludes:
+        # Subprocess arguments are built by our own code, never from model or guest input on the host.
+        # The one place that handles untrusted input (the exec policy) never spawns on the host at all.
+        - G204
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+      # The developer task runner shells out and walks the tree by design.
+      - path: ^tools/dev/
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofmt
