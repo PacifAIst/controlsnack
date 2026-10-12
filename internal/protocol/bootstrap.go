@@ -13,6 +13,15 @@ import (
 	"strings"
 )
 
+// Names of the virtio-serial ports QEMU gives the guest; they appear as /dev/virtio-ports/<name>, and the guest's
+// udev rule matches org.controlsnack.* (PLAN.md section 7.5).
+const (
+	// PortAgent carries the bootstrap and then the framed agent protocol.
+	PortAgent = "org.controlsnack.agent.0"
+	// PortNet carries the multiplexed network streams of --allow-net (PLAN.md section 7.8).
+	PortNet = "org.controlsnack.net.0"
+)
+
 // The bootstrap phase (PLAN.md section 5.1): on every boot the guest stub opens the agent's virtio-serial port and
 // waits. The host pushes its embedded agent as one text line followed by the raw bytes, the stub checks them and
 // answers with one text line, then starts the agent with the port on file descriptor 3.
