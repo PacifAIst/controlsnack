@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 in progress (P3-T01, T02, T12, T03, T04, T05, T13 done) → next P3-T14 (`controlsnack doctor`) · Updated: 2026-10-12
+- Phase: P3 in progress (P3-T01, T02, T12, T03, T04, T05, T13, T14 done) → next P3-T06 (image manager) · Updated: 2026-10-12
 - Blockers: none for the unit-testable parts of Phase 3 (T02–T07, T09, T10, T12–T14 use fakes). No QEMU on the Windows host: P3-T08 (real image build) and P3-T11 (real boot) run in WSL with TCG (x86_64 only); whether WHPX works on this machine is unproven until a Windows QEMU runs here (D-44).
-- Resume here: P3-T14 (`internal/vm/doctor.go` + per-OS files: read-only report — host/CPU virtualization, per-OS checks, the same `Detector` as `run`, verdict `will use kvm|whpx|hvf|tcg (slow)` + numbered remediation; exit 3 when no VM can run; `--json`; must decide on the probe result, not the optional-feature state, D-44), then T06 (image manager), T07 (seed), T08 (image build — the real run in WSL with TCG), T09 (overlays), T10 (agent installer/client + minimal agent), T11 (milestone `run --no-llm --viewer none`). The launcher is proven against a real QEMU with a blank disk (D-48). Consider getting a QEMU for Windows onto this machine (winget manifest URL + SHA-256, extract without admin) to test WHPX for real — see TODO → Discovered.
+- Resume here: P3-T06 (`internal/vm/image`: image manager — download with resume, SHA-512 verify against Debian's `SHA512SUMS`, manifest, `image ls|rm|verify|path|import`; re-check the current Debian stable URLs and signature first, Appendix B), then T07 (NoCloud seed ISO in pure Go + guest templates), T08 (`image build` — the real run in WSL with TCG), T09 (overlays / kept VMs), T10 (agent installer/client + minimal agent), T11 (milestone `run --no-llm --viewer none`). The launcher is proven against a real QEMU with a blank disk (D-48) and the doctor against real Windows and Linux (D-49). Consider getting a QEMU for Windows onto this machine (winget manifest URL + SHA-256, extract without admin) to test WHPX for real — see TODO → Discovered.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -35,7 +35,7 @@
 | P0 | **done** 2026-10-12 | `go build ./...`, `go test ./...`, `go run ./tools/dev check` green; deviation/interpretation summary posted | gate steps: gofmt, mod-tidy, vet, lint, test (no -race locally: no C compiler), vuln, licenses, cross (5 host + 2 agent, CGO_ENABLED=0), repo |
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
-| P3 | in progress (T01, T02, T12, T03, T04, T05, T13 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
+| P3 | in progress (T01, T02, T12, T03, T04, T05, T13, T14 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
 | P4 | not started | | |
 | P5 | not started | | |
 | P6 | not started | | |
@@ -43,6 +43,11 @@
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-12 — P3-T14 — done
+- Changed: `internal/vm` — `doctor.go` (`DoctorService`, `Report`, `Check` extension point, text and `--json` rendering), `doctor_facts.go` (`Facts`), `doctor_diagnose.go` (pure `Diagnose`), `doctor_parse.go` (cpuinfo, os-release, WMI JSON, entitlement parsers), collectors `doctor_{linux,windows,darwin,other}.go`; `qemu.NotFoundError` now counts plain PATH misses; `.github/workflows/ci.yml` runs `doctor --json` on macOS and Windows. The placeholder doctor is gone. Decisions: D-49.
+- Tests: parsers on real samples; diagnosis table — 12 Windows cases (the four of §7.10, whpx working with the feature reading disabled, hypervisor running ⇒ never "BIOS", denied queries, Home, `--slow`), 11 Linux cases (incl. the WSL2 one), macOS ×4, QEMU unusable ×6 + unreadable facts + an OS without hardware acceleration; service: working machine, numbered fixes after the verdict, JSON keys, exit 3 for missing / too old / lacking a device / failing tcg probe, usage errors → exit 2, extra checks, cancellation; **doctor and run choose the same accelerator** for 8 settings; real collectors on this Windows machine and in WSL. CLI: doctor reaches the service with the VM flags; exit codes propagate.
+- **Real runs:** Windows 10 Pro 22H2 here — hypervisor running (WSL2), firmware virtualization correctly not blamed, Hypervisor Platform "disabled", `WHvGetCapability` true, QEMU not found ⇒ `cannot run a VM`, exit 3, `winget install` step. WSL2/Ubuntu 24.04 with QEMU 8.2.2 — kvm refused (not in the `kvm` group), tcg chosen, exit 0. The WSL run exposed a wrong diagnosis order (CPU flags before `/dev/kvm`); fixed and covered by a test.
+- Follow-ups: extra checks for the base image (T06), model servers (P5) and browsers (P6); see TODO → Discovered.
 ### 2026-10-12 — P3-T13 — done
 - Changed: `internal/vm` — `launch.go` (`Launch`, `LaunchOptions`, `VM` with `Stop`/`Kill`, `Backend`, `Prepare`, `Events`, `LaunchError`), `backend.go` (`RealBackend`, `NewSocketDir`, `AllocateEndpoints`), `auditevents.go` (`AuditEvents` → lifecycle audit records). Decisions: D-48.
 - Tests: fake-backend suite for every branch (first-try success, hardware failure → one tcg retry with fresh resources and ordered cleanup, explicit accelerator also retried, tcg never retried, both failing = exit 3 with both excerpts, window ×4 under tcg, state changes during the stability hold, process exit during it, a process that will not die blocks the retry, preparation / command-line errors are exit 1 and not retried, cancel = no retry, dialers joined before cleanup, --allow-net port); real `audit.Log` round trip with a verified hash chain; `-race` ×3 on Linux.

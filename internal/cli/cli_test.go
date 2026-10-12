@@ -143,8 +143,6 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 		{"image", "path"},
 		{"vm", "ls"},
 		{"vm", "rm", "lab"},
-		{"doctor"},
-		{"doctor", "--json"},
 		{"llm", "probe"},
 		{"llm", "models"},
 		{"schema"},
@@ -582,5 +580,41 @@ func TestDefaultServicesAreAllPresent(t *testing.T) {
 		if v.Field(i).IsNil() {
 			t.Errorf("DefaultServices leaves %s nil", v.Type().Field(i).Name)
 		}
+	}
+}
+
+type fakeDoctor struct {
+	called int
+	json   bool
+	cfg    config.Config
+	err    error
+}
+
+func (f *fakeDoctor) Run(_ context.Context, w io.Writer, cfg config.Config, asJSON bool) error {
+	f.called++
+	f.json, f.cfg = asJSON, cfg
+	_, _ = io.WriteString(w, "will use tcg (slow)\n")
+	return f.err
+}
+
+func TestDoctorCommandReachesTheServiceWithTheVMSettings(t *testing.T) {
+	fd := &fakeDoctor{}
+	r := runCLI(t, nil, "linux", Services{Doctor: fd}, "doctor", "--json", "--accel", "tcg", "--qemu", "/opt/qemu/bin")
+	if r.code != 0 || fd.called != 1 || !fd.json || !strings.Contains(r.out, "will use") {
+		t.Fatalf("%+v %+v", r, fd)
+	}
+	if fd.cfg.VM.Accel != "tcg" || fd.cfg.VM.QemuDir != "/opt/qemu/bin" {
+		t.Errorf("doctor sees the same settings run would: %+v", fd.cfg.VM)
+	}
+
+	fd = &fakeDoctor{}
+	if r := runCLI(t, nil, "linux", Services{Doctor: fd}, "doctor", "--slow"); r.code != 0 || fd.json || !fd.cfg.VM.Slow {
+		t.Errorf("%+v %+v", r, fd.cfg.VM)
+	}
+
+	// No VM can run: exit code 3 comes through unchanged.
+	fd = &fakeDoctor{err: exitcode.New(exitcode.Environment, errors.New("no VM can run"))}
+	if r := runCLI(t, nil, "linux", Services{Doctor: fd}, "doctor"); r.code != exitcode.Environment {
+		t.Errorf("%+v", r)
 	}
 }

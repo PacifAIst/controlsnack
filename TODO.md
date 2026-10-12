@@ -34,7 +34,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P3-T04 Process supervisor (§7.4)
 - [x] (2026-10-12) P3-T05 QMP client
 - [x] (2026-10-12) P3-T13 Launch with one TCG retry — launch.go (§7.9, D-31) *(R1)*
-- [ ] P3-T14 `controlsnack doctor` (§7.10, D-33) *(R1)*
+- [x] (2026-10-12) P3-T14 `controlsnack doctor` (§7.10, D-33) *(R1)*
 - [ ] P3-T06 Image manager
 - [ ] P3-T07 Seed builder + guest templates
 - [ ] P3-T08 `image build` orchestration (§7.5)
@@ -106,7 +106,8 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P3-T14: `doctor` must decide on the probe result, not on the optional-feature state; print feature state, API answers (`HypervisorPresent`, optionally `WHvCreatePartition`) and the probe side by side (D-44).
 - [x] (2026-10-12) P2-T01: wire the `internal/safety` ≥ 85 % coverage gate (PLAN §13.2) into `tools/dev check`; tools/dev currently has no coverage step.
 - [x] (2026-10-12) P2-T08 / P6-T01: create `internal/platform/listen.go` (the single 127.0.0.1-only listener helper). `tools/dev check` → `repo` already rejects any other file that opens a listener or binds a wildcard address.
-- [ ] P3-T14: add the `controlsnack doctor --json` step (must exit 0 and print a verdict) to the Windows and macOS CI jobs (PLAN §13.5); not added in P0 because the command does not exist yet.
+- [x] (2026-10-12) P3-T14: `controlsnack doctor --json` step added to the macOS and Windows CI jobs (QEMU installed first; report kept as an artifact). Verify the action versions and the `choco`/`brew` package names at P8-T05.
+- [ ] P3-T06 / P5 / P6: register the doctor's extra `Check`s — base image (T06), local model servers (`llm detect`, P5), viewer browsers (P6-T04); PLAN §7.10 item 3.
 - [ ] P3-T10 / P4-T12: make `tools/dev build` run `agent` first once the host embeds the guest agents (D-04); `agentbin` will use `//go:embed *` so a clean checkout (only PLACEHOLDER.txt) still compiles.
 - [ ] P6-T06: add the forbidden front-end API scan (innerHTML, eval, inline handlers…) to `tools/dev check` → `repo`.
 - [ ] P8-T02: `tools/dev licenses` only checks; add the `go-licenses report` → THIRD_PARTY_LICENSES.md generation (module path is `github.com/google/go-licenses/v2`).

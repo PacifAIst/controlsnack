@@ -320,14 +320,29 @@ func TestNotFoundErrorExplainsEverything(t *testing.T) {
 	if err := os.MkdirAll(empty, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Discover(context.Background(), newHost(t, empty), Options{noKnownDirs: true})
+	noImg := install(t, filepath.Join(root, "noimg"), ArchX86_64, false)
+	other := filepath.Join(root, "other")
+	if err := os.MkdirAll(other, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Discover(context.Background(), newHost(t, empty, noImg, other), Options{noKnownDirs: true})
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"qemu-system-x86_64", "qemu-img", empty, "path", "not found"} {
-		if !strings.Contains(err.Error(), want) {
+	msg := err.Error()
+	for _, want := range []string{"qemu-system-x86_64", "qemu-img",
+		noImg, "is not next to", // an install that is missing qemu-img is worth naming
+		"searched 2 directories on PATH"} { // the plain misses are only counted
+		if !strings.Contains(msg, want) {
 			t.Errorf("message lacks %q:\n%v", want, err)
 		}
+	}
+	if strings.Contains(msg, empty) || strings.Contains(msg, other) {
+		t.Errorf("directories that merely lack QEMU are counted, not listed:\n%v", err)
+	}
+	var nf *NotFoundError
+	if !errors.As(err, &nf) || len(nf.Attempts) != 3 {
+		t.Errorf("the full list stays available for --json: %+v", nf)
 	}
 }
 

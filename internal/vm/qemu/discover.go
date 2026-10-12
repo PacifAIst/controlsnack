@@ -38,11 +38,22 @@ type NotFoundError struct {
 	Attempts []Attempt
 }
 
+// Error names every place that mattered. The directories on PATH that simply do not have the program are only
+// counted, because PATH often holds dozens of them; a PATH directory that has the emulator but lacks qemu-img, and
+// every explicit or well-known place, are listed with their reason. The full list is in Attempts.
 func (e *NotFoundError) Error() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s: could not find %s", ErrNotFound, e.Binary)
+	plain := 0
 	for _, a := range e.Attempts {
+		if a.Source == SourcePath && strings.HasSuffix(a.Reason, ": not found") {
+			plain++
+			continue
+		}
 		fmt.Fprintf(&b, "\n  %s (%s): %s", a.Dir, a.Source, a.Reason)
+	}
+	if plain > 0 {
+		fmt.Fprintf(&b, "\n  searched %d directories on PATH without finding it", plain)
 	}
 	return b.String()
 }

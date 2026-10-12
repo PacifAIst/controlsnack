@@ -38,6 +38,27 @@ jobs:
       # the case on the Linux and macOS runners), govulncheck, license policy, cross-build smoke, repo checks.
       - name: go run ./tools/dev check
         run: go run ./tools/dev check
+      # `doctor` must run on every host OS and always print a verdict (PLAN.md section 13.5). The macOS and Windows
+      # runners get a QEMU first so the command can exit 0; what it reports there (WHPX, HVF, tcg) is the first
+      # real-hardware evidence for those accelerators, so the JSON is kept as an artifact.
+      - name: Install QEMU (macOS)
+        if: runner.os == 'macOS'
+        run: brew install qemu
+      - name: Install QEMU (Windows)
+        if: runner.os == 'Windows'
+        run: choco install qemu --no-progress -y
+      - name: controlsnack doctor --json
+        if: runner.os != 'Linux'
+        shell: bash
+        run: |
+          go run ./cmd/controlsnack doctor --json | tee doctor-${{ runner.os }}.json
+      - name: Keep the doctor report
+        if: runner.os != 'Linux' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doctor-${{ runner.os }}
+          path: doctor-${{ runner.os }}.json
+          if-no-files-found: ignore
 
   ubuntu-extras:
     name: ubuntu extras
