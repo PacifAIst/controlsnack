@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 in progress (P3-T01 done) → next P3-T02 (QEMU discovery) · Updated: 2026-10-12
+- Phase: P3 in progress (P3-T01, P3-T02 done) → next P3-T12 (accelerator detector) · Updated: 2026-10-12
 - Blockers: none for the unit-testable parts of Phase 3 (T02–T07, T09, T10, T12–T14 use fakes). No QEMU on the Windows host: P3-T08 (real image build) and P3-T11 (real boot) run in WSL with TCG (x86_64 only); the first WHPX measurement needs an admin to enable Windows Hypervisor Platform.
-- Resume here: P3-T02 (`internal/vm/qemu` discovery), then P3-T12 (accelerator detector) → P3-T03 as §12 orders them.
+- Resume here: P3-T12 (`internal/vm/accel.go` + per-OS files, `HostProbe`), then P3-T03 (argv builders) as §12 orders them. `qemu.Discover` returns an `Install` (paths, version, accels, sandbox support, aarch64 firmware) that both use.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -35,7 +35,7 @@
 | P0 | **done** 2026-10-12 | `go build ./...`, `go test ./...`, `go run ./tools/dev check` green; deviation/interpretation summary posted | gate steps: gofmt, mod-tidy, vet, lint, test (no -race locally: no C compiler), vuln, licenses, cross (5 host + 2 agent, CGO_ENABLED=0), repo |
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
-| P3 | in progress (T01 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
+| P3 | in progress (T01, T02 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
 | P4 | not started | | |
 | P5 | not started | | |
 | P6 | not started | | |
@@ -43,6 +43,12 @@
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-12 — P3-T02 — done
+- Changed: `internal/vm/qemu` — `host.go` (`Host` interface + `OSHost`: minimal env, 512 KiB output cap, killed on context end), `features.go` (version / `-accel` / `-machine` / `-device` help parsers, `MinMajor` = 8, `SandboxArg`, `VersionError`, `FeatureError`), `discover.go` (`Discover`, `Install`, `NotFoundError` with every place tried and why, `KnownDirs`), `firmware.go` (aarch64 UEFI firmware search). Decisions: D-43.
+- Tests: parsers fed with real QEMU 8.2.2 output; search order (config → PATH → known dirs), explicit dir never replaced, relative PATH entries ignored, non-executable / directory / missing qemu-img rejected, too-old and missing-device installs reported together with the Install, sandbox probe only on Linux and only with a `quit` on stdin, aarch64 firmware layouts incl. Homebrew-style symlinks, `OSHost.Run` against a helper process (stdin, stderr, exit code, output cap, environment, timeout kill). `-race` green on Linux.
+- **Verified against the real thing** (WSL): `TestDiscoverRealQEMU` found QEMU 8.2.2 in /usr/bin, accels `[kvm tcg]`, sandbox supported, 135 machines, 446 devices; skipped on the Windows host (no QEMU).
+- Measured finding: a QMP session whose stdin hits end-of-file does **not** make QEMU exit (it kept running until killed) → the sandbox probe sends `quit` explicitly and every run is time-boxed.
+- Follow-ups: none.
 ### 2026-10-12 — P3-T01 — done
 - Changed: `internal/protocol` — `bootstrap.go` (`CSBOOT/1 PUSH|OK|ERR` line codec, byte-wise `ReadBootLine` that never reads past the newline, 512-byte line cap, plain-decimal size, lowercase-hex hash/nonce), `frame.go` (`[uint32 BE header_len][header JSON][blob]`, header ≤ 1 MiB, blob ≤ 8 MiB, strict decoding, limits checked before any allocation, single-write `WriteFrame`), `messages.go` (type registry + every request/response body), `handshake.go` (`HelloAck.Validate` against nonce, pushed-binary hash, arch, user, display sanity, required capabilities, same major version), `conn.go` (serialized `Send`, violation ⇒ connection marked bad and closed).
 - Tests: 20 test functions + 2 fuzz targets — codec round trips, 17 malformed push lines plus 11 field-validation mutations and 8 bad replies, 17 frame violations, truncation at every byte offset, limit boundaries, concurrent senders never interleave, buffered bytes behind the bootstrap survive into `Conn`, every body type survives a strict JSON round trip. `-race` green on Linux (WSL). Fuzz: `FuzzReadFrame` 25 s / 4.2 M execs, `FuzzParseBootstrap` 20 s / 3.7 M execs, clean.

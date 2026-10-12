@@ -28,7 +28,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 
 ## Phase 3 — VM: internal/protocol, internal/vm (required test suite #2)
 - [x] (2026-10-12) P3-T01 Protocol package (§5.1)
-- [ ] P3-T02 QEMU discovery (§7.1)
+- [x] (2026-10-12) P3-T02 QEMU discovery (§7.1)
 - [ ] P3-T12 Accelerator detector — accel.go + per-OS files (§7.1, D-31, D-32) *(R1)*
 - [ ] P3-T03 Argv builders (§7.2): golden tests per arch × accel; forbidden-flag invariant
 - [ ] P3-T04 Process supervisor (§7.4)

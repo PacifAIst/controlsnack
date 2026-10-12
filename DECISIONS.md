@@ -319,3 +319,16 @@ existing entries are never rewritten. Add an entry *before* implementing any cho
 - Context: the Windows dev machine has no C compiler, so `go test -race` cannot run natively, and Linux-only code (the Phase 3/4 guest agent, /proc handling) would otherwise be untested until CI.
 - Decision: `scripts/wsl-go.sh` runs any command in WSL with a private Go toolchain installed under `~/.cache/controlsnack-dev` (version from go.dev's release feed, SHA-256 verified, no sudo, nothing outside that directory). `tools/dev check` stays Windows-native; the race run is `wsl -e bash scripts/wsl-go.sh env CGO_ENABLED=1 go test -race ./...`.
 - Supersedes / superseded by: —
+
+## D-43 — QEMU discovery rules
+- Status: Accepted (2026-10-12) · Type: Interpretation
+- Context: PLAN §7.1 gives the search order and "qemu-img must sit alongside"; it leaves open what an explicit choice that fails does, how PATH is read, and how features are probed.
+- Decision:
+  1. **An explicit `--qemu` / `vm.qemu_dir` is never replaced.** If it is missing or lacks either program, discovery fails naming that one place; it does not fall back to PATH. A path to one of the programs means its directory.
+  2. **Only absolute PATH entries are searched.** `.`, `bin` and empty entries are skipped: the result must not depend on the directory `controlsnack` is started in, and a planted `qemu-system-*` in a working directory must not be picked up. Duplicates are tried once.
+  3. **Both programs in one directory, regular files, executable** (the `.exe` extension decides on Windows; symlinks are followed, as Homebrew needs). Each place tried is kept with its reason, so `doctor` and the error message can say why.
+  4. **Features are asked, not inferred** (D-02): minimum major version 8, then `-accel help`, `-machine help` and `-device help` are parsed (aliases count as device names) and every machine and device the runtime argv names must exist; the `Install` is returned together with a `*VersionError` / `*FeatureError` so `doctor` can still show it. A too-old QEMU is not asked further questions.
+  5. **`-sandbox` is probed once, on Linux only**, by starting an empty machine (`-machine none -S -qmp stdio`) under `SandboxArg` and sending `qmp_capabilities` and `quit` on stdin. The quit is required: measured with QEMU 8.2.2, a QMP session whose stdin ends does not exit. Exit 0 means supported; the argv builder adds the option only then.
+  6. **aarch64 firmware** is searched next to the installation (`../share/qemu`, `../share`, `share`, also behind symlinks) and then in the standard system directories, for four known file-name pairs (QEMU's own, Debian AAVMF, Fedora, Arch). Both files of a pair must exist. x86_64 uses the BIOS inside QEMU and needs none. Missing firmware is not a discovery error; `Install.RequireFirmware` explains what to install when an aarch64 run needs it.
+  7. Probe programs run with a minimal environment (`PATH`, `HOME`, Windows system variables, `LC_ALL=C`), output capped at 512 KiB, 30 s each. The guest architecture defaults to the host's: the guest is never emulated across architectures.
+- Supersedes / superseded by: —
