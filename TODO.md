@@ -29,7 +29,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 ## Phase 3 — VM: internal/protocol, internal/vm (required test suite #2)
 - [x] (2026-10-12) P3-T01 Protocol package (§5.1)
 - [x] (2026-10-12) P3-T02 QEMU discovery (§7.1)
-- [ ] P3-T12 Accelerator detector — accel.go + per-OS files (§7.1, D-31, D-32) *(R1)*
+- [x] (2026-10-12) P3-T12 Accelerator detector — accel.go + per-OS files (§7.1, D-31, D-32) *(R1)*
 - [ ] P3-T03 Argv builders (§7.2): golden tests per arch × accel; forbidden-flag invariant
 - [ ] P3-T04 Process supervisor (§7.4)
 - [ ] P3-T05 QMP client
@@ -101,7 +101,9 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] Native viewer window (-tags webview), tile-diff streaming, manual takeover, system-wide kill hotkey, robotgo backend, MessagePack, recording/replay, policy editor UI
 
 ## Discovered
-- [ ] P3-T12: verify on this machine that `WHvGetCapability` is the deciding signal, not the DLL — `WinHvPlatform.dll` exists in System32 although the "Windows Hypervisor Platform" feature is disabled (found in P0-T02; contradicts the PLAN §7.1 note "DLL missing = feature not enabled").
+- [x] (2026-10-12) P3-T12: verify on this machine that `WHvGetCapability` is the deciding signal — resolved, see D-44: it is not. DLL present, `HypervisorPresent` TRUE and `WHvCreatePartition` OK while the optional feature reads disabled; the QEMU probe launch decides.
+- [ ] P3-T11 / first Windows QEMU: run the whpx probe (`TestProbeAccelRealQEMU`, `-qmp stdio`) against a real QEMU for Windows and record whether WHPX works on this machine with only VirtualMachinePlatform enabled (D-44). If `-qmp stdio` does not work with QEMU for Windows, move the probe to a loopback QMP socket.
+- [ ] P3-T14: `doctor` must decide on the probe result, not on the optional-feature state; print feature state, API answers (`HypervisorPresent`, optionally `WHvCreatePartition`) and the probe side by side (D-44).
 - [x] (2026-10-12) P2-T01: wire the `internal/safety` ≥ 85 % coverage gate (PLAN §13.2) into `tools/dev check`; tools/dev currently has no coverage step.
 - [x] (2026-10-12) P2-T08 / P6-T01: create `internal/platform/listen.go` (the single 127.0.0.1-only listener helper). `tools/dev check` → `repo` already rejects any other file that opens a listener or binds a wildcard address.
 - [ ] P3-T14: add the `controlsnack doctor --json` step (must exit 0 and print a verdict) to the Windows and macOS CI jobs (PLAN §13.5); not added in P0 because the command does not exist yet.

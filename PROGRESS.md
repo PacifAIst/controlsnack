@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 in progress (P3-T01, P3-T02 done) → next P3-T12 (accelerator detector) · Updated: 2026-10-12
+- Phase: P3 in progress (P3-T01, P3-T02, P3-T12 done) → next P3-T03 (argv builders) · Updated: 2026-10-12
 - Blockers: none for the unit-testable parts of Phase 3 (T02–T07, T09, T10, T12–T14 use fakes). No QEMU on the Windows host: P3-T08 (real image build) and P3-T11 (real boot) run in WSL with TCG (x86_64 only); the first WHPX measurement needs an admin to enable Windows Hypervisor Platform.
-- Resume here: P3-T12 (`internal/vm/accel.go` + per-OS files, `HostProbe`), then P3-T03 (argv builders) as §12 orders them. `qemu.Discover` returns an `Install` (paths, version, accels, sandbox support, aarch64 firmware) that both use.
+- Resume here: P3-T03 (argv builders in `internal/vm/qemu`: runtime + provisioning, golden tests arch × accel, must call `safety.AssertQEMUArgv`; use `qemu.AccelArgs`, `qemu.CPUModel`, `Install.Sandbox`, `Install.RequireFirmware`), then P3-T04, T05, T13, T14 as §12 orders them. Consider getting a QEMU for Windows onto this machine (winget manifest URL + SHA-256, extract without admin) to test WHPX for real — see TODO → Discovered.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -14,8 +14,8 @@
 | golangci-lint | v2.14.0 installed to `C:\Users\pc\go\bin` (`go install`, GOTOOLCHAIN=local); that directory must be on PATH for `tools/dev check` to run the lint step (otherwise it is skipped locally and fails in CI) | 2026-10-12 |
 | QEMU / qemu-img | **Windows host: not installed** (not on PATH, not in `%ProgramFiles%\qemu`). **WSL: qemu-system-x86_64 and qemu-img 8.2.2** (Ubuntu build); no `qemu-system-aarch64`. Needed from Phase 3 (P3-T08, P3-T11) | 2026-10-12 |
 | Hypervisor | `Win32_ComputerSystem.HypervisorPresent` = True (WSL2 is the default distro: Ubuntu, v2) | 2026-10-12 |
-| Windows features (CIM, non-elevated) | `HypervisorPlatform` InstallState 2 (**disabled**), `VirtualMachinePlatform` 1 (enabled), `Microsoft-Hyper-V-All` 2 (disabled) → this machine is PLAN §7.10 case 2: WHPX unavailable, `doctor` verdict today would be `will use tcg (slow)`; fix = enable Windows Hypervisor Platform (admin + reboot), never disable WSL2 | 2026-10-12 |
-| WinHvPlatform.dll | present in System32 even though the feature is disabled (see TODO → Discovered) | 2026-10-12 |
+| Windows features (CIM, non-elevated) | `HypervisorPlatform` InstallState 2 (disabled), `VirtualMachinePlatform` 1 (enabled), `Microsoft-Hyper-V-All` 2 (disabled). **Corrected 2026-10-12 (D-44):** the earlier conclusion "PLAN §7.10 case 2, WHPX unavailable, verdict would be tcg" was inferred from this state alone and is withdrawn — see the next row | 2026-10-12 |
+| WinHvPlatform.dll / WHP API | present in System32; `WHvGetCapability(HypervisorPresent)` = **TRUE**; `WHvCreatePartition` succeeds (HRESULT 0) → the Windows hypervisor is running (WSL2) and the user-mode WHP API works despite the "disabled" feature. Whether **QEMU** can use WHPX here is unproven until a Windows QEMU runs (TODO → Discovered) | 2026-10-12 |
 | Process elevation | not administrator (so nothing here can enable features) | 2026-10-12 |
 | Local LLM | none: 127.0.0.1:11434, :1234, :8080 closed; `ollama` not on PATH. Needed from Phase 5 (fakellm covers tests) | 2026-10-12 |
 | Browsers (viewer window) | Google Chrome and Microsoft Edge installed | 2026-10-12 |
@@ -35,7 +35,7 @@
 | P0 | **done** 2026-10-12 | `go build ./...`, `go test ./...`, `go run ./tools/dev check` green; deviation/interpretation summary posted | gate steps: gofmt, mod-tidy, vet, lint, test (no -race locally: no C compiler), vuln, licenses, cross (5 host + 2 agent, CGO_ENABLED=0), repo |
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
-| P3 | in progress (T01, T02 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
+| P3 | in progress (T01, T02, T12 done) | | real boot/build milestones (T08, T11) run in WSL with TCG |
 | P4 | not started | | |
 | P5 | not started | | |
 | P6 | not started | | |
@@ -43,6 +43,12 @@
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-12 — P3-T12 — done
+- Changed: `internal/vm/accel.go` (`DetectAccel`, `ResolveAccel` for `--accel`/`--slow` per D-32, `AccelResult` with `TimeoutFactor()` = 4 under tcg, `Detector` cache, `HostProbe` interface), `hostprobe.go` (real probe), per-OS checks `accel_kvm_{linux,other}.go`, `accel_whpx_{windows,other}.go` (lazy `WinHvPlatform.dll` call via `x/sys/windows`, no cgo), `accel_hvf_{darwin,other}.go` (`sysctl kern.hv_support`); in `internal/vm/qemu`: `accel.go` (`AccelArgs`, `CPUModel`, `ProbeAccel` = empty paused machine over `-qmp stdio`, `AccelProbeError`). Decisions: D-44.
+- Tests: 14-branch table for the detector with fakes (kvm: ok / no permission / no device / QEMU without kvm; whpx: ok / DLL missing / API says no / API yes but QEMU says no / QEMU without whpx; hvf: ok / sysctl 0 / sysctl error / no entitlement; unknown OS), only the current OS is checked, no hardware accelerator and no tcg ⇒ `ErrNoAccelerator`, canceled ⇒ context error not tcg, `--accel`/`--slow` matrix incl. usage errors (exit 2), cache. Probe: exit status, complaint on stderr with exit 0, unrelated stderr ignored, timeout, caller cancel. All five targets vet clean with `CGO_ENABLED=0`; lint clean for windows, linux and darwin.
+- **Verified for real:** WSL — tcg probe 27 ms OK; kvm probe fails in 13 ms with QEMU's own "Could not access KVM kernel module: Permission denied"; the real detector picked tcg with the reason "no permission to open /dev/kvm: this user is not in the kvm group". Windows — the real `WHvGetCapability` call ran (TRUE) and `WHvCreatePartition` succeeded.
+- **Correction:** the P0-T02 conclusion that WHPX is unavailable on this machine is withdrawn (D-44); the optional-feature state does not predict the WHP API here.
+- Follow-ups: see TODO → Discovered (first real WHPX probe; `doctor` decides on the probe).
 ### 2026-10-12 — P3-T02 — done
 - Changed: `internal/vm/qemu` — `host.go` (`Host` interface + `OSHost`: minimal env, 512 KiB output cap, killed on context end), `features.go` (version / `-accel` / `-machine` / `-device` help parsers, `MinMajor` = 8, `SandboxArg`, `VersionError`, `FeatureError`), `discover.go` (`Discover`, `Install`, `NotFoundError` with every place tried and why, `KnownDirs`), `firmware.go` (aarch64 UEFI firmware search). Decisions: D-43.
 - Tests: parsers fed with real QEMU 8.2.2 output; search order (config → PATH → known dirs), explicit dir never replaced, relative PATH entries ignored, non-executable / directory / missing qemu-img rejected, too-old and missing-device installs reported together with the Install, sandbox probe only on Linux and only with a `quit` on stdin, aarch64 firmware layouts incl. Homebrew-style symlinks, `OSHost.Run` against a helper process (stdin, stderr, exit code, output cap, environment, timeout kill). `-race` green on Linux.

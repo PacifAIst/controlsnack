@@ -149,6 +149,10 @@ type fakeQEMU struct {
 	device      string
 	sandboxExit int
 	runErr      error
+
+	probeExit   int    // exit status of an accelerator probe
+	probeStderr string // what the probe printed on stderr
+	probeHang   bool   // the probe never finishes
 }
 
 func okQEMU() fakeQEMU {
@@ -198,6 +202,15 @@ func (h *fakeHost) Run(ctx context.Context, path, stdin string, args ...string) 
 			return RunResult{}, errors.New("a QEMU that is not told to quit never exits")
 		}
 		return RunResult{ExitCode: h.q.sandboxExit}, nil
+	case slices.Contains(args, "-S") && slices.Contains(args, "-qmp"): // an accelerator probe
+		if !strings.Contains(stdin, `"quit"`) {
+			return RunResult{}, errors.New("a QEMU that is not told to quit never exits")
+		}
+		if h.q.probeHang {
+			<-ctx.Done()
+			return RunResult{}, ctx.Err()
+		}
+		return RunResult{ExitCode: h.q.probeExit, Stderr: h.q.probeStderr}, nil
 	}
 	return RunResult{}, errors.New("unexpected probe: " + strings.Join(args, " "))
 }
