@@ -26,6 +26,9 @@ func TestDefaultRulesMatchThePlan(t *testing.T) {
 		"DENY-UNPARSEABLE": safety.ClassDeny, "DENY-NOT-ALLOWLISTED": safety.ClassDeny,
 		"CONFIRM-DELETE": safety.ClassConfirm, "CONFIRM-OVERWRITE": safety.ClassConfirm, "CONFIRM-NET-EXPOSE": safety.ClassConfirm,
 		"CONFIRM-NET-EGRESS": safety.ClassConfirm, "CONFIRM-PERMS": safety.ClassConfirm, "CONFIRM-PERSIST": safety.ClassConfirm,
+		// section 6.5
+		"CONFIRM-GUI-DESTRUCTIVE": safety.ClassConfirm, "CONFIRM-GUI-NET-ACTION": safety.ClassConfirm,
+		"CONFIRM-PASSWORD-FIELD": safety.ClassConfirm, "DENY-BROWSER-URL": safety.ClassDeny,
 	}
 	if len(rs.Rules) != len(want) {
 		var have []string

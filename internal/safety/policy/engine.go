@@ -12,7 +12,10 @@ import (
 )
 
 // structuralRules must exist in every rule set: the engine raises them itself.
-var structuralRules = []string{"DENY-UNPARSEABLE", "DENY-DYNAMIC-CMD", "DENY-NOT-ALLOWLISTED", "DENY-FORK-BOMB", "DENY-PIPE-TO-SHELL"}
+var structuralRules = []string{
+	"DENY-UNPARSEABLE", "DENY-DYNAMIC-CMD", "DENY-NOT-ALLOWLISTED", "DENY-FORK-BOMB", "DENY-PIPE-TO-SHELL",
+	"CONFIRM-GUI-DESTRUCTIVE", "CONFIRM-GUI-NET-ACTION", "CONFIRM-PASSWORD-FIELD", "DENY-BROWSER-URL",
+}
 
 // Engine evaluates actions against a rule set. It is safe for concurrent use.
 //

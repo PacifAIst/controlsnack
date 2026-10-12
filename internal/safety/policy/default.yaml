@@ -230,3 +230,33 @@ rules:
         flags: [user]
         args: [enable, link, edit, mask]
       - writes_to: [persist_files]
+
+  # ---- GUI and browser actions (PLAN.md section 6.5), raised by EvaluateGUI --------------------------------
+  - id: CONFIRM-GUI-DESTRUCTIVE
+    class: confirm
+    structural: true
+    explain: >-
+      This acts on something labeled delete, remove, erase, discard, format, overwrite, replace all, empty trash or
+      uninstall, or presses shift+Delete (which deletes permanently).
+
+  - id: CONFIRM-GUI-NET-ACTION
+    class: confirm
+    structural: true
+    net_egress_only: true
+    explain: >-
+      This acts on something labeled send, submit, post, publish, pay, purchase, buy, order, checkout, transfer,
+      subscribe, sign up, log in or sign in, which can have real-world effects now that the guest has network access.
+
+  - id: CONFIRM-PASSWORD-FIELD
+    class: confirm
+    structural: true
+    explain: >-
+      This types into a password field. The text is hidden in the viewer and the audit log (only its length and a
+      short hash are kept).
+
+  - id: DENY-BROWSER-URL
+    class: deny
+    structural: true
+    explain: >-
+      Only http, https and file URLs may be opened in the browser. javascript:, data:, chrome:, devtools: and other
+      schemes are not allowed.
