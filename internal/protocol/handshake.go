@@ -15,6 +15,7 @@ const ProtoVersion = "1.0"
 
 // Capabilities an agent announces in its hello_ack.
 const (
+	CapPing       = "ping"
 	CapScreenshot = "screenshot"
 	CapInput      = "input"
 	CapExec       = "exec"

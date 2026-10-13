@@ -24,6 +24,10 @@ func cmdBuild(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	// The host embeds the guest agents (D-04), so they are built first.
+	if err := cmdAgent(nil); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(*out, 0o750); err != nil {
 		return err
 	}

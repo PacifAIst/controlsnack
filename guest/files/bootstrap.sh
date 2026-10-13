@@ -11,7 +11,8 @@
 # verifies their SHA-256, answers, and runs the agent with the port on file descriptor 3. When the agent ends, the
 # stub waits for the next push, so an agent that crashed is replaced without rebooting the VM.
 #
-# CS_PORT and CS_READ_TIMEOUT exist for the tests of this script; in the VM both have their defaults.
+# CS_PORT and CS_READ_TIMEOUT exist for the tests of this script; in the VM both have their defaults. CS_PORT=- means
+# "file descriptor 3 is already the port", which is how a test hands the script one end of a socket pair.
 
 set -u
 
@@ -43,8 +44,10 @@ mkdir -p -m 0700 "$dir" || { log "cannot create $dir"; exit 1; }
 chmod 0700 "$dir"
 
 # The device appears when udev has seen the port; the rule gives it to this user.
-until [ -e "$PORT" ]; do sleep 0.2; done
-exec 3<>"$PORT" || { log "cannot open $PORT"; exit 1; }
+if [ "$PORT" != "-" ]; then
+    until [ -e "$PORT" ]; do sleep 0.2; done
+    exec 3<>"$PORT" || { log "cannot open $PORT"; exit 1; }
+fi
 
 arch="$(uname -m)"
 re='^CSBOOT/1 PUSH arch=(x86_64|aarch64) size=([0-9]{1,9}) sha256=([0-9a-f]{64}) nonce=([0-9a-f]{16,64})$'

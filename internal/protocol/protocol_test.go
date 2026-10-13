@@ -379,6 +379,13 @@ func TestMessageTypeRegistry(t *testing.T) {
 			t.Errorf("%s", t1)
 		}
 	}
+	// The heartbeat is the one request whose response is not "<name>.res" (PLAN.md section 5.1).
+	if ResponseOf("ping") != "pong" || ResponseOf("exec") != "exec.res" || IsRequest("pong") {
+		t.Errorf("ping is answered by pong, everything else by <name>.res: %q %q", ResponseOf("ping"), ResponseOf("exec"))
+	}
+	if Known("ping.res") {
+		t.Error("ping.res does not exist: the answer is pong")
+	}
 	for _, unknown := range []string{"", "reboot", "exec.req", "screenshot.res.res", "shell", "Exec"} {
 		if Known(unknown) {
 			t.Errorf("%q must be unknown (the agent answers unknown types with an error)", unknown)

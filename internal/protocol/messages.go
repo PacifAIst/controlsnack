@@ -26,8 +26,14 @@ const (
 	TypeFilePeek   = "file_peek"
 )
 
-// ResponseOf returns the response type of a request type.
-func ResponseOf(request string) string { return request + ".res" }
+// ResponseOf returns the response type of a request type: the name plus ".res", except for the heartbeat, which is
+// answered with "pong" (PLAN.md section 5.1).
+func ResponseOf(request string) string {
+	if request == TypePing {
+		return TypePong
+	}
+	return request + ".res"
+}
 
 // requestTypes are the request types the agent serves. hello and cancel are handled by the dispatcher itself.
 var requestTypes = map[string]bool{
