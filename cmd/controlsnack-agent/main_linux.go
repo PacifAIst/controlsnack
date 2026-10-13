@@ -17,6 +17,7 @@ import (
 	"syscall"
 
 	"github.com/PacifAIst/controlsnack-local/internal/agent"
+	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
 	"github.com/PacifAIst/controlsnack-local/internal/buildinfo"
@@ -62,7 +63,18 @@ func run() int {
 		shots := agent.NewScreenshots(x)
 		cfg.Handlers[protocol.TypeScreenshot] = shots.Handle
 		// The input handler reports the screen hash with the screenshots' hasher, so the two can be compared.
-		cfg.Handlers[protocol.TypeInput] = agent.NewInput(x, x, shots.Hasher).Handle
+		input := agent.NewInput(x, x, shots.Hasher)
+		cfg.Handlers[protocol.TypeInput] = input.Handle
+		// The accessibility bus is dialed when first used and again if it breaks: the agent starts with the desktop
+		// session, and the bus may come up a moment later. Without a session bus there is nothing to dial.
+		if os.Getenv("DBUS_SESSION_BUS_ADDRESS") != "" || os.Getenv("AT_SPI_BUS_ADDRESS") != "" {
+			ax := agent.NewA11y(a11y.NewLazyBus(a11y.Dial), x, input)
+			cfg.Handlers[protocol.TypeA11yTree] = ax.Tree
+			cfg.Handlers[protocol.TypeA11yAction] = ax.Action
+			shots.Marks = ax.Service
+		} else {
+			log.Warn("no session bus: the accessibility tree is not available")
+		}
 		desktop := agent.DesktopHandlers{Desktop: x}
 		cfg.Handlers[protocol.TypeScreenInfo] = desktop.ScreenInfo
 		cfg.Handlers[protocol.TypeWindows] = desktop.Windows

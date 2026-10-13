@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"math"
 	"regexp"
 
+	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
 	"github.com/PacifAIst/controlsnack-local/internal/imaging"
 	"github.com/PacifAIst/controlsnack-local/internal/protocol"
@@ -31,10 +33,19 @@ const (
 
 var reHash = regexp.MustCompile(`^[0-9a-f]{16}$`)
 
+// MarkSource gives the boxes to draw for a generation of the accessibility tree; *a11y.Service is the real one.
+type MarkSource interface {
+	Marks(generation string) ([]a11y.Mark, bool)
+}
+
+var reGenerationName = regexp.MustCompile(`^g[0-9]{1,9}$`)
+
 // Screenshots serves `screenshot` requests (PLAN.md section 5.1).
 type Screenshots struct {
 	Screen Screen
 	Hasher imaging.Hasher
+	// Marks, when set, lets a request ask for the set-of-marks overlay (D-30). Without it that request is unsupported.
+	Marks MarkSource
 }
 
 // NewScreenshots returns the handler for a display.
@@ -60,8 +71,17 @@ func (s *Screenshots) Handle(ctx context.Context, req protocol.Frame) (any, []by
 		return nil, nil, server.Fail(protocol.CodeInvalidArgs, "max_long_edge %d is outside %d..%d (0 means the whole screen)", r.MaxLongEdge, minLongEdge, maxLongEdge)
 	case r.IfChangedSince != "" && !reHash.MatchString(r.IfChangedSince):
 		return nil, nil, server.Fail(protocol.CodeInvalidArgs, "if_changed_since must be a hash from an earlier response")
-	case r.MarksGeneration != "":
-		return nil, nil, server.Fail(protocol.CodeUnsupported, "the set-of-marks overlay needs the accessibility service, which this agent does not have yet")
+	case r.MarksGeneration != "" && !reGenerationName.MatchString(r.MarksGeneration):
+		return nil, nil, server.Fail(protocol.CodeInvalidArgs, "marks_generation must be a generation from an accessibility tree (g and a number)")
+	case r.MarksGeneration != "" && s.Marks == nil:
+		return nil, nil, server.Fail(protocol.CodeUnsupported, "the set-of-marks overlay needs the accessibility service, which is not available in this session")
+	}
+	var marks []a11y.Mark
+	if r.MarksGeneration != "" {
+		var ok bool
+		if marks, ok = s.Marks.Marks(r.MarksGeneration); !ok {
+			return nil, nil, server.Fail(protocol.CodeStaleElement, "generation %s is stale; read the accessibility tree again", r.MarksGeneration)
+		}
 	}
 
 	img, err := s.Screen.Capture(ctx)
@@ -70,7 +90,8 @@ func (s *Screenshots) Handle(ctx context.Context, req protocol.Frame) (any, []by
 	}
 	hash := s.Hasher.Hash(img)
 	cursor := s.cursor()
-	if r.IfChangedSince == hash {
+	// The marks belong to a generation, not to the screen: with marks the picture is always sent.
+	if r.IfChangedSince == hash && r.MarksGeneration == "" {
 		return protocol.ScreenshotRes{Hash: hash, Unchanged: true, Cursor: cursor}, nil, nil
 	}
 	if err := ctx.Err(); err != nil {
@@ -81,7 +102,11 @@ func (s *Screenshots) Handle(ctx context.Context, req protocol.Frame) (any, []by
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
-	data, err := imaging.Encode(scaled, format, r.Quality)
+	var shown image.Image = scaled
+	if len(marks) > 0 {
+		shown = imaging.DrawMarks(scaled, scaleMarks(marks, scale))
+	}
+	data, err := imaging.Encode(shown, format, r.Quality)
 	if err != nil {
 		return nil, nil, server.Fail(protocol.CodeInternal, "encoding the screenshot: %v", err)
 	}
@@ -89,7 +114,7 @@ func (s *Screenshots) Handle(ctx context.Context, req protocol.Frame) (any, []by
 		return nil, nil, server.Fail(protocol.CodeUnsupported, "the %s image is %s, over the %s limit; ask for webp or jpeg, or a smaller max_long_edge",
 			format, size(len(data)), size(protocol.MaxBlobBytes))
 	}
-	b := scaled.Bounds()
+	b := shown.Bounds()
 	return protocol.ScreenshotRes{W: b.Dx(), H: b.Dy(), Format: string(format), Hash: hash, Cursor: cursor, Scale: scale}, data, nil
 }
 
@@ -107,4 +132,19 @@ func size(n int) string {
 		return fmt.Sprintf("%.1f MiB", float64(n)/(1<<20))
 	}
 	return fmt.Sprintf("%d KiB", n>>10)
+}
+
+// scaleMarks converts boxes from guest pixels to the pixels of the picture, which is scale times as big as the screen.
+// The label is the id without its letter: a12 is drawn as 12.
+func scaleMarks(marks []a11y.Mark, scale float64) []imaging.Mark {
+	out := make([]imaging.Mark, 0, len(marks))
+	for _, m := range marks {
+		if len(m.ID) < 2 {
+			continue
+		}
+		x0, y0 := int(math.Round(float64(m.X)*scale)), int(math.Round(float64(m.Y)*scale))
+		x1, y1 := int(math.Round(float64(m.X+m.W)*scale)), int(math.Round(float64(m.Y+m.H)*scale))
+		out = append(out, imaging.Mark{Label: m.ID[1:], X: x0, Y: y0, W: x1 - x0, H: y1 - y0})
+	}
+	return out
 }

@@ -72,6 +72,9 @@ const (
 	CodeCanceled    = "canceled"
 	CodeBusy        = "busy"
 	CodeInternal    = "internal"
+	// CodeStaleElement answers an accessibility action on an element that is no longer what the model was shown: its
+	// generation is not one the agent keeps, or the element has gone or changed since.
+	CodeStaleElement = "stale_element"
 )
 
 // ErrorBody is the body of a TypeError frame.
@@ -108,7 +111,7 @@ type ScreenshotReq struct {
 	Quality         int    `json:"quality,omitempty"`
 	MaxLongEdge     int    `json:"max_long_edge,omitempty"`
 	IfChangedSince  string `json:"if_changed_since,omitempty"` // hash from an earlier response
-	MarksGeneration string `json:"marks_generation,omitempty"` // draw set-of-marks for this a11y generation
+	MarksGeneration string `json:"marks_generation,omitempty"` // draw set-of-marks for this a11y generation (the picture is then always sent)
 }
 
 // ScreenshotRes describes the image in the blob, or says nothing changed (Unchanged, no blob).
@@ -205,6 +208,9 @@ type A11yTreeReq struct {
 	Query    string `json:"query,omitempty"`
 	MaxNodes int    `json:"max_nodes,omitempty"`
 	MaxDepth int    `json:"max_depth,omitempty"`
+	// BudgetMS is how long the agent may spend reading (0 means its default). The host scales it by the speed of the
+	// virtual machine: the same tree takes several times as long without hardware acceleration.
+	BudgetMS int `json:"budget_ms,omitempty"`
 }
 
 // A11yTreeRes is the tree of one generation.
@@ -212,6 +218,9 @@ type A11yTreeRes struct {
 	Generation string     `json:"generation"`
 	Nodes      []A11yNode `json:"nodes"`
 	Truncated  bool       `json:"truncated,omitempty"`
+	// Note says why a tree is empty or partial in words a model can act on ("the application does not expose
+	// accessibility information; use the screenshot").
+	Note string `json:"note,omitempty"`
 }
 
 // A11yActionReq acts on an element of a given generation (op click, focus, set_text).
@@ -222,10 +231,22 @@ type A11yActionReq struct {
 	Text       string `json:"text,omitempty"`
 }
 
+// A11yActionRes says how the action was done: "action:click" (the element's own action), "pointer" (a click at the
+// element's center), "editable_text" (the text was set directly) or "keyboard" (select all and type).
+type A11yActionRes struct {
+	Method string `json:"method"`
+}
+
 // OCRReq runs text recognition on the screen or a region of it.
 type OCRReq struct {
 	Region *Rect  `json:"region,omitempty"`
 	Lang   string `json:"lang,omitempty"`
+	// BudgetMS is how long recognition may take (0 means the agent's default, 10 s). The host scales it by the speed of
+	// the virtual machine.
+	BudgetMS int `json:"budget_ms,omitempty"`
+	// Scale is how many times the picture is enlarged before it is read, 1 to 3 (0 means the agent's default, 2). Text
+	// of 12 pixels reads better at twice the size; a big or sharp text can be read at 1, in a fraction of the time.
+	Scale int `json:"scale,omitempty"`
 }
 
 // OCRLine is one recognized line of text.
@@ -236,10 +257,12 @@ type OCRLine struct {
 	Conf   int    `json:"conf"`
 }
 
-// OCRRes holds the recognized lines.
+// OCRRes holds the recognized lines, in reading order. Bounds are guest pixels.
 type OCRRes struct {
 	Generation string    `json:"generation"`
 	Lines      []OCRLine `json:"lines"`
+	// Truncated is set when there was more text than the answer holds.
+	Truncated bool `json:"truncated,omitempty"`
 }
 
 // --- exec, browser, waiting, files ----------------------------------------------------------------------------

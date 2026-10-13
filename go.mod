@@ -13,6 +13,7 @@ require (
 	github.com/deepteams/webp v1.2.8
 	github.com/diskfs/go-diskfs v1.9.4
 	github.com/go-viper/mapstructure/v2 v2.5.0
+	github.com/godbus/dbus/v5 v5.1.0
 	github.com/jezek/xgb v1.1.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2

@@ -9,10 +9,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/jezek/xgb/xproto"
+
+	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
 )
 
 // Limits on text that comes from other programs' windows: titles and classes are whatever an application chose to
@@ -50,31 +50,7 @@ func cardinals(value []byte) []uint32 {
 
 // sanitize makes text from a window safe to show: invalid UTF-8 and control characters are dropped, runs of white
 // space become one space, and the length is capped.
-func sanitize(s string, maxRunes int) string {
-	var b strings.Builder
-	n := 0
-	space := false
-	for _, r := range s {
-		switch {
-		case r == utf8.RuneError, unicode.IsControl(r) && !unicode.IsSpace(r):
-			continue
-		case unicode.IsSpace(r):
-			space = b.Len() > 0
-			continue
-		}
-		if space {
-			b.WriteByte(' ')
-			n++
-			space = false
-		}
-		if n >= maxRunes {
-			break
-		}
-		b.WriteRune(r)
-		n++
-	}
-	return b.String()
-}
+func sanitize(s string, maxRunes int) string { return textclean.Line(s, maxRunes) }
 
 // textProperty reads a single string out of a property value: the part before the first NUL, cleaned.
 func textProperty(value []byte, maxRunes int) string {

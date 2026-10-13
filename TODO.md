@@ -48,7 +48,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-13) P4-T03 Windows and monitors (EWMH, RandR) — verified against xfwm4 in the guest (D-58)
 - [x] (2026-10-13) P4-T04 Input (XTEST, key parser, Unicode typing, drag, scroll) — verified in the guest (D-59)
 - [x] (2026-10-13) P4-T05 Exec runner (plus the guest `file_peek`) — verified in the guest (D-60)
-- [ ] P4-T06 Accessibility (AT-SPI) + stubs for other OSes
+- [x] (2026-10-13) P4-T06 Accessibility (AT-SPI) + stubs for other OSes + set-of-marks overlay — verified against Mousepad and Thunar in the guest (D-61, D-62)
 - [ ] P4-T07 OCR
 - [ ] P4-T08 Browser (CDP)
 - [ ] P4-T09 wait_for
@@ -123,11 +123,14 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P7-T06: replace the boot-only runner with the full session (model loop, viewer, `--vm`/`--keep-vm` through `overlay.Library` including the generated name for a bare `--keep-vm`, `--allow-net` with the net port); keep what the boot-only runner already does in this order: kill switch → control endpoint → session lock → audit `start` → directory → boot → `ready`; the viewer's server takes over the `/control/kill` handler (P6-T01).
 - [ ] P7-T06: `vm.Boot`'s agent heartbeat and timeouts are scaled by the accelerator factor; make the session treat `StateDown` as "agent_down" for the model loop (PLAN §11) and decide how long a tool call waits for a reconnect.
 - [ ] P3-T14 / P3-T06: the doctor's extra checks are still unregistered; now that images exist, add the "base image present, matches the recipe, boots" check (`image verify` already does the first two).
-- [ ] P4-T06: draw the set-of-marks overlay (D-30) in `internal/imaging` once a11y node bounds exist (`marks_generation` answers `unsupported` until then); `x/image/font/basicfont` is the plan's font.
+- [x] (2026-10-13) P4-T06: draw the set-of-marks overlay (D-30) in `internal/imaging` once a11y node bounds exist (`marks_generation` answers `unsupported` until then); `x/image/font/basicfont` is the plan's font.
 - [ ] P5 / P6 / P7-T06: every picture the host receives from the guest goes through `imaging.Inspect` (declared format and size, at most 4096 per side) before anything decodes it.
 - [ ] P8-T04: if the performance pass wants faster capture, add MIT-SHM (`gen2brain/shm` is pure Go) behind `x11.Conn.Capture`; measure first (1280x800 capture plus PNG took 312 ms under tcg).
 - [ ] P4-T13: the guest has no CJK font, so correctly typed CJK characters show as empty boxes in screenshots (Latin, Greek, Cyrillic, emoji and the euro sign render); `fonts-noto-cjk` is about 60 MB: decide at the image rewrite whether screenshots of CJK text matter enough.
 - [ ] P4-T04: scroll, middle and right clicks and double clicks are unit-tested but not yet checked against a real application; cover them in the P4-T13 smoke (scroll a Thunar folder, double-click to open a file). An `xdotool type` fallback for Unicode is only worth building if an application ever ignores the borrowed keycode.
+- [ ] P7-T06 / P7 host: send `budget_ms` with `a11y_tree` and `ocr` scaled by the accelerator factor (D-61): under tcg an element costs about 25 to 35 ms and a tree has a fixed 0.5 s, so the default 1.5 s budget truncates a desktop tree; keep `marks_generation` on for local backends in vision mode (D-62); the host decides whether an older kept generation is acceptable for an action (the agent keeps four and re-checks the element).
+- [ ] P8-T04: the accessibility walk is latency bound (two round trips per level: the element, then its children). Ask for the children in the same round trip as the element's states (one wasted call on leaves) and keep the application list for a second; measure with acceleration first, tcg is the slow path.
+- [ ] P4-T08 / P4-T13: accessibility of Qt, Electron and Chromium is untested (the image has only GTK3 applications besides the browser); Chromium needs `--force-renderer-accessibility` and is read by the browser tool, not this one. Elements without a Component interface are left out (no area), which loses some custom widgets.
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)

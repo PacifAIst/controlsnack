@@ -14,7 +14,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
+	"github.com/PacifAIst/controlsnack-local/internal/imaging"
 	"github.com/PacifAIst/controlsnack-local/internal/protocol"
 )
 
@@ -237,5 +239,94 @@ func TestScreenshotTooLargeForOneFrame(t *testing.T) {
 func TestSize(t *testing.T) {
 	if size(500<<10) != "500 KiB" || size(3<<20+(1<<19)) != "3.5 MiB" {
 		t.Errorf("%q %q", size(500<<10), size(3<<20+(1<<19)))
+	}
+}
+
+// fakeMarks is a MarkSource with one generation.
+type fakeMarks struct {
+	gen   string
+	marks []a11y.Mark
+}
+
+func (f fakeMarks) Marks(g string) ([]a11y.Mark, bool) { return f.marks, g == f.gen }
+
+func TestScreenshotWithMarks(t *testing.T) {
+	scr := testScreen(640, 400)
+	s := NewScreenshots(scr)
+	s.Marks = fakeMarks{gen: "g3", marks: []a11y.Mark{{ID: "a7", X: 100, Y: 100, W: 200, H: 100}, {ID: "a8", X: 400, Y: 200, W: 100, H: 50}}}
+
+	plain, plainBlob, err := shoot(t, s, protocol.ScreenshotReq{Format: "png", MaxLongEdge: 320})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, blob, err := shoot(t, s, protocol.ScreenshotReq{Format: "png", MaxLongEdge: 320, MarksGeneration: "g3"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.W != plain.W || res.H != plain.H || res.Scale != 0.5 || res.Hash != plain.Hash || bytes.Equal(blob, plainBlob) {
+		t.Fatalf("the marks change the picture, not its size, scale or hash (the hash is the screen's): %+v vs %+v", res, plain)
+	}
+	got, err := png.Decode(bytes.NewReader(blob))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, _ := png.Decode(bytes.NewReader(plainBlob))
+	// The first box is at 50,50 in the picture (half scale), 100x50 big: its corner is colored, its middle is not.
+	if a, b := color.RGBAModel.Convert(got.At(50, 50)), color.RGBAModel.Convert(base.At(50, 50)); a == b {
+		t.Errorf("the corner of the first box is not drawn: %v", a)
+	}
+	if a, b := color.RGBAModel.Convert(got.At(100, 75)), color.RGBAModel.Convert(base.At(100, 75)); a != b {
+		t.Errorf("the middle of the box is untouched: %v vs %v", a, b)
+	}
+	if a, b := color.RGBAModel.Convert(got.At(10, 10)), color.RGBAModel.Convert(base.At(10, 10)); a != b {
+		t.Errorf("far from any box nothing changes: %v vs %v", a, b)
+	}
+}
+
+func TestScreenshotMarksAlwaysSendThePicture(t *testing.T) {
+	scr := testScreen(320, 200)
+	s := NewScreenshots(scr)
+	s.Marks = fakeMarks{gen: "g1", marks: []a11y.Mark{{ID: "a1", X: 10, Y: 30, W: 100, H: 40}}}
+	first, _, err := shoot(t, s, protocol.ScreenshotReq{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, blob, err := shoot(t, s, protocol.ScreenshotReq{IfChangedSince: first.Hash, MarksGeneration: "g1"})
+	if err != nil || res.Unchanged || len(blob) == 0 {
+		t.Errorf("the marks belong to a generation, not to the screen: %+v %v", res, err)
+	}
+	if res, _, err = shoot(t, s, protocol.ScreenshotReq{IfChangedSince: first.Hash}); err != nil || !res.Unchanged {
+		t.Errorf("without marks the shortcut still works: %+v %v", res, err)
+	}
+}
+
+func TestScreenshotMarksRefusals(t *testing.T) {
+	scr := testScreen(320, 200)
+	s := NewScreenshots(scr)
+	s.Marks = fakeMarks{gen: "g1"}
+	for body, want := range map[string]string{"g2": protocol.CodeStaleElement, "g": protocol.CodeInvalidArgs, "x1": protocol.CodeInvalidArgs, "g1; rm": protocol.CodeInvalidArgs} {
+		if _, _, err := shoot(t, s, protocol.ScreenshotReq{MarksGeneration: body}); code(err) != want {
+			t.Errorf("%q: %v", body, err)
+		}
+	}
+	if scr.captures != 0 {
+		t.Errorf("a refused request must not touch the screen (%d captures)", scr.captures)
+	}
+	// A generation without anything to mark gives the plain picture.
+	a, blobA, errA := shoot(t, s, protocol.ScreenshotReq{Format: "png", MarksGeneration: "g1"})
+	b, blobB, errB := shoot(t, NewScreenshots(scr), protocol.ScreenshotReq{Format: "png"})
+	if errA != nil || errB != nil || a.W != b.W || !bytes.Equal(blobA, blobB) {
+		t.Errorf("%v %v", errA, errB)
+	}
+}
+
+func TestScaleMarks(t *testing.T) {
+	got := scaleMarks([]a11y.Mark{{ID: "a12", X: 101, Y: 51, W: 99, H: 49}, {ID: "x", X: 1, Y: 1, W: 5, H: 5}}, 0.5)
+	want := []imaging.Mark{{Label: "12", X: 51, Y: 26, W: 49, H: 24}}
+	if len(got) != 1 || got[0] != want[0] {
+		t.Errorf("got %+v, want %+v", got, want)
+	}
+	if got := scaleMarks([]a11y.Mark{{ID: "a1", X: 10, Y: 20, W: 30, H: 40}}, 1); got[0] != (imaging.Mark{Label: "1", X: 10, Y: 20, W: 30, H: 40}) {
+		t.Errorf("%+v", got)
 	}
 }
