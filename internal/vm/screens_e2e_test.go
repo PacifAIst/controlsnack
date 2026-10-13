@@ -23,6 +23,12 @@ import (
 // bootE2E boots the real image at the given resolution, or skips the test when something needed is missing.
 func bootE2E(t *testing.T, width, height int) (*Machine, string) {
 	t.Helper()
+	return bootE2EWith(t, width, height, nil)
+}
+
+// bootE2EWith is bootE2E with a change to the options the VM is prepared with (--allow-net, for instance).
+func bootE2EWith(t *testing.T, width, height int, change func(*PrepareOptions)) (*Machine, string) {
+	t.Helper()
 	ctx := context.Background()
 	inst, err := qemu.Discover(ctx, qemu.OSHost{}, qemu.Options{Dir: os.Getenv("CONTROLSNACK_QEMU")})
 	if err != nil {
@@ -41,7 +47,11 @@ func bootE2E(t *testing.T, width, height int) (*Machine, string) {
 		t.Skipf("no base image: %v", err)
 	}
 	dir := t.TempDir()
-	prepare, err := NewPrepare(PrepareOptions{Install: inst, Base: im.Path, Name: "e2e", Dir: dir, CPUs: 2, MemoryMiB: 2048, Width: width, Height: height})
+	opts := PrepareOptions{Install: inst, Base: im.Path, Name: "e2e", Dir: dir, CPUs: 2, MemoryMiB: 2048, Width: width, Height: height}
+	if change != nil {
+		change(&opts)
+	}
+	prepare, err := NewPrepare(opts)
 	if err != nil {
 		t.Fatal(err)
 	}

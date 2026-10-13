@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/xtaci/smux"
 )
 
 // The net bridge (PLAN.md section 7.8): the guest opens one multiplexed stream for each connection its proxy makes. A
@@ -115,4 +117,13 @@ func readNetLine(r io.Reader, v any) error {
 		return fmt.Errorf("%w: more than one value", ErrNetLine)
 	}
 	return nil
+}
+
+// NetMuxConfig is the multiplexer's setting, the same on both ends of the bridge. Version 2 gives each stream a window of
+// its own, so one slow connection does not hold the others up. Streams are only ever closed whole: smux's half-close
+// loses the last bytes of an answer in a few exchanges of a hundred (D-66).
+func NetMuxConfig() *smux.Config {
+	c := smux.DefaultConfig()
+	c.Version = 2
+	return c
 }

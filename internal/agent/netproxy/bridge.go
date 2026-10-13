@@ -48,15 +48,8 @@ type Bridge struct {
 	sess *smux.Session
 }
 
-// muxConfig is the multiplexer's setting, the same on both sides. Version 2 has the half-close that tunnels need.
-func muxConfig() *smux.Config {
-	c := smux.DefaultConfig()
-	c.Version = 2
-	return c
-}
-
-// MuxConfig returns the setting the host's side must use as well.
-func MuxConfig() *smux.Config { return muxConfig() }
+// MuxConfig is the multiplexer's setting, the same on both ends (see protocol.NetMuxConfig).
+func MuxConfig() *smux.Config { return protocol.NetMuxConfig() }
 
 // session returns the live connection to the host, making one if there is none.
 func (b *Bridge) session() (*smux.Session, error) {
@@ -69,7 +62,7 @@ func (b *Bridge) session() (*smux.Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	s, err := smux.Client(conn, muxConfig())
+	s, err := smux.Client(conn, MuxConfig())
 	if err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("%w: %w", ErrBridgeDown, err)

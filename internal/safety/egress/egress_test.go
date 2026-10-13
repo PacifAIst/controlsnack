@@ -90,6 +90,16 @@ func TestIPv6Ranges(t *testing.T) {
 	}
 }
 
+// The reason a model reads says what the address is: ::1 is the loopback, not an "IPv4-compatible" address.
+func TestIPv6LoopbackAndUnspecifiedSayWhatTheyAre(t *testing.T) {
+	for s, want := range map[string]string{"::1": "loopback", "::": "unspecified", "::2": "IPv4-compatible", "::127.0.0.1": "IPv4-compatible"} {
+		ok, why := IsPublic(addr(t, s))
+		if ok || !strings.Contains(why, want) {
+			t.Errorf("%s: public=%v, reason %q does not mention %q", s, ok, why, want)
+		}
+	}
+}
+
 func TestEmbeddedIPv4IsJudgedByTheIPv4Inside(t *testing.T) {
 	refused := []string{
 		"::ffff:127.0.0.1", "::ffff:7f00:1", "::ffff:10.0.0.1", "::ffff:169.254.169.254", "::ffff:192.168.1.1", "::ffff:0.0.0.0",

@@ -5,6 +5,7 @@ package vm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -70,6 +71,19 @@ type Machine struct {
 	stopSupervise context.CancelFunc
 	superDone     chan struct{}
 	closeOnce     sync.Once
+	redialNet     func(context.Context) (net.Conn, error)
+}
+
+// ErrNoNetPort means the session has no network port: it was not started with --allow-net.
+var ErrNoNetPort = errors.New("the session has no network port (it was not started with --allow-net)")
+
+// DialNet connects to the network port again, for the bridge to use when the connection it had has ended. The first
+// connection is Machine.Net, which Launch made before the guest started.
+func (m *Machine) DialNet(ctx context.Context) (net.Conn, error) {
+	if m.redialNet == nil {
+		return nil, ErrNoNetPort
+	}
+	return m.redialNet(ctx)
 }
 
 // Boot launches the VM, waits until the guest has started its desktop session and the bootstrap stub has opened the
@@ -159,6 +173,10 @@ func Boot(ctx context.Context, o BootOptions) (*Machine, error) {
 
 	sctx, stop := context.WithCancel(context.WithoutCancel(ctx))
 	m := &Machine{VM: v, Client: client, Ack: ack, Timings: t, stopSupervise: stop, superDone: make(chan struct{})}
+	if v.Spec.Net != nil {
+		ep := *v.Spec.Net
+		m.redialNet = func(ctx context.Context) (net.Conn, error) { return o.Backend.DialStream(ctx, ep) }
+	}
 	go func() {
 		defer close(m.superDone)
 		client.Supervise(sctx)

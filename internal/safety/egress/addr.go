@@ -58,6 +58,13 @@ func IsPublic(addr netip.Addr) (public bool, why string) {
 		}
 		return true, ""
 	}
+	// :: and ::1 lie inside ::/96 but are not IPv4-compatible addresses: say what they are.
+	switch addr {
+	case netip.IPv6Unspecified():
+		return false, "IPv6 unspecified address ::/128"
+	case netip.IPv6Loopback():
+		return false, "IPv6 loopback ::1/128"
+	}
 	b := addr.As16()
 	// IPv4-compatible (::a.b.c.d) and NAT64: judge the embedded IPv4 address.
 	if v4Compatible.Contains(addr) {

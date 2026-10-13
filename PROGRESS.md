@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 done; **P4 in progress** (P4-T01 to T10 and T12 done) → next P4-T11 (host net bridge: smux server on the net0 chardev, egress policy and tracker, audit, egress e2e) · Updated: 2026-10-13
+- Phase: P3 done; **P4 in progress** (P4-T01 to T12 done) → next P4-T13 (image recipe finalisation and smoke) · Updated: 2026-10-13
 - Blockers: none. Real runs happen in WSL2 with tcg (x86_64 only): no accelerated boot and nothing aarch64 has been run for real (see TODO → Discovered). A local model server is needed from Phase 5 (none here; `fakellm` covers tests).
-- Resume here: Phase 4. Order in PLAN §12 (T01 server, T02 capture, T03 windows, T04 input, T05 exec, T06 a11y, T07 OCR, T08 browser, T09 wait_for, T10 guest net proxy and T12 embed pipeline are done): T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
+- Resume here: Phase 4. Everything but T13 is done (T01 server, T02 capture, T03 windows, T04 input, T05 exec, T06 a11y, T07 OCR, T08 browser, T09 wait_for, T10 guest net proxy, T11 host net bridge, T12 embed pipeline: `go run ./tools/dev agent`, the host verifies the embedded hashes). T13: image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text; the "Discovered" items marked P4-T13 in TODO.md). The session wiring of the net bridge (`netbridge.Bridge.Run(ctx, m.Net, m.DialNet)` with the session's `egress.Policy` and audit log) is P7-T06. The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -37,13 +37,19 @@
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
 | P3 | **done** 2026-10-12 | unit suites green (Windows native; Linux/WSL with `-race`; macOS and CI not run yet) · milestone verified on Windows 10 via WSL2 Ubuntu 24.04, accelerator **tcg**, QEMU 8.2.2: image build 10 min 35 s, boot → agent ready 61–70 s, kill → QEMU gone 14–17 ms | D-52…D-55; no accelerated or aarch64 run yet |
-| P4 | in progress (T01–T10, T12 done) | | WebP encoder: deepteams (D-57); EWMH/RandR (D-58); input (D-59); exec (D-60); accessibility (D-61); marks (D-62); OCR (D-63); browser (D-64); wait_for (D-65); guest proxy (D-66) |
+| P4 | in progress (T01–T12 done) | | WebP encoder: deepteams (D-57); EWMH/RandR (D-58); input (D-59); exec (D-60); accessibility (D-61); marks (D-62); OCR (D-63); browser (D-64); wait_for (D-65); guest proxy (D-66); host net bridge (D-67) |
 | P5 | not started | | |
 | P6 | not started | | |
 | P7 | not started | | |
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-13 — P4-T11 — done
+- Changed: **`internal/netbridge`** (new: `bridge.go` the host's side: smux server over the net port, `egress.Policy` and `egress.Tracker`, audit events and `Event.Record()`, a `Run` loop that dials the port again) · `internal/protocol/net.go` (`NetMuxConfig`, the multiplexer setting both ends use) · `internal/vm/boot.go` (`Machine.DialNet`, `ErrNoNetPort`) · `internal/safety/egress/addr.go` (the reason for `::1` and `::`) · e2e: `netbridge_e2e_test.go`, and `bootE2EWith` to start a VM with `--allow-net`.
+- Decisions: D-67.
+- Tests: the bridge against the real guest-side `netproxy.Bridge` over a loopback socket (a connection with byte counts and both audit events; the last bytes of 300 answers never lost; 3 MiB each way; a refusal with its reason; a server that does not answer; the real egress policy against 11 destinations, none connected; the stream limit and its release; the byte budget; an idle connection; a one-way download that is not idle; bad and missing requests; reasons that are long, multi-line or JSON-heavy; `Run` serving again after the guest went away, retrying a port that is not there, stopping with its context; audit records accepted and verified by `audit.Verify`); mutation-checked: one-way silence ending a connection, the byte budget, the stream limit, the dial error text. **In the real guest** (`TestE2ENetBridge`): see D-67.
+- Found: the first public page used (`example.com`) is blocked by this network's provider, which looked like a bridge bug until the host's side was traced; `curl -x` skips the proxy for `localhost`/`127.0.0.1` (image `NO_PROXY`); the first request after the host's end of the port was reopened gets a 502 and the next one works.
+- Follow-ups: P7-T06 wires `Bridge.Run` into the session with the audit log (an `Append` fsyncs); P4-T13.
 ### 2026-10-13 — P4-T10 — done
 - Changed: **`internal/agent/netproxy`** (new: `bridge.go` the multiplexed connection to the host and `Dial`, `proxy.go` the loopback HTTP proxy, `splice.go` the tunnel with half-close and idle limit) · **`internal/protocol/net.go`** (new: the request line and the answer line of a stream, shared with the host's bridge) · `cmd/controlsnack-agent` (the proxy starts with the agent; the port is opened when first needed) · dependency `xtaci/smux` v1.5.57 (MIT).
 - Decisions: D-66.
