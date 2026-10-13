@@ -275,9 +275,35 @@ func TestNicUserOnlyWhileProvisioning(t *testing.T) {
 	if err := AssertQEMUArgv(removeOpt(prov, "-nic", true), policy(QEMUProvisioning)); err == nil {
 		t.Error("provisioning without a declared network is a builder bug and must be refused")
 	}
-	withMirror := append(removeOpt(prov, "-nic", true), "-nic", "user,model=virtio-net-pci")
-	if err := AssertQEMUArgv(withMirror, policy(QEMUProvisioning)); err == nil {
-		t.Log("note: -nic user,model=... is allowed in provisioning only") // model names are not a path to the host
+}
+
+// TestProvisioningNIC pins down the one NIC a provisioning boot has: Debian's cloud kernel has no driver for the
+// emulated Intel NIC, so it must be a virtio one. Exactly this option, in that profile, and nothing around it.
+func TestProvisioningNIC(t *testing.T) {
+	prov := func(nic string) []string {
+		return append(removeOpt([]string{"qemu-system-x86_64", "-nodefaults", "-accel", "tcg", "-display", "none", "-nic", "user", "-serial", "stdio"}, "-nic", true), "-nic", nic)
+	}
+	if err := AssertQEMUArgv(prov(ProvisioningNIC), policy(QEMUProvisioning)); err != nil {
+		t.Fatalf("the provisioning NIC: %v", err)
+	}
+	if err := AssertQEMUArgv(prov(ProvisioningNIC), policy(QEMURuntime)); err == nil {
+		t.Error("a runtime VM never has a NIC, not even this one")
+	}
+	for _, nic := range []string{
+		ProvisioningNIC + ",hostfwd=tcp::2222-:22", ProvisioningNIC + ",guestfwd=tcp:10.0.2.1:80-cmd:x", ProvisioningNIC + ",smb=/home",
+		"user,model=virtio-net-device", "user,model=virtio-net-pci,netdev=n0", "user,model=VIRTIO-NET-PCI", "user, model=virtio-net-pci", "tap,model=virtio-net-pci",
+		"user,model=virtio-net-pci;x",
+	} {
+		if err := AssertQEMUArgv(prov(nic), policy(QEMUProvisioning)); err == nil {
+			t.Errorf("provisioning must refuse -nic %q", nic)
+		}
+	}
+	// The exemption is for -nic only: a virtio network device on its own is still refused everywhere.
+	for _, p := range []QEMUProfile{QEMURuntime, QEMUProvisioning} {
+		argv := append(prov(ProvisioningNIC), "-device", "virtio-net-pci,netdev=n0")
+		if err := AssertQEMUArgv(argv, policy(p)); err == nil {
+			t.Errorf("profile %d: -device virtio-net-pci must be refused", p)
+		}
 	}
 }
 

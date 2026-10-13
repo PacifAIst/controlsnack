@@ -92,6 +92,10 @@ var forbiddenOptions = map[string]string{
 	"blockdev":  "use -drive so the path is checked",
 }
 
+// ProvisioningNIC is the value of the one `-nic` the provisioning profile may have: user-mode networking (no host
+// ports are forwarded in either direction) on a virtio NIC.
+const ProvisioningNIC = "user,model=virtio-net-pci"
+
 // Substrings that are refused anywhere in any value, case-insensitively.
 var forbiddenSubstrings = []string{
 	"hostfwd", "guestfwd", "virtiofs", "vhost-user", "vhost-net", "vhost-vsock", "usb-host", "vfio", "ivshmem",
@@ -154,6 +158,11 @@ func (c *argvCheck) option(name, val string, hasVal bool) {
 	}
 	lower := strings.ToLower(val)
 	for _, sub := range forbiddenSubstrings {
+		// The one NIC the provisioning boot has is a virtio one: Debian's cloud kernel has no driver for the
+		// emulated Intel NIC QEMU would pick on its own. Only this exact option, only in that profile.
+		if sub == "virtio-net" && name == "nic" && c.p.Profile == QEMUProvisioning && val == ProvisioningNIC {
+			continue
+		}
 		if strings.Contains(lower, sub) {
 			c.bad("-%s %q contains %q, which is not allowed", name, val, sub)
 		}

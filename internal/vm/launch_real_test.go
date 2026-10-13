@@ -50,7 +50,7 @@ func (r *realRig) prepare(t *testing.T) PrepareFunc {
 		if err != nil {
 			return Prepared{}, err
 		}
-		sockDir, cleanSock, err := NewSocketDir()
+		sockDir, cleanSock, err := qemu.NewSocketDir()
 		if err != nil {
 			return Prepared{}, err
 		}
@@ -58,7 +58,7 @@ func (r *realRig) prepare(t *testing.T) PrepareFunc {
 		if out, err := exec.CommandContext(ctx, r.inst.Img, "create", "-f", "qcow2", disk, "256M").CombinedOutput(); err != nil { //nolint:gosec // discovered qemu-img
 			return Prepared{}, errors.New("qemu-img: " + string(out))
 		}
-		eps, err := AllocateEndpoints(ctx, runtime.GOOS, sockDir, "agent0", "qmp0")
+		eps, err := qemu.AllocateEndpoints(ctx, runtime.GOOS, sockDir, "agent0", "qmp0")
 		if err != nil {
 			return Prepared{}, err
 		}

@@ -28,7 +28,7 @@ virtio-serial-pci
 -chardev
 socket,id=agent0,host=127.0.0.1,port=45123,server=on,wait=on
 -device
-virtserialport,chardev=agent0,name=org.controlsnack.agent.0
+virtserialport,chardev=agent0,id=agent0,name=org.controlsnack.agent.0
 -chardev
 socket,id=qmp0,host=127.0.0.1,port=45124,server=on,wait=on
 -mon

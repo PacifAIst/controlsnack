@@ -22,6 +22,8 @@ if=virtio,format=qcow2,file=/run/user/1000/cs-abc/work.qcow2,cache=unsafe,discar
 -drive
 if=virtio,format=raw,media=cdrom,readonly=on,file=/run/user/1000/cs-abc/seed.iso
 -device
+virtio-gpu-pci,xres=1280,yres=800
+-device
 virtio-rng-pci
 -chardev
 socket,id=qmp0,path=/tmp/cs-s1/qmp.sock,server=on,wait=on
@@ -32,5 +34,5 @@ file:/run/user/1000/cs-abc/serial.log
 -display
 none
 -nic
-user
+user,model=virtio-net-pci
 -no-reboot

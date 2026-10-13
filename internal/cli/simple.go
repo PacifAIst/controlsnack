@@ -185,7 +185,7 @@ func (a *app) newImageCmd() *cobra.Command {
 	build := &cobra.Command{
 		Use:   "build",
 		Short: "Download Debian, provision the desktop image locally and seal it",
-		Long: `Download the official Debian genericcloud image (checksum-verified), provision XFCE, Chromium and the other
+		Long: `Download the official Debian generic image (checksum-verified), provision XFCE, Chromium and the other
 guest packages in a one-off trusted boot that is the only profile with outbound networking, then seal the result.
 Software emulation (--slow) works but can take over 30 minutes.`,
 		Args:        noArgs,

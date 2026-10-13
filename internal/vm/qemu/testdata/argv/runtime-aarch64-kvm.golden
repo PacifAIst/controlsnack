@@ -33,7 +33,7 @@ virtio-serial-pci
 -chardev
 socket,id=agent0,path=/tmp/cs-s1/agent.sock,server=on,wait=on
 -device
-virtserialport,chardev=agent0,name=org.controlsnack.agent.0
+virtserialport,chardev=agent0,id=agent0,name=org.controlsnack.agent.0
 -chardev
 socket,id=qmp0,path=/tmp/cs-s1/qmp.sock,server=on,wait=on
 -mon

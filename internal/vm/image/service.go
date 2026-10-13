@@ -15,6 +15,7 @@ import (
 	"github.com/PacifAIst/controlsnack-local/internal/config"
 	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
 	"github.com/PacifAIst/controlsnack-local/internal/platform"
+	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
 )
 
 // BuildOptions are the flags of `controlsnack image build`.
@@ -40,6 +41,15 @@ type FileManager struct {
 	Dir func() (string, error)
 	// Arch is the guest architecture for "the newest image" (default: the host's).
 	Arch string
+
+	// What `image build` needs from the vm package, which this package must not import: the accelerator resolver
+	// and the boot check (see Builder.Verify). Without them Build refuses to run.
+	Accel     func(ctx context.Context, cfg config.Config, inst qemu.Install) (string, error)
+	BootCheck func(ctx context.Context, inst qemu.Install, accel, disk string, out io.Writer) error
+	// Version is recorded in the manifests it builds.
+	Version string
+	// In answers the confirmation question (default: standard input).
+	In io.Reader
 }
 
 // NewManager returns the manager for the current user's image store.
@@ -81,9 +91,14 @@ func imageMissing(err error) error {
 	return err
 }
 
-// Build is implemented by P3-T08.
-func (m *FileManager) Build(context.Context, io.Writer, config.Config, BuildOptions) error {
-	return exitcode.Pending("P3-T08")
+// Build builds a new base image (PLAN.md section 7.5).
+func (m *FileManager) Build(ctx context.Context, w io.Writer, cfg config.Config, opts BuildOptions) error {
+	s, err := m.store()
+	if err != nil {
+		return err
+	}
+	b := &Builder{Store: s, Version: m.Version, In: m.In, Out: w, Accel: m.Accel, Verify: m.BootCheck}
+	return b.Run(ctx, cfg, opts)
 }
 
 // List prints the images, newest first.
@@ -103,7 +118,7 @@ func (m *FileManager) List(_ context.Context, w io.Writer) error {
 		fmt.Fprintln(tw, "ID\tARCH\tCREATED\tSIZE\tUPSTREAM\tRECIPE")
 		for _, im := range images {
 			mf := im.Manifest
-			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", mf.ID, mf.Arch, mf.Created.Local().Format("2006-01-02 15:04"), humanSize(mf.Size),
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", mf.ID, mf.Arch, mf.Created.Local().Format("2006-01-02 15:04"), HumanSize(mf.Size),
 				upstreamLabel(mf.Upstream), mf.RecipeSHA256[:12])
 		}
 		if err := tw.Flush(); err != nil {
@@ -121,7 +136,8 @@ func upstreamLabel(u Upstream) string {
 	return fmt.Sprintf("%s (sha512 %s…)", name, u.SHA512[:8])
 }
 
-func humanSize(n int64) string {
+// HumanSize formats a byte count for people: 1.5 KiB, 325.7 MiB.
+func HumanSize(n int64) string {
 	const unit = 1024
 	if n < unit {
 		return fmt.Sprintf("%d B", n)
@@ -144,7 +160,7 @@ func (m *FileManager) Remove(_ context.Context, w io.Writer, id string) error {
 	if err != nil {
 		return imageMissing(err)
 	}
-	fmt.Fprintf(w, "removed image %s (%s)\n", im.Manifest.ID, humanSize(im.Manifest.Size))
+	fmt.Fprintf(w, "removed image %s (%s)\n", im.Manifest.ID, HumanSize(im.Manifest.Size))
 	return nil
 }
 
@@ -205,7 +221,7 @@ func (m *FileManager) Import(ctx context.Context, w io.Writer, qcow2, manifest s
 		}
 		return err
 	}
-	fmt.Fprintf(w, "imported image %s (%s, %s)\n", im.Manifest.ID, im.Manifest.Arch, humanSize(im.Manifest.Size))
+	fmt.Fprintf(w, "imported image %s (%s, %s)\n", im.Manifest.ID, im.Manifest.Arch, HumanSize(im.Manifest.Size))
 	return nil
 }
 

@@ -633,3 +633,39 @@ func TestDialGivesUpWhenTheContextEnds(t *testing.T) {
 		t.Errorf("%v after %v", err, time.Since(start))
 	}
 }
+
+// QEMU often answers a command and exits at once. A reply that arrived before the connection was seen to end is a
+// reply: select picks at random between "a reply is waiting" and "the connection is gone", which this loop makes
+// likely enough to catch.
+func TestAReplyThatArrivesBeforeTheConnectionClosesIsDelivered(t *testing.T) {
+	for i := range 300 {
+		a, b := net.Pipe()
+		go func() {
+			defer b.Close()
+			br := bufio.NewReader(b)
+			_, _ = io.WriteString(b, greeting+"\r\n")
+			for range 2 { // qmp_capabilities, then query-status
+				line, err := br.ReadString('\n')
+				if err != nil {
+					return
+				}
+				var req map[string]any
+				_ = json.Unmarshal([]byte(line), &req)
+				ret := `{}`
+				if req["execute"] == "query-status" {
+					ret = `{"status":"shutdown","running":false}`
+				}
+				_, _ = io.WriteString(b, fmt.Sprintf(`{"return":%s,"id":%s}`+"\r\n", ret, jsonID(req["id"])))
+			}
+		}() // returns, and closes the pipe, right after the last reply
+		c, err := NewClient(ctx5(t), a)
+		if err != nil {
+			t.Fatalf("round %d: %v", i, err)
+		}
+		st, err := c.QueryStatus(ctx5(t))
+		if err != nil || st.Status != "shutdown" {
+			t.Fatalf("round %d: the reply was lost to the closing connection: %+v %v", i, st, err)
+		}
+		_ = c.Close()
+	}
+}

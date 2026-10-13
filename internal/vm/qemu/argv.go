@@ -232,7 +232,7 @@ func RuntimeArgv(s RuntimeSpec) ([]string, error) {
 		"-device", fmt.Sprintf("%s,xres=%d,yres=%d", gpu, s.Width, s.Height),
 		"-device", "qemu-xhci", "-device", "usb-tablet", "-device", "usb-kbd",
 		"-device", "virtio-rng-pci", "-device", "virtio-serial-pci",
-		"-chardev", agent, "-device", "virtserialport,chardev=agent0,name="+protocol.PortAgent,
+		"-chardev", agent, "-device", "virtserialport,chardev=agent0,id=agent0,name="+protocol.PortAgent,
 		"-chardev", qmp, "-mon", "chardev=qmp0,mode=control",
 		"-serial", "file:"+s.Serial, "-display", "none", "-nic", "none",
 		// A guest that reboots would loop unseen; with -no-reboot QEMU exits and the supervisor notices (D-45).
@@ -242,7 +242,7 @@ func RuntimeArgv(s RuntimeSpec) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("runtime command line: %w", err)
 		}
-		argv = append(argv, "-chardev", net, "-device", "virtserialport,chardev=net0,name="+protocol.PortNet)
+		argv = append(argv, "-chardev", net, "-device", "virtserialport,chardev=net0,id=net0,name="+protocol.PortNet)
 	}
 	if s.Install.Sandbox {
 		argv = append(argv, "-sandbox", SandboxArg)
@@ -290,15 +290,22 @@ func ProvisionArgv(s ProvisionSpec) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("provisioning command line: %w", err)
 	}
+	// A display device is needed even though nobody looks at it: measured with Debian 13's cloud image under QEMU
+	// 8.2.2, a machine without one stops right after GRUB announces the kernel and never gets further (D-52).
+	gpu := "virtio-vga"
+	if s.Install.Arch == ArchAarch64 {
+		gpu = "virtio-gpu-pci"
+	}
 	argv := c.head()
 	argv = append(argv, fwArgs...)
 	argv = append(argv,
 		"-drive", fmt.Sprintf("if=virtio,format=qcow2,file=%s,cache=unsafe,discard=unmap", s.Disk),
 		"-drive", "if=virtio,format=raw,media=cdrom,readonly=on,file="+s.Seed,
+		"-device", gpu+",xres=1280,yres=800",
 		"-device", "virtio-rng-pci",
 		"-chardev", qmp, "-mon", "chardev=qmp0,mode=control",
 		"-serial", "file:"+s.Serial, "-display", "none",
-		"-nic", "user", // the only place a guest of ours gets a network device
+		"-nic", safety.ProvisioningNIC, // the only place a guest of ours gets a network device
 		"-no-reboot")
 	argv, err = c.finish(argv, fwDir, safety.QEMUProvisioning)
 	if err != nil {
@@ -306,3 +313,7 @@ func ProvisionArgv(s ProvisionSpec) ([]string, error) {
 	}
 	return argv, nil
 }
+
+// ValidName reports whether name can be the name of a VM (1 to 40 characters of a-z, 0-9 and -): it ends up in the
+// QEMU command line and in file names.
+func ValidName(name string) bool { return reName.MatchString(name) }

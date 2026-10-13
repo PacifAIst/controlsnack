@@ -24,7 +24,7 @@ import (
 
 // Limits of a download.
 const (
-	// DefaultMaxSize bounds a base image download; the Debian genericcloud image is about 330 MB.
+	// DefaultMaxSize bounds a base image download; the Debian generic image is about 430 MB.
 	DefaultMaxSize = 4 << 30
 	// DefaultIdleTimeout is how long a download may go without receiving a byte.
 	DefaultIdleTimeout = 30 * time.Second

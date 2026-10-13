@@ -36,7 +36,7 @@ var Packages = []string{
 	// the desktop
 	"xfce4", "xfce4-terminal", "xfce4-power-manager", "mousepad", "thunar",
 	// accessibility, which is how the agent sees applications
-	"at-spi2-core", "libatk-adaptor", "gsettings-desktop-schemas",
+	"at-spi2-core", "libatk-adaptor", "gsettings-desktop-schemas", "libglib2.0-bin", // glib-compile-schemas
 	// the browser, text recognition, typing fallback, fonts
 	"chromium", "tesseract-ocr", "tesseract-ocr-eng", "libwebp7", "xdotool", "fonts-dejavu-core", "fonts-noto-core",
 	// network lock-down and the basics of a shell session

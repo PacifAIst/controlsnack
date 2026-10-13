@@ -59,20 +59,20 @@ func (s *serving) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func TestParseSHA512SUMS(t *testing.T) {
 	a, b := strings.Repeat("a", 128), strings.Repeat("B", 128)
-	data := []byte(a + "  debian-13-genericcloud-amd64.qcow2\n" +
-		b + " *debian-13-genericcloud-arm64.qcow2\r\n" +
-		strings.Repeat("c", 128) + "  debian-13-genericcloud-amd64.qcow2.json\n" +
+	data := []byte(a + "  debian-13-generic-amd64.qcow2\n" +
+		b + " *debian-13-generic-arm64.qcow2\r\n" +
+		strings.Repeat("c", 128) + "  debian-13-generic-amd64.qcow2.json\n" +
 		"not a checksum line\n\n" +
 		strings.Repeat("d", 100) + "  short.qcow2\n")
-	got, err := ParseSHA512SUMS(data, "debian-13-genericcloud-amd64.qcow2")
+	got, err := ParseSHA512SUMS(data, "debian-13-generic-amd64.qcow2")
 	if err != nil || got != a {
 		t.Errorf("%q %v", got, err)
 	}
-	got, err = ParseSHA512SUMS(data, "debian-13-genericcloud-arm64.qcow2")
+	got, err = ParseSHA512SUMS(data, "debian-13-generic-arm64.qcow2")
 	if err != nil || got != strings.ToLower(b) {
 		t.Errorf("binary marker and CRLF, normalized to lower case: %q %v", got, err)
 	}
-	for _, name := range []string{"debian-13-genericcloud-amd64", "genericcloud-amd64.qcow2", "short.qcow2", "missing.qcow2", ""} {
+	for _, name := range []string{"debian-13-generic-amd64", "generic-amd64.qcow2", "short.qcow2", "missing.qcow2", ""} {
 		if _, err := ParseSHA512SUMS(data, name); err == nil {
 			t.Errorf("%q: found something it should not have", name)
 		}

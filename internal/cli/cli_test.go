@@ -13,8 +13,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -136,9 +138,6 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 	// Every command that is not built yet must say so and exit 70 rather than pretend.
 	cmds := [][]string{
 		{"run", "--task", "x"},
-		{"image", "build", "--yes"},
-		{"vm", "ls"},
-		{"vm", "rm", "lab"},
 		{"llm", "probe"},
 		{"llm", "models"},
 		{"schema"},
@@ -651,6 +650,49 @@ func TestImageCommandsReachTheManager(t *testing.T) {
 	} {
 		f := &fakeImages{}
 		if r := runCLI(t, nil, "linux", Services{Images: f}, tt.args...); r.code != 0 || len(f.calls) != 1 || f.calls[0] != tt.want {
+			t.Errorf("%v: code %d calls %v (%s)", tt.args, r.code, f.calls, r.errOut)
+		}
+	}
+}
+
+func TestHandledSignalsRespectWhatWasIgnoredAtStart(t *testing.T) {
+	none := func(os.Signal) bool { return false }
+	if got := handledSignals(none); len(got) != 3 {
+		t.Errorf("by default SIGTERM, SIGINT and SIGHUP stop a run: %v", got)
+	}
+	// nohup: SIGHUP is ignored and stays ignored.
+	nohup := func(s os.Signal) bool { return s == syscall.SIGHUP }
+	got := handledSignals(nohup)
+	if len(got) != 2 || slices.Contains(got, os.Signal(syscall.SIGHUP)) {
+		t.Errorf("%v", got)
+	}
+	// A background job of a script: SIGINT and SIGHUP are ignored.
+	bg := func(s os.Signal) bool { return s == os.Interrupt || s == syscall.SIGHUP }
+	if got := handledSignals(bg); len(got) != 1 || got[0] != syscall.SIGTERM {
+		t.Errorf("%v", got)
+	}
+	// SIGTERM is never subject to the exemption: kill <pid> must work.
+	everything := func(os.Signal) bool { return true }
+	if got := handledSignals(everything); len(got) != 1 || got[0] != syscall.SIGTERM {
+		t.Errorf("%v", got)
+	}
+}
+
+type fakeVMs struct{ calls []string }
+
+func (f *fakeVMs) List(context.Context, io.Writer) error { f.calls = append(f.calls, "ls"); return nil }
+func (f *fakeVMs) Remove(_ context.Context, _ io.Writer, name string) error {
+	f.calls = append(f.calls, "rm "+name)
+	return nil
+}
+
+func TestVMCommandsReachTheStore(t *testing.T) {
+	for _, tt := range []struct {
+		args []string
+		want string
+	}{{[]string{"vm", "ls"}, "ls"}, {[]string{"vm", "rm", "lab"}, "rm lab"}} {
+		f := &fakeVMs{}
+		if r := runCLI(t, nil, "linux", Services{VMs: f}, tt.args...); r.code != 0 || len(f.calls) != 1 || f.calls[0] != tt.want {
 			t.Errorf("%v: code %d calls %v (%s)", tt.args, r.code, f.calls, r.errOut)
 		}
 	}

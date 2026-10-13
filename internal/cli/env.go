@@ -37,7 +37,7 @@ func DefaultServices() Services {
 	return Services{
 		Runner: session.NewRunner(),
 		Killer: killswitch.NewClient(sessionsDir),
-		Images: image.NewManager(),
+		Images: vm.NewImageManager(),
 		VMs:    overlay.NewStore(),
 		Audit:  audit.NewAdmin(auditDir),
 		Doctor: vm.NewDoctor(),

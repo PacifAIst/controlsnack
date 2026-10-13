@@ -12,8 +12,10 @@ import (
 // maxChecksumFile bounds the SHA512SUMS download; the real one is under 10 KiB.
 const maxChecksumFile = 1 << 20
 
-// UpstreamSpec describes where the base image comes from: Debian's published genericcloud image and the SHA512SUMS
-// file in the same directory (PLAN.md section 7.5, step 2).
+// UpstreamSpec describes where the base image comes from: Debian's published "generic" image and the SHA512SUMS
+// file in the same directory (PLAN.md section 7.5, step 2). It is the generic variant and not genericcloud on purpose:
+// the genericcloud kernel (linux-image-cloud) is built without DRM, USB and most input drivers (CONFIG_DRM is not set
+// in 6.12.107+deb13-cloud-amd64), so no X server can start on it and the USB tablet and keyboard do not exist.
 type UpstreamSpec struct {
 	// BaseURL is the directory, with a trailing slash.
 	BaseURL string
@@ -31,7 +33,7 @@ var DebianStable = UpstreamSpec{
 	SignatureNote: "Debian publishes no signature for SHA512SUMS; verified over HTTPS against the checksum list from cloud.debian.org",
 }
 
-// FileName is the image file for a guest architecture, e.g. debian-13-genericcloud-amd64.qcow2.
+// FileName is the image file for a guest architecture, e.g. debian-13-generic-amd64.qcow2.
 func (u UpstreamSpec) FileName(arch string) (string, error) {
 	var debArch string
 	switch arch {
@@ -42,7 +44,7 @@ func (u UpstreamSpec) FileName(arch string) (string, error) {
 	default:
 		return "", fmt.Errorf("no Debian cloud image for architecture %q", arch)
 	}
-	return "debian-" + u.Version + "-genericcloud-" + debArch + ".qcow2", nil
+	return "debian-" + u.Version + "-generic-" + debArch + ".qcow2", nil
 }
 
 // ImageURL is where the image is downloaded from.

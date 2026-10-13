@@ -13,8 +13,10 @@ export DEBIAN_FRONTEND=noninteractive LC_ALL=C
 console="/dev/$(awk '{print $NF}' /sys/class/tty/console/active 2>/dev/null || echo ttyS0)"
 [ -c "$console" ] || console=/dev/null
 
+# say writes straight to the console, once. (Writing to stderr as well would print every line twice: cloud-init sends
+# the script's stderr to the same console.) The host follows these lines.
 say() {
-    printf 'CS-PROVISION: %s\n' "$*" | tee "$console" >&2 || true
+    printf 'CS-PROVISION: %s\n' "$*" >"$console" 2>/dev/null || printf 'CS-PROVISION: %s\n' "$*" >&2 || true
 }
 
 trap 'say "FAILED at line $LINENO: $BASH_COMMAND"; sync; sleep 1; systemctl poweroff --force' ERR

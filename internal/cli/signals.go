@@ -18,7 +18,7 @@ import (
 // path (PLAN.md P1-T05, section 6.8). A second signal does not wait for any cleanup and ends the process.
 func Main() int {
 	sigs := make(chan os.Signal, 2)
-	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(sigs, handledSignals(signal.Ignored)...)
 	defer signal.Stop(sigs)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -26,6 +26,20 @@ func Main() int {
 	go forwardSignals(sigs, cancel, func() { os.Exit(exitcode.Killed) })
 
 	return Run(ctx, Env{}, os.Args[1:])
+}
+
+// handledSignals lists the signals that stop a run. SIGHUP and SIGINT that were ignored when the process started
+// stay ignored: that is what `nohup` and a background job in a script ask for, and signal.Notify would otherwise
+// switch them back on. SIGTERM is always handled, so `kill <pid>` works whatever the parent did; the kill switch's
+// other paths (the viewer, `controlsnack kill`) do not depend on signals at all.
+func handledSignals(ignored func(os.Signal) bool) []os.Signal {
+	sigs := []os.Signal{syscall.SIGTERM}
+	for _, s := range []os.Signal{os.Interrupt, syscall.SIGHUP} {
+		if !ignored(s) {
+			sigs = append(sigs, s)
+		}
+	}
+	return sigs
 }
 
 // forwardSignals cancels the context on the first signal and calls force on the second.

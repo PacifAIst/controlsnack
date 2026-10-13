@@ -14,7 +14,7 @@ import (
 
 func TestUpstreamNames(t *testing.T) {
 	u := DebianStable
-	for arch, want := range map[string]string{ArchX86_64: "debian-13-genericcloud-amd64.qcow2", ArchAarch64: "debian-13-genericcloud-arm64.qcow2"} {
+	for arch, want := range map[string]string{ArchX86_64: "debian-13-generic-amd64.qcow2", ArchAarch64: "debian-13-generic-arm64.qcow2"} {
 		name, err := u.FileName(arch)
 		url, uerr := u.ImageURL(arch)
 		if err != nil || uerr != nil || name != want || url != "https://cloud.debian.org/images/cloud/trixie/latest/"+want {
@@ -33,7 +33,7 @@ func TestUpstreamNames(t *testing.T) {
 }
 
 func TestUpstreamResolveAndRecord(t *testing.T) {
-	sums := strings.Repeat("a", 128) + "  debian-13-genericcloud-amd64.qcow2\n" + strings.Repeat("b", 128) + "  debian-13-genericcloud-arm64.qcow2\n"
+	sums := strings.Repeat("a", 128) + "  debian-13-generic-amd64.qcow2\n" + strings.Repeat("b", 128) + "  debian-13-generic-arm64.qcow2\n"
 	srv, d := server(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/dir/SHA512SUMS" {
 			http.NotFound(w, r)
@@ -43,7 +43,7 @@ func TestUpstreamResolveAndRecord(t *testing.T) {
 	}))
 	u := UpstreamSpec{BaseURL: srv.URL + "/dir/", Version: "13", SignatureNote: "no signature"}
 	tg, err := u.Resolve(context.Background(), d, ArchAarch64)
-	if err != nil || tg.SHA512 != strings.Repeat("b", 128) || tg.URL != srv.URL+"/dir/debian-13-genericcloud-arm64.qcow2" || tg.FileName != "debian-13-genericcloud-arm64.qcow2" {
+	if err != nil || tg.SHA512 != strings.Repeat("b", 128) || tg.URL != srv.URL+"/dir/debian-13-generic-arm64.qcow2" || tg.FileName != "debian-13-generic-arm64.qcow2" {
 		t.Fatalf("%+v %v", tg, err)
 	}
 	rec := u.Record(tg)

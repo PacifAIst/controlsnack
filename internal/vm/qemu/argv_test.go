@@ -228,7 +228,7 @@ func TestAarch64Firmware(t *testing.T) {
 func TestPortsSandboxAndCache(t *testing.T) {
 	argv, _ := RuntimeArgv(unixRuntime(ArchX86_64, AccelKVM, true))
 	joined := strings.Join(argv, " ")
-	if !strings.Contains(joined, "virtserialport,chardev=agent0,name="+protocol.PortAgent) || !strings.Contains(joined, "cache=unsafe") {
+	if !strings.Contains(joined, "virtserialport,chardev=agent0,id=agent0,name="+protocol.PortAgent) || !strings.Contains(joined, "cache=unsafe") {
 		t.Errorf("%v", argv)
 	}
 	if strings.Contains(joined, protocol.PortNet) || strings.Contains(joined, "net0") {
@@ -277,12 +277,12 @@ func TestProvisioningProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	joined := strings.Join(argv, " ")
-	for _, want := range []string{"-nic user", "media=cdrom,readonly=on,file=/run/user/1000/cs-abc/seed.iso", "-display none", "-serial file:"} {
+	for _, want := range []string{"-nic user,model=virtio-net-pci", "media=cdrom,readonly=on,file=/run/user/1000/cs-abc/seed.iso", "-display none", "-serial file:", "virtio-vga,xres=1280,yres=800"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("missing %q in %v", want, argv)
 		}
 	}
-	for _, unwanted := range []string{"virtserialport", "virtio-serial-pci", "virtio-vga", "-sandbox", "agent0", "-nic none"} {
+	for _, unwanted := range []string{"virtserialport", "virtio-serial-pci", "-sandbox", "agent0", "-nic none"} {
 		if strings.Contains(joined, unwanted) {
 			t.Errorf("a provisioning boot has no %q: %v", unwanted, argv)
 		}
@@ -305,6 +305,12 @@ func assertInvariant(t *testing.T, name string, argv []string, dirs []string, al
 	t.Helper()
 	for i, a := range argv {
 		for _, w := range forbiddenWords {
+			// The provisioning boot has exactly one network card, a virtio one (the cloud kernel has no driver for
+			// an emulated Intel card). Written out literally here on purpose: this test must not share a constant
+			// with the code it checks.
+			if allowUserNIC && a == "user,model=virtio-net-pci" && w == "virtio-net" {
+				continue
+			}
 			if strings.Contains(strings.ToLower(a), w) {
 				t.Errorf("%s: %q contains forbidden %q", name, a, w)
 			}
@@ -317,7 +323,7 @@ func assertInvariant(t *testing.T, name string, argv []string, dirs []string, al
 		case "-s":
 			t.Errorf("%s: -s opens a debugger port", name)
 		case "-nic":
-			if next != "none" && (!allowUserNIC || next != "user") {
+			if next != "none" && (!allowUserNIC || next != "user,model=virtio-net-pci") {
 				t.Errorf("%s: -nic %s", name, next)
 			}
 		case "-display":

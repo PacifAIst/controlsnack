@@ -124,6 +124,40 @@ func TestScriptsHaveValidSyntax(t *testing.T) {
 	}
 }
 
+// TestTheBuildNeverStopsToAsk guards against the failure the first real build ran into: files the recipe writes
+// before the packages arrive (nftables.conf, the power manager settings) are also files those packages ship, and
+// dpkg's question "keep or replace?" is an error when nobody can answer.
+func TestTheBuildNeverStopsToAsk(t *testing.T) {
+	apt := string(read("apt.conf"))
+	for _, want := range []string{`"--force-confold"`, `"--force-confdef"`, `APT::Install-Recommends "false"`} {
+		if !strings.Contains(apt, want) {
+			t.Errorf("apt.conf lacks %s", want)
+		}
+	}
+	var aptDest string
+	for _, f := range Files() {
+		if f.Path == "/etc/apt/apt.conf.d/99controlsnack" {
+			aptDest = f.Path
+		}
+	}
+	if aptDest == "" {
+		t.Error("apt.conf is installed where apt reads it")
+	}
+	if !strings.Contains(string(ProvisionScript()), "DEBIAN_FRONTEND=noninteractive") {
+		t.Error("provision.sh is non-interactive")
+	}
+	// Every file the recipe puts under /etc is a candidate for such a conflict; the options above cover them all.
+	conflicts := 0
+	for _, f := range Files() {
+		if strings.HasPrefix(f.Path, "/etc/") && f.Path != aptDest {
+			conflicts++
+		}
+	}
+	if conflicts == 0 {
+		t.Error("the recipe writes no /etc files? then this test has nothing to guard")
+	}
+}
+
 func TestConfigFilesAreWellFormed(t *testing.T) {
 	var policy map[string]any
 	if err := json.Unmarshal(read("chromium-policy.json"), &policy); err != nil {

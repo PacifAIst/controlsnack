@@ -16,6 +16,8 @@ if=virtio,format=qcow2,file=C:\Users\u\AppData\Local\Temp\cs-abc\work.qcow2,cach
 -drive
 if=virtio,format=raw,media=cdrom,readonly=on,file=C:\Users\u\AppData\Local\Temp\cs-abc\seed.iso
 -device
+virtio-vga,xres=1280,yres=800
+-device
 virtio-rng-pci
 -chardev
 socket,id=qmp0,host=127.0.0.1,port=45124,server=on,wait=on
@@ -26,5 +28,5 @@ file:C:\Users\u\AppData\Local\Temp\cs-abc\serial.log
 -display
 none
 -nic
-user
+user,model=virtio-net-pci
 -no-reboot

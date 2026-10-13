@@ -41,7 +41,7 @@ func TestManagerListShowsImagesAndProblems(t *testing.T) {
 	}
 	text := out.String()
 	for _, want := range []string{"ID", "ARCH", "CREATED", "SIZE", "UPSTREAM", "RECIPE", a.Manifest.ID, b.Manifest.ID, "x86_64", "aarch64",
-		"4.0 KiB", "debian-13-genericcloud-amd64.qcow2 (sha512 abababab…)", "cccccccccccc", "problem: base-aaaaaaaaaaaa.json"} {
+		"4.0 KiB", "debian-13-generic-amd64.qcow2 (sha512 abababab…)", "cccccccccccc", "problem: base-aaaaaaaaaaaa.json"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("missing %q in\n%s", want, text)
 		}
@@ -143,17 +143,18 @@ func TestManagerImport(t *testing.T) {
 	}
 }
 
-func TestBuildIsNotThereYet(t *testing.T) {
-	err := managerIn(t.TempDir()).Build(context.Background(), &bytes.Buffer{}, config.Defaults(), BuildOptions{})
-	if exitcode.Of(err) != exitcode.NotImplemented {
+func TestBuildNeedsItsWiring(t *testing.T) {
+	// The manager alone cannot resolve the accelerator or boot-check an image: the vm package supplies both.
+	err := managerIn(t.TempDir()).Build(context.Background(), &bytes.Buffer{}, config.Defaults(), BuildOptions{Yes: true})
+	if err == nil || !strings.Contains(err.Error(), "required") {
 		t.Errorf("%v", err)
 	}
 }
 
 func TestHumanSizeAndArch(t *testing.T) {
 	for n, want := range map[int64]string{0: "0 B", 1023: "1023 B", 1024: "1.0 KiB", 1536: "1.5 KiB", 341508096: "325.7 MiB", 3 << 30: "3.0 GiB"} {
-		if got := humanSize(n); got != want {
-			t.Errorf("humanSize(%d) = %q, want %q", n, got, want)
+		if got := HumanSize(n); got != want {
+			t.Errorf("HumanSize(%d) = %q, want %q", n, got, want)
 		}
 	}
 	if ArchFor("amd64") != ArchX86_64 || ArchFor("arm64") != ArchAarch64 || ArchFor("riscv64") != "riscv64" || hostArch() == "" {

@@ -205,8 +205,7 @@ func (c *Client) Execute(ctx context.Context, cmd string, args, out any) error {
 		forget()
 		return err
 	}
-	select {
-	case r := <-ch:
+	finish := func(r response) error {
 		if r.err != nil {
 			return r.err
 		}
@@ -216,10 +215,21 @@ func (c *Client) Execute(ctx context.Context, cmd string, args, out any) error {
 			}
 		}
 		return nil
+	}
+	select {
+	case r := <-ch:
+		return finish(r)
 	case <-ctx.Done():
 		forget()
 		return ctx.Err()
 	case <-c.done:
+		// QEMU often answers and exits at once (quit, a failed capabilities negotiation): when both the reply and the
+		// loss of the connection are ready, select picks at random, and a reply that arrived must win.
+		select {
+		case r := <-ch:
+			return finish(r)
+		default:
+		}
 		forget()
 		return c.failure
 	}

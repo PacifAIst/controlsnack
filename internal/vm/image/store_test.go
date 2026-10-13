@@ -40,7 +40,7 @@ func fakeQCOW2(t *testing.T, path string, seed byte, size int) string {
 func baseManifest(arch string, created time.Time) Manifest {
 	return Manifest{
 		Created: created, Version: "v0.1.0", RecipeSHA256: strings.Repeat("c", 64),
-		Upstream: Upstream{URL: "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2", SHA512: sha512x,
+		Upstream: Upstream{URL: "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-amd64.qcow2", SHA512: sha512x,
 			SignatureNote: "Debian publishes no signature for SHA512SUMS"},
 		Arch: arch, Packages: []string{"xfce4", "chromium", "libwebp7", "at-spi2-core"},
 	}
