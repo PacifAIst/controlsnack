@@ -44,7 +44,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 
 ## Phase 4 — Guest agent: internal/agent, cmd/controlsnack-agent
 - [x] (2026-10-13) P4-T01 Agent server (dispatch, workers, cancel, logs) — per-category FIFO pools (D-56)
-- [ ] P4-T02 Capture + encoding + change detection; WebP benchmark → D-11
+- [x] (2026-10-13) P4-T02 Capture + encoding + change detection; WebP benchmark → D-11 — deepteams/webp chosen, 1080p q70 frame 48–56 KB (D-57)
 - [ ] P4-T03 Windows and monitors (EWMH, RandR)
 - [ ] P4-T04 Input (XTEST, key parser, Unicode typing, drag, scroll)
 - [ ] P4-T05 Exec runner
@@ -123,6 +123,9 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P7-T06: replace the boot-only runner with the full session (model loop, viewer, `--vm`/`--keep-vm` through `overlay.Library` including the generated name for a bare `--keep-vm`, `--allow-net` with the net port); keep what the boot-only runner already does in this order: kill switch → control endpoint → session lock → audit `start` → directory → boot → `ready`; the viewer's server takes over the `/control/kill` handler (P6-T01).
 - [ ] P7-T06: `vm.Boot`'s agent heartbeat and timeouts are scaled by the accelerator factor; make the session treat `StateDown` as "agent_down" for the model loop (PLAN §11) and decide how long a tool call waits for a reconnect.
 - [ ] P3-T14 / P3-T06: the doctor's extra checks are still unregistered; now that images exist, add the "base image present, matches the recipe, boots" check (`image verify` already does the first two).
+- [ ] P4-T06: draw the set-of-marks overlay (D-30) in `internal/imaging` once a11y node bounds exist (`marks_generation` answers `unsupported` until then); `x/image/font/basicfont` is the plan's font.
+- [ ] P5 / P6 / P7-T06: every picture the host receives from the guest goes through `imaging.Inspect` (declared format and size, at most 4096 per side) before anything decodes it.
+- [ ] P8-T04: if the performance pass wants faster capture, add MIT-SHM (`gen2brain/shm` is pure Go) behind `x11.Conn.Capture`; measure first (1280x800 capture plus PNG took 312 ms under tcg).
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)

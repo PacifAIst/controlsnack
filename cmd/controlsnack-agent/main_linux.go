@@ -16,8 +16,11 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/PacifAIst/controlsnack-local/internal/agent"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
+	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
 	"github.com/PacifAIst/controlsnack-local/internal/buildinfo"
+	"github.com/PacifAIst/controlsnack-local/internal/protocol"
 )
 
 func main() { os.Exit(run()) }
@@ -25,7 +28,7 @@ func main() { os.Exit(run()) }
 func run() int {
 	fd := flag.Int("fd", 3, "file descriptor of the virtio-serial port to the host")
 	nonce := flag.String("nonce", "", "the nonce of the push that started this agent; the host must repeat it")
-	display := flag.String("display", os.Getenv("CS_DISPLAY"), "screen size WxH to report (default: the size the VM starts with)")
+	screenSize := flag.String("screen-size", os.Getenv("CS_SCREEN_SIZE"), "screen size WxH to report instead of asking the X server (for tests)")
 	logLevel := flag.String("log-level", os.Getenv("CS_LOG_LEVEL"), "debug, info, warn or error (debug logs every request: type, timings, outcome; never content)")
 	version := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
@@ -40,12 +43,26 @@ func run() int {
 		return 2
 	}
 	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
-	cfg, err := config(*nonce, *display)
+	cfg, err := config(*nonce, *screenSize)
 	if err != nil {
 		log.Error("cannot start", "error", err)
 		return 2
 	}
 	cfg.Log = log
+	cfg.Handlers = map[string]server.Handler{}
+	// The screen: the agent runs inside the desktop session, so DISPLAY and XAUTHORITY are inherited. Without X it still
+	// runs and answers pings, but announces no screenshot capability, which the host reports in plain words.
+	if x, err := x11.Open(os.Getenv("DISPLAY")); err != nil {
+		log.Warn("no access to the screen: screenshots are not available", "error", err, "display", os.Getenv("DISPLAY"))
+	} else {
+		defer x.Close()
+		cfg.Handlers[protocol.TypeScreenshot] = agent.NewScreenshots(x).Handle
+		if *screenSize == "" {
+			if w, h, err := x.Size(); err == nil {
+				cfg.Display = protocol.Display{W: w, H: h}
+			}
+		}
+	}
 	if *fd < 3 {
 		log.Error("cannot start", "error", "the port must be on a file descriptor of 3 or more")
 		return 2
@@ -68,7 +85,7 @@ func run() int {
 }
 
 // config gathers what the handshake reports about this agent.
-func config(nonce, display string) (server.Config, error) {
+func config(nonce, screenSize string) (server.Config, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return server.Config{}, err
@@ -85,7 +102,7 @@ func config(nonce, display string) (server.Config, error) {
 	if err != nil {
 		return server.Config{}, err
 	}
-	d, err := server.ParseDisplay(display)
+	d, err := server.ParseDisplay(screenSize)
 	if err != nil {
 		return server.Config{}, err
 	}

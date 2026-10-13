@@ -10,14 +10,17 @@ tool (
 )
 
 require (
+	github.com/deepteams/webp v1.2.8
 	github.com/diskfs/go-diskfs v1.9.4
 	github.com/go-viper/mapstructure/v2 v2.5.0
+	github.com/jezek/xgb v1.1.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.28.0
 	go.yaml.in/yaml/v3 v3.0.5
+	golang.org/x/image v0.47.0
 	golang.org/x/net v0.61.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/time v0.16.0

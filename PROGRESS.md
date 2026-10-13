@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 done; **P4 in progress** (P4-T01 and P4-T12 done) → next P4-T02 (capture + encoding + change detection; WebP benchmark → D-11) · Updated: 2026-10-13
+- Phase: P3 done; **P4 in progress** (P4-T01, T02 and T12 done) → next P4-T03 (windows and monitors: EWMH, RandR) · Updated: 2026-10-13
 - Blockers: none. Real runs happen in WSL2 with tcg (x86_64 only): no accelerated boot and nothing aarch64 has been run for real (see TODO → Discovered). A local model server is needed from Phase 5 (none here; `fakellm` covers tests).
-- Resume here: Phase 4. Order in PLAN §12 (T01 server and T12 embed pipeline are done): T02 capture/encoding (WebP benchmark → D-11) → T03 windows/monitors → T04 input → T05 exec → T06 a11y → T07 OCR → T08 browser → T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
+- Resume here: Phase 4. Order in PLAN §12 (T01 server, T02 capture and T12 embed pipeline are done): T03 windows/monitors → T04 input → T05 exec → T06 a11y → T07 OCR → T08 browser → T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -28,7 +28,7 @@
 - **go-licenses:** the current module path is `github.com/google/go-licenses/v2` (v2.0.1); `check` takes `--allowed_licenses` and `--ignore`. It must be built for the host (`go tool -n go-licenses`) and then run with the target GOOS/GOARCH in the environment — `GOOS=linux go tool go-licenses` would build a Linux tool that cannot run on Windows.
 - **R1 / Windows:** `Win32_OptionalFeature` and `Win32_ComputerSystem.HypervisorPresent` are readable **without admin**; the Windows edition is readable from `HKLM\...\CurrentVersion\EditionID`; `Win32_Processor.VirtualizationFirmwareEnabled` reads **False while the hypervisor is running** (confirms §7.10: never report "disabled in BIOS" when a hypervisor is present).
 - **QEMU and the image (Phase 3, resolved by real runs, D-50…D-55):** QEMU 8.2.2 boots the full XFCE image under `-sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny` and still writes a QMP `screendump` (`format: png`) to a file; `VSERPORT_CHANGE` only names a port whose device has an `id=`; `virtio-vga` with `-display none` renders; the provisioning VM needs a display device and a NIC; Debian 13 publishes `SHA512SUMS` without a signature and the **generic** (not genericcloud) image is the one with a usable kernel; go-diskfs reads/writes the seed ISO (MIT).
-- Still open (checked when their phase starts): WebP libs (P4-T02), kbinani/screenshot cgo-free (P4-T02), Ollama/LM Studio/OpenAI/Anthropic items (Phase 5), go-licenses paths (P0-T03/P8-T02).
+- Still open (checked when their phase starts): Ollama/LM Studio/OpenAI/Anthropic items (Phase 5), go-licenses paths (P0-T03/P8-T02).
 
 ## Phase status
 | Phase | Status | Exit criteria | Notes |
@@ -37,13 +37,20 @@
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
 | P3 | **done** 2026-10-12 | unit suites green (Windows native; Linux/WSL with `-race`; macOS and CI not run yet) · milestone verified on Windows 10 via WSL2 Ubuntu 24.04, accelerator **tcg**, QEMU 8.2.2: image build 10 min 35 s, boot → agent ready 61–70 s, kill → QEMU gone 14–17 ms | D-52…D-55; no accelerated or aarch64 run yet |
-| P4 | in progress (T01, T12 done) | | |
+| P4 | in progress (T01, T02, T12 done) | | WebP encoder: deepteams (D-57) |
 | P5 | not started | | |
 | P6 | not started | | |
 | P7 | not started | | |
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-13 — P4-T02 — done
+- Changed: `internal/imaging` (format parsing, WebP/JPEG/PNG encoding, `Scale`, `Hasher`, `Inspect`: the host's header check for pictures from the guest); `internal/agent/x11` (`Open`, `Capture`, `Pointer`, pixel-format validation and BGRX conversion); `internal/agent` (`Screenshots`: the `screenshot` handler); `cmd/controlsnack-agent` (opens X, registers the handler, reports the real screen size, `--screen-size` replaces the old `--display`); `tools/dev e2e` rebuilds the embedded agents first; e2e helpers `TestE2ECollectScreens` (real screenshots driven through QMP keys) and `TestE2EScreenshot`.
+- Decisions: D-57 (capture with xgb, the corpus, the benchmark and the choice of `deepteams/webp`, completing D-11).
+- **Benchmark** (8 real guest screenshots, this machine): 1080p WebP q70 = 47.6 KB (terminal) to 55.9 KB (terminal plus file manager), 8 KB for a bare desktop, against the 200 KB budget; encode 50 ms (`deepteams`) vs 600 ms (`gen2brain`, whose libwebp fast path did not engage without cgo); JPEG q70 is 110 to 129 KB, PNG 105 to 138 KB; reference libwebp decodes the chosen encoder's files at 38 to 43 dB.
+- Tests: encoders (PNG exactly lossless, JPEG and WebP fidelity and size ordering, WebP at odd sizes down to 1x1, deterministic and safe under concurrent use), scaling (factor, aspect, never up), hashing (one pixel, size, stride-independent, per-process seed), `Inspect` (wrong format, wrong size, truncated, over 4096; fuzzed 1.9 M executions clean), pixel format validation (eight refusals) and conversion, the handler (every parameter refusal before the screen is touched, `unchanged`, scaling, cancellation, the 8 MiB limit, optional cursor); **in the real guest** the agent's PNG matches QEMU's own screendump and `if_changed_since` works. The X connection itself is tested against a real X server by an integration test that CI runs under Xvfb (WSL's XWayland refuses to hand out the root window, so it skips there).
+- Findings: Go's `image.YCbCr` assumes full-range YUV and VP8 is limited-range, so a naive PSNR of any lossy WebP reads about 23 dB; `gen2brain`'s decoder returns YUV planes even for lossless files. The agent grew from 2.9 to 5.0 MB (2.15 MB gzipped).
+- Follow-ups: the set-of-marks overlay waits for the accessibility service (P4-T06; `marks_generation` answers `unsupported` until then); the host calls `imaging.Inspect` on every picture it receives (P5, P6, P7-T06); MIT-SHM only if the performance pass (P8-T04) asks for it.
 ### 2026-10-13 — P4-T01 (and P4-T12) — done
 - Changed: `internal/agent/server` (`workers.go`: first-in-first-out worker pools, `PoolOf`, `CapabilityOf`, `DefaultWorkers`; `server.go`: dispatch through pools, exact cancel of queued requests, capabilities derived from the handlers, per-request logs; `identity.go`: `ParseLogLevel`); `cmd/controlsnack-agent` (`--log-level` / `CS_LOG_LEVEL`). P4-T12 (the embed pipeline) was already complete from P3-T10.
 - Decisions: D-56 (pools, FIFO, cancel, capabilities, what is logged).
@@ -148,7 +155,7 @@
 | Metric | Target | Measured | Date |
 |---|---|---|---|
 | Idle viewer bandwidth | < 50 KB/s | | |
-| 1080p WebP q70 frame | < 200 KB | | |
+| 1080p WebP q70 frame | < 200 KB | **47.6 to 55.9 KB** for a terminal plus file manager scene (8 KB bare desktop); 50 ms to encode (D-57) | 2026-10-13 |
 | Kill → QEMU gone | < 500 ms | **14–17 ms with the real QEMU** (SIGTERM, `controlsnack kill`, `Machine.Kill`); 1.1 ms with a stand-in process | 2026-10-12 |
 | Boot → agent ready (accelerated) | < 45 s | not measured: no accelerator usable here (no `/dev/kvm` access in WSL, no Windows QEMU) | |
 | Boot → agent ready (tcg / `--slow`) | record | **61–70 s** (desktop up after 58–68 s; QEMU stable after 10 s); image build 10 min 35 s, 765 MiB | 2026-10-12 |
