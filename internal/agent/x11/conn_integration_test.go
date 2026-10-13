@@ -55,10 +55,11 @@ func TestCaptureOnARealServer(t *testing.T) {
 			t.Fatalf("alpha byte %d is %#x: the unused X byte must be made opaque", i, img.Pix[i])
 		}
 	}
-	// A second capture reuses the buffer.
+	// Every capture is a picture of its own: the screenshot, input, text recognition and waiting workers read the screen
+	// at the same time.
 	again, err := c.Capture(context.Background())
-	if err != nil || again != img {
-		t.Errorf("the capture buffer is reused while the size is the same: %v", err)
+	if err != nil || again == img || &again.Pix[0] == &img.Pix[0] {
+		t.Errorf("a second capture must not share pixels with the first: %v", err)
 	}
 }
 

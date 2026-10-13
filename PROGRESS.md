@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 done; **P4 in progress** (P4-T01 to T08 and T12 done) → next P4-T09 (wait_for: screen_change, screen_idle, text_visible, window_title, element) · Updated: 2026-10-13
+- Phase: P3 done; **P4 in progress** (P4-T01 to T09 and T12 done) → next P4-T10 (guest net proxy: 127.0.0.1:3128, CONNECT and absolute-form HTTP tunneled over smux streams) · Updated: 2026-10-13
 - Blockers: none. Real runs happen in WSL2 with tcg (x86_64 only): no accelerated boot and nothing aarch64 has been run for real (see TODO → Discovered). A local model server is needed from Phase 5 (none here; `fakellm` covers tests).
-- Resume here: Phase 4. Order in PLAN §12 (T01 server, T02 capture, T03 windows, T04 input, T05 exec, T06 a11y, T07 OCR, T08 browser and T12 embed pipeline are done): T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
+- Resume here: Phase 4. Order in PLAN §12 (T01 server, T02 capture, T03 windows, T04 input, T05 exec, T06 a11y, T07 OCR, T08 browser, T09 wait_for and T12 embed pipeline are done): T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -37,13 +37,20 @@
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
 | P3 | **done** 2026-10-12 | unit suites green (Windows native; Linux/WSL with `-race`; macOS and CI not run yet) · milestone verified on Windows 10 via WSL2 Ubuntu 24.04, accelerator **tcg**, QEMU 8.2.2: image build 10 min 35 s, boot → agent ready 61–70 s, kill → QEMU gone 14–17 ms | D-52…D-55; no accelerated or aarch64 run yet |
-| P4 | in progress (T01–T08, T12 done) | | WebP encoder: deepteams (D-57); EWMH/RandR (D-58); input (D-59); exec (D-60); accessibility (D-61); marks (D-62); OCR (D-63); browser (D-64) |
+| P4 | in progress (T01–T09, T12 done) | | WebP encoder: deepteams (D-57); EWMH/RandR (D-58); input (D-59); exec (D-60); accessibility (D-61); marks (D-62); OCR (D-63); browser (D-64); wait_for (D-65) |
 | P5 | not started | | |
 | P6 | not started | | |
 | P7 | not started | | |
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-13 — P4-T09 — done
+- Changed: **`internal/agent/waitfor.go`** (new: the `wait_for` handler with its six conditions, a clock and sleep that tests replace) · **`internal/agent/a11y`** (`Probe`: look for an element without taking a generation) · **`internal/agent/ocr.go`** (`Contains`: the handler's reading shared with `wait_for`) · **`internal/agent/x11`** (`Capture` returns a picture of its own) · `cmd/controlsnack-agent` (the registration of the display's handlers moved into `registerDesktop`, which also registers `wait_for`).
+- Decisions: D-65.
+- Tests: every condition on a clock that moves only when something waits or looks (the screen changing at a chosen look, going idle, never idle; windows appearing; an element appearing; text found by names; recognition rate-limited to every 2 s, not repeated on an unchanged screen, restricted to the focused window and clamped to the screen; recognition too slow, unavailable, or accessibility failing while recognition works), the refusals of every condition, which look at nothing, cancellation, a real-time wait that does not overrun its timeout, `Probe` (takes no generation, scopes, refusals), `Contains` (case, cache, errors); mutation-checked: recognition every look, recognition of an unchanged screen, the idle time, the baseline of `screen_change`, the timeout bounds. **In the real guest** (`TestE2EWaitFor`): see D-65.
+- Found: the capture buffer was shared by the screenshot, input, recognition and waiting workers (a latent race since P4-T02: each now gets its own picture); JSON cannot carry invalid UTF-8 (the encoder writes U+FFFD), so a handler's UTF-8 check is defense in depth that a test cannot reach through the protocol.
+- One run of the gate's test step failed once and could not be reproduced in four more full gate runs, three runs of the whole suite under CPU load, and a race run in WSL; the cause is unknown (the real-time bounds of the tests are a second or more). If it comes back, run the gate with the output saved.
+- Follow-ups: see TODO → Discovered (the image should not blink the terminal's cursor).
 ### 2026-10-13 — P4-T08 — done
 - Changed: **`internal/agent/browser`** (new: `types.go` the `Backend` interface and errors, `url.go` the address, selector and text rules, `service.go` the operations, the id table and the stale checks, `axmap.go` the accessibility nodes of a page reduced to what is worth reporting, `chrome.go` the chromedp backend over a pipe) · **`internal/agent/browser.go`** (the `browser` handler and its error codes) · protocol (`max_nodes` and `query` on the request, `truncated` and `note` on the answer) · `cmd/controlsnack-agent` registers it when `chromium` is installed · dependency `chromedp` v0.21.0 with `cdproto` (MIT). The agent is 7.9 MB raw, 3.2 MB gzipped.
 - Decisions: D-64.

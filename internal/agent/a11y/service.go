@@ -128,13 +128,13 @@ var (
 	reElementID  = regexp.MustCompile(`^a[0-9]{1,5}$`)
 )
 
-// Tree reads the elements of a scope and starts a new generation.
-func (s *Service) Tree(ctx context.Context, scope string, o Options) (Result, error) {
+// read walks the elements of a scope. It is the part of Tree that starts no generation.
+func (s *Service) read(ctx context.Context, scope string, o Options) (Tree, string, error) {
 	if utf8.RuneCountInString(o.Query) > maxQueryRunes {
-		return Result{}, fail(KindInvalid, "query is longer than %d characters", maxQueryRunes)
+		return Tree{}, "", fail(KindInvalid, "query is longer than %d characters", maxQueryRunes)
 	}
 	if o.MaxNodes < 0 || o.MaxDepth < 0 {
-		return Result{}, fail(KindInvalid, "max_nodes and max_depth cannot be negative")
+		return Tree{}, "", fail(KindInvalid, "max_nodes and max_depth cannot be negative")
 	}
 	var roots []Ref
 	var note string
@@ -148,21 +148,38 @@ func (s *Service) Tree(ctx context.Context, scope string, o Options) (Result, er
 			note = "no application window is registered with the accessibility service"
 		}
 	case ScopeBrowser:
-		return Result{}, fail(KindInvalid, "the page in the browser is read with the browser tool, not with this scope")
+		return Tree{}, "", fail(KindInvalid, "the page in the browser is read with the browser tool, not with this scope")
 	default:
-		return Result{}, fail(KindInvalid, "scope %q is not active_window, desktop or browser", scope)
+		return Tree{}, "", fail(KindInvalid, "scope %q is not active_window, desktop or browser", scope)
 	}
 	if err != nil {
-		return Result{}, err
+		return Tree{}, "", err
 	}
 
 	var tree Tree
 	if len(roots) > 0 {
 		if tree, err = Walk(ctx, s.bus, roots, o); err != nil {
-			return Result{}, err
+			return Tree{}, "", err
 		}
 	}
 	if err := ctx.Err(); err != nil {
+		return Tree{}, "", err
+	}
+	return tree, note, nil
+}
+
+// Probe says whether an element with the text in its role, name, description or value is in a scope. It starts no
+// generation, so it can be asked again and again (waiting for something to appear) without making stale the ids a
+// model holds from a tree it read before.
+func (s *Service) Probe(ctx context.Context, scope, text string, budget time.Duration) (bool, error) {
+	tree, _, err := s.read(ctx, scope, Options{Query: text, MaxNodes: 1, Budget: budget})
+	return len(tree.Nodes) > 0, err
+}
+
+// Tree reads the elements of a scope and starts a new generation.
+func (s *Service) Tree(ctx context.Context, scope string, o Options) (Result, error) {
+	tree, note, err := s.read(ctx, scope, o)
+	if err != nil {
 		return Result{}, err
 	}
 

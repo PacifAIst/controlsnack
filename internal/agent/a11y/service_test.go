@@ -645,3 +645,43 @@ func TestMarksAreCapped(t *testing.T) {
 		t.Errorf("%d marks, first %s, last %s", len(marks), marks[0].ID, marks[len(marks)-1].ID)
 	}
 }
+
+func TestProbeFindsAnElementWithoutTakingAGeneration(t *testing.T) {
+	w := newWorld()
+	g := w.tree(t, "").Generation
+	before := w.svc.last
+	for _, tt := range []struct {
+		scope, text string
+		want        bool
+	}{
+		{"", "open", true},
+		{"", "REPORT.TXT", true},
+		{"", "button", true},
+		{"", "nothing like this", false},
+		{ScopeDesktop, "body", true}, // the other window's field
+		{"", "body", false},          // not in the active window
+		{ScopeActiveWindow, "name", true},
+	} {
+		got, err := w.svc.Probe(context.Background(), tt.scope, tt.text, 0)
+		if err != nil || got != tt.want {
+			t.Errorf("%q in %q: %v %v, want %v", tt.text, tt.scope, got, err, tt.want)
+		}
+	}
+	if w.svc.last != before {
+		t.Errorf("a probe starts no generation (%d -> %d)", before, w.svc.last)
+	}
+	if _, err := w.svc.Act(context.Background(), "a2", g, OpClick, ""); err != nil {
+		t.Errorf("the ids of the tree read before the probes still work: %v", err)
+	}
+	if _, err := w.svc.Probe(context.Background(), ScopeBrowser, "x", 0); kindOf(err) != KindInvalid {
+		t.Errorf("%v", err)
+	}
+	if _, err := w.svc.Probe(context.Background(), "", strings.Repeat("q", 101), 0); kindOf(err) != KindInvalid {
+		t.Errorf("%v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := w.svc.Probe(ctx, "", "open", 0); !errors.Is(err, context.Canceled) {
+		t.Errorf("%v", err)
+	}
+}

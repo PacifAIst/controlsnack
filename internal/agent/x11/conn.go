@@ -14,14 +14,13 @@ import (
 	"github.com/jezek/xgb/xproto"
 )
 
-// Conn is the agent's connection to the X server. It is safe for concurrent use; the capture buffer is shared, so
-// the image Capture returns is valid until the next call.
+// Conn is the agent's connection to the X server. It is safe for concurrent use; every capture is a picture of its own,
+// since the screenshot, input, text recognition and waiting workers all read the screen at the same time.
 type Conn struct {
 	c    *xgb.Conn
 	root xproto.Window
 
-	mu  sync.Mutex
-	buf *image.RGBA
+	mu sync.Mutex
 
 	atomMu sync.Mutex
 	atoms  map[string]xproto.Atom
@@ -66,7 +65,7 @@ func (c *Conn) Size() (w, h int, err error) {
 	return int(g.Width), int(g.Height), nil
 }
 
-// Capture reads the whole screen. The returned image is reused by the next call.
+// Capture reads the whole screen. The image belongs to the caller.
 func (c *Conn) Capture(ctx context.Context) (*image.RGBA, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -87,13 +86,11 @@ func (c *Conn) Capture(ctx context.Context) (*image.RGBA, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading the screen: %w", err)
 	}
-	if c.buf == nil || c.buf.Bounds().Dx() != w || c.buf.Bounds().Dy() != h {
-		c.buf = image.NewRGBA(image.Rect(0, 0, w, h))
-	}
-	if err := bgrxToRGBA(c.buf, reply.Data, w, h); err != nil {
+	out := image.NewRGBA(image.Rect(0, 0, w, h))
+	if err := bgrxToRGBA(out, reply.Data, w, h); err != nil {
 		return nil, err
 	}
-	return c.buf, nil
+	return out, nil
 }
 
 // Pointer is where the mouse pointer is, in screen pixels.

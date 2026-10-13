@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -87,33 +88,58 @@ func (o *OCR) Handle(ctx context.Context, req protocol.Frame) (any, []byte, erro
 		budget = time.Duration(r.BudgetMS) * time.Millisecond
 	}
 
+	res, err := o.read(ctx, r.Region, lang, factor, budget)
+	if err != nil {
+		return nil, nil, err
+	}
+	return res, nil, nil
+}
+
+// Contains reads the screen, or a region of it, and says whether the text is on it, ignoring case. It shares the
+// handler's cache: asked about a screen that has not changed since the last reading, it costs nothing.
+func (o *OCR) Contains(ctx context.Context, text string, region *protocol.Rect, budget time.Duration) (bool, error) {
+	res, err := o.read(ctx, region, defaultLang, max(o.Enlarge, 1), budget)
+	if err != nil {
+		return false, err
+	}
+	want := strings.ToLower(text)
+	for _, l := range res.Lines {
+		if strings.Contains(strings.ToLower(l.Text), want) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// read recognizes the text on the screen or in a region of it, in guest pixels. Errors are already the protocol's.
+func (o *OCR) read(ctx context.Context, rg *protocol.Rect, lang string, factor int, budget time.Duration) (protocol.OCRRes, error) {
 	img, err := o.Screen.Capture(ctx)
 	if err != nil {
-		return nil, nil, server.Fail(protocol.CodeInternal, "capturing the screen: %v", err)
+		return protocol.OCRRes{}, server.Fail(protocol.CodeInternal, "capturing the screen: %v", err)
 	}
 	screen := img.Bounds()
 	region := screen
-	if r.Region != nil {
-		region = image.Rect(r.Region[0], r.Region[1], r.Region[0]+r.Region[2], r.Region[1]+r.Region[3])
-		if r.Region[2] < minOCRRegion || r.Region[3] < minOCRRegion || !region.In(screen) {
-			return nil, nil, server.Fail(protocol.CodeInvalidArgs, "region %v must be at least %dx%d and inside the %dx%d screen",
-				[4]int(*r.Region), minOCRRegion, minOCRRegion, screen.Dx(), screen.Dy())
+	if rg != nil {
+		region = image.Rect(rg[0], rg[1], rg[0]+rg[2], rg[1]+rg[3])
+		if rg[2] < minOCRRegion || rg[3] < minOCRRegion || !region.In(screen) {
+			return protocol.OCRRes{}, server.Fail(protocol.CodeInvalidArgs, "region %v must be at least %dx%d and inside the %dx%d screen",
+				[4]int(*rg), minOCRRegion, minOCRRegion, screen.Dx(), screen.Dy())
 		}
 	}
 	key := fmt.Sprintf("%s|%v|%s|%d", o.Hasher.Hash(img), region, lang, factor)
 	if res, ok := o.lookup(key); ok {
-		return res, nil, nil
+		return res, nil
 	}
 
 	data, err := imaging.Encode(imaging.Enlarge(imaging.Crop(img, region), factor), imaging.PNG, 0)
 	if err != nil {
-		return nil, nil, server.Fail(protocol.CodeInternal, "preparing the picture: %v", err)
+		return protocol.OCRRes{}, server.Fail(protocol.CodeInternal, "preparing the picture: %v", err)
 	}
 	bctx, cancel := context.WithTimeout(ctx, budget)
 	defer cancel()
 	words, err := o.Engine.Recognize(bctx, data, lang)
 	if err != nil {
-		return nil, nil, ocrError(ctx, err, lang, budget)
+		return protocol.OCRRes{}, ocrError(ctx, err, lang, budget)
 	}
 
 	// Back to guest pixels, then into lines.
@@ -137,9 +163,9 @@ func (o *OCR) Handle(ctx context.Context, req protocol.Frame) (any, []byte, erro
 		out.Lines = append(out.Lines, protocol.OCRLine{ID: "o" + strconv.Itoa(i+1), Text: l.Text, Bounds: protocol.Rect{l.X, l.Y, l.W, l.H}, Conf: l.Conf})
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, nil, err
+		return protocol.OCRRes{}, err
 	}
-	return o.remember(key, out), nil, nil
+	return o.remember(key, out), nil
 }
 
 func (o *OCR) lookup(key string) (protocol.OCRRes, bool) {

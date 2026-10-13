@@ -238,3 +238,25 @@ func TestOCRScale(t *testing.T) {
 		}
 	}
 }
+
+func TestOCRContains(t *testing.T) {
+	o, eng, _ := newOCRRig(320, 200, ocrWord(1, 1, 1, 20, 40, 60, 24, 95, "Save"), ocrWord(1, 1, 2, 90, 40, 80, 24, 90, "Changes?"))
+	for text, want := range map[string]bool{"save changes": true, "CHANGES": true, "ve ch": true, "nope": false} {
+		got, err := o.Contains(context.Background(), text, nil, 10*time.Second)
+		if err != nil || got != want {
+			t.Errorf("%q: %v %v, want %v", text, got, err, want)
+		}
+	}
+	if eng.calls != 1 {
+		t.Errorf("an unchanged screen is read once (%d readings)", eng.calls)
+	}
+	if _, err := o.Contains(context.Background(), "x", &protocol.Rect{0, 0, 4, 4}, time.Second); code(err) != protocol.CodeInvalidArgs {
+		t.Errorf("a region too small: %v", err)
+	}
+	eng.err = ocr.ErrUnavailable
+	o2, eng2, _ := newOCRRig(320, 200)
+	eng2.err = ocr.ErrUnavailable
+	if _, err := o2.Contains(context.Background(), "x", nil, time.Second); code(err) != protocol.CodeUnsupported {
+		t.Errorf("%v", err)
+	}
+}

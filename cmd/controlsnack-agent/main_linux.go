@@ -64,44 +64,7 @@ func run() int {
 		log.Warn("no access to the screen: screenshots are not available", "error", err, "display", os.Getenv("DISPLAY"))
 	} else {
 		defer x.Close()
-		shots := agent.NewScreenshots(x)
-		cfg.Handlers[protocol.TypeScreenshot] = shots.Handle
-		// The input handler reports the screen hash with the screenshots' hasher, so the two can be compared.
-		input := agent.NewInput(x, x, shots.Hasher)
-		cfg.Handlers[protocol.TypeInput] = input.Handle
-		// The accessibility bus is dialed when first used and again if it breaks: the agent starts with the desktop
-		// session, and the bus may come up a moment later. Without a session bus there is nothing to dial.
-		if os.Getenv("DBUS_SESSION_BUS_ADDRESS") != "" || os.Getenv("AT_SPI_BUS_ADDRESS") != "" {
-			ax := agent.NewA11y(a11y.NewLazyBus(a11y.Dial), x, input)
-			cfg.Handlers[protocol.TypeA11yTree] = ax.Tree
-			cfg.Handlers[protocol.TypeA11yAction] = ax.Action
-			shots.Marks = ax.Service
-		} else {
-			log.Warn("no session bus: the accessibility tree is not available")
-		}
-		// Text recognition is tesseract's, installed in the image; without it the capability is not announced.
-		if path, err := exec.LookPath("tesseract"); err == nil {
-			cfg.Handlers[protocol.TypeOCR] = agent.NewOCR(x, shots.Hasher, ocr.Tesseract{Path: path}).Handle
-		} else {
-			log.Warn("tesseract is not installed: text recognition is not available")
-		}
-		// The browser is Chromium, driven over the DevTools protocol through a pipe; it starts when the first page is
-		// opened. Its requests go through the guest's proxy, which tunnels only when the session allows the network.
-		if path, err := exec.LookPath("chromium"); err == nil {
-			web := agent.NewBrowser(browser.NewChromium(path, filepath.Join(os.Getenv("HOME"), ".config", "cs-chromium"), "http://127.0.0.1:3128"))
-			defer web.Service.Close() //nolint:errcheck // the agent is ending; the machine goes with it
-			cfg.Handlers[protocol.TypeBrowser] = web.Handle
-		} else {
-			log.Warn("chromium is not installed: the browser tool is not available")
-		}
-		desktop := agent.DesktopHandlers{Desktop: x}
-		cfg.Handlers[protocol.TypeScreenInfo] = desktop.ScreenInfo
-		cfg.Handlers[protocol.TypeWindows] = desktop.Windows
-		if *screenSize == "" {
-			if w, h, err := x.Size(); err == nil {
-				cfg.Display = protocol.Display{W: w, H: h}
-			}
-		}
+		defer registerDesktop(&cfg, x, *screenSize, log)()
 	}
 	if *fd < 3 {
 		log.Error("cannot start", "error", "the port must be on a file descriptor of 3 or more")
@@ -147,4 +110,64 @@ func config(nonce, screenSize string) (server.Config, error) {
 		return server.Config{}, err
 	}
 	return server.Config{Version: buildinfo.Get().Version, SelfSHA256: sum, Arch: arch, User: u.Username, Nonce: nonce, Display: d}, nil
+}
+
+// registerDesktop registers the handlers that need the display. The function it returns releases what they hold.
+func registerDesktop(cfg *server.Config, x *x11.Conn, screenSize string, log *slog.Logger) func() {
+	var closers []func()
+	shots := agent.NewScreenshots(x)
+	cfg.Handlers[protocol.TypeScreenshot] = shots.Handle
+	// The input handler reports the screen hash with the screenshots' hasher, so the two can be compared.
+	input := agent.NewInput(x, x, shots.Hasher)
+	cfg.Handlers[protocol.TypeInput] = input.Handle
+
+	// What `wait_for` can look at besides the screen and the windows: the accessibility names and recognized text.
+	var probe agent.ElementProbe
+	var finder agent.TextFinder
+
+	// The accessibility bus is dialed when first used and again if it breaks: the agent starts with the desktop session,
+	// and the bus may come up a moment later. Without a session bus there is nothing to dial.
+	if os.Getenv("DBUS_SESSION_BUS_ADDRESS") != "" || os.Getenv("AT_SPI_BUS_ADDRESS") != "" {
+		ax := agent.NewA11y(a11y.NewLazyBus(a11y.Dial), x, input)
+		cfg.Handlers[protocol.TypeA11yTree] = ax.Tree
+		cfg.Handlers[protocol.TypeA11yAction] = ax.Action
+		shots.Marks = ax.Service
+		probe = ax.Service
+	} else {
+		log.Warn("no session bus: the accessibility tree is not available")
+	}
+
+	// Text recognition is tesseract's, installed in the image; without it the capability is not announced.
+	if path, err := exec.LookPath("tesseract"); err == nil {
+		text := agent.NewOCR(x, shots.Hasher, ocr.Tesseract{Path: path})
+		cfg.Handlers[protocol.TypeOCR] = text.Handle
+		finder = text
+	} else {
+		log.Warn("tesseract is not installed: text recognition is not available")
+	}
+
+	// The browser is Chromium, driven over the DevTools protocol through a pipe; it starts when the first page is opened.
+	// Its requests go through the guest's proxy, which tunnels only when the session allows the network.
+	if path, err := exec.LookPath("chromium"); err == nil {
+		web := agent.NewBrowser(browser.NewChromium(path, filepath.Join(os.Getenv("HOME"), ".config", "cs-chromium"), "http://127.0.0.1:3128"))
+		closers = append(closers, func() { _ = web.Service.Close() })
+		cfg.Handlers[protocol.TypeBrowser] = web.Handle
+	} else {
+		log.Warn("chromium is not installed: the browser tool is not available")
+	}
+
+	desktop := agent.DesktopHandlers{Desktop: x}
+	cfg.Handlers[protocol.TypeScreenInfo] = desktop.ScreenInfo
+	cfg.Handlers[protocol.TypeWindows] = desktop.Windows
+	cfg.Handlers[protocol.TypeWaitFor] = agent.NewWaitFor(x, shots.Hasher, x, probe, finder).Handle
+	if screenSize == "" {
+		if w, h, err := x.Size(); err == nil {
+			cfg.Display = protocol.Display{W: w, H: h}
+		}
+	}
+	return func() {
+		for _, c := range closers {
+			c()
+		}
+	}
 }

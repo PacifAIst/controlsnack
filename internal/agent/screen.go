@@ -18,8 +18,7 @@ import (
 
 // Screen is what the screenshot handler needs from the display.
 type Screen interface {
-	// Capture reads the whole screen. The image may be reused by the next call, so the handler must be done with it by
-	// then (the capture pool serves one request at a time).
+	// Capture reads the whole screen. The image belongs to the caller: other workers capture at the same time.
 	Capture(ctx context.Context) (*image.RGBA, error)
 	// Pointer is the mouse position in screen pixels.
 	Pointer() (x, y int, err error)
