@@ -52,7 +52,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-13) P4-T07 OCR — tesseract over stdin, lines with ids, cache by screen hash; verified in the guest (D-63)
 - [x] (2026-10-13) P4-T08 Browser (CDP) — chromedp over a pipe, ids per tree, places agree with the desktop service to 1 px; verified in the guest (D-64)
 - [x] (2026-10-13) P4-T09 wait_for — six conditions, polling every 250 ms; verified in the guest (D-65)
-- [ ] P4-T10 Guest net proxy
+- [x] (2026-10-13) P4-T10 Guest net proxy — loopback HTTP proxy over smux streams; the no-network answers verified in the guest (D-66)
 - [ ] P4-T11 Host net bridge + egress e2e
 - [x] (2026-10-12) P4-T12 Embed pipeline (`tools/dev agent`) — done with P3-T10: both arches, gzip, SHA256SUMS; `agentbin.For` checks the hashes whenever an agent is loaded (every `run`) and refuses a damaged or mismatched set
 - [ ] P4-T13 Image recipe finalisation + smoke
@@ -134,9 +134,11 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P7: recognition of the whole screen takes 14 s under tcg (not yet measured with acceleration); `wait_for text_visible` already tries the accessibility names first and reads only the focused window, at most every 2 s (D-65); the host sends `budget_ms` for `ocr` as for `a11y_tree`.
 - [ ] P4-T13: the image has English recognition data only (`tesseract-ocr-eng`); add languages only if a task needs them (each is a few MB).
 - [ ] P4-T08 / P4-T13: JavaScript dialogs (`alert`, `confirm`, `prompt`, `beforeunload`) block the page until an action times out; handle `Page.javascriptDialogOpening` by dismissing the dialog and telling the model what it said (a `note` on the next answer). Also not handled: frames inside pages (their elements and password fields), downloads, file pickers.
-- [ ] P4-T10 / P4-T11: with no network the browser's navigation to a web address fails with `net::ERR_PROXY_CONNECTION_FAILED`; once the guest proxy exists it should answer a readable 403 page ("Network is disabled for this session (start with --allow-net)"), and `browser read` then shows that sentence to the model.
+- [x] (2026-10-13) P4-T10: with no network the browser and curl now get the readable 403 sentence from the guest proxy (D-66); with a network, a refusal of an https `CONNECT` shows no body in a browser (P4-T11 checks what the model sees).
 - [ ] P8: the agent is 7.9 MB (3.2 MB gzipped, twice in the host binary for the two guest architectures) because of chromedp and its protocol types; if the release size matters, look at what the protocol packages pull in (the agent is built without debug information already).
 - [ ] P4-T13: `wait_for screen_idle` never settles next to a blinking cursor: set the terminal's cursor not to blink in the image (xfce4-terminal `MiscCursorBlinks=FALSE` in its xfconf/terminalrc, GTK `gtk-cursor-blink=false` in settings.ini for Mousepad and Thunar) and check `screen_idle` with a terminal in front; also decide whether the panel's clock should show seconds (it does not by default).
+- [ ] P4-T11: check the guest side of the multiplexer against a real virtio-serial port: what a read and a write do while the host is not connected (the bridge assumes an end of file or an error and reopens the port), whether `os.File` on the port supports deadlines, and that a host that restarts its side makes the guest open the port again.
+- [ ] P8-T04: the guest proxy uses `net/http` (server, reverse proxy, TLS and x509 come with it), which made the agent 3.6 MB larger (7.9 to 11.5 MB raw, 3.2 to 4.7 MB gzipped, twice in the host binary); a proxy on raw TCP with a small request-head parser would take that back out. Measure whether the release size matters before trading `net/http`'s parsing for our own.
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)

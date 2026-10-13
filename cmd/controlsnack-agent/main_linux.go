@@ -7,8 +7,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -21,6 +24,7 @@ import (
 	"github.com/PacifAIst/controlsnack-local/internal/agent"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/browser"
+	"github.com/PacifAIst/controlsnack-local/internal/agent/netproxy"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/ocr"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
@@ -58,6 +62,8 @@ func run() int {
 	// Running commands and looking at files need no display.
 	cfg.Handlers[protocol.TypeExec] = agent.NewExec().Handle
 	cfg.Handlers[protocol.TypeFilePeek] = agent.FilePeek{}.Handle
+	// The way out, when the session has one: a proxy on the guest's loopback whose connections go to the host.
+	defer startProxy(log)()
 	// The screen: the agent runs inside the desktop session, so DISPLAY and XAUTHORITY are inherited. Without X it still
 	// runs and answers pings, but announces no screenshot capability, which the host reports in plain words.
 	if x, err := x11.Open(os.Getenv("DISPLAY")); err != nil {
@@ -169,5 +175,37 @@ func registerDesktop(cfg *server.Config, x *x11.Conn, screenSize string, log *sl
 		for _, c := range closers {
 			c()
 		}
+	}
+}
+
+// netPort is the virtio-serial port to the host's net bridge; it exists only when the session was started with --allow-net.
+const netPort = "/dev/virtio-ports/" + protocol.PortNet
+
+// openNetPort opens the port, or says the session has no network.
+func openNetPort() (io.ReadWriteCloser, error) {
+	f, err := os.OpenFile(netPort, os.O_RDWR, 0)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, netproxy.ErrDisabled
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", netproxy.ErrBridgeDown, err)
+	}
+	return f, nil
+}
+
+// startProxy starts the proxy on the loopback address. Without a network it still answers, with a sentence that says so
+// (a program told "connection refused" would say nothing a model could act on). The function it returns stops it.
+func startProxy(log *slog.Logger) func() {
+	bridge := &netproxy.Bridge{Open: openNetPort}
+	p := netproxy.New(bridge.Dial, log)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		if err := p.Run(ctx); err != nil && ctx.Err() == nil {
+			log.Warn("the proxy is not available: web access from the guest does not work", "error", err)
+		}
+	}()
+	return func() {
+		cancel()
+		_ = bridge.Close()
 	}
 }
