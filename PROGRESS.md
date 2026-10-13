@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 done; **P4 in progress** (P4-T01 to T07 and T12 done) → next P4-T08 (browser: chromium over CDP with chromedp, `w<n>` ids) · Updated: 2026-10-13
+- Phase: P3 done; **P4 in progress** (P4-T01 to T08 and T12 done) → next P4-T09 (wait_for: screen_change, screen_idle, text_visible, window_title, element) · Updated: 2026-10-13
 - Blockers: none. Real runs happen in WSL2 with tcg (x86_64 only): no accelerated boot and nothing aarch64 has been run for real (see TODO → Discovered). A local model server is needed from Phase 5 (none here; `fakellm` covers tests).
-- Resume here: Phase 4. Order in PLAN §12 (T01 server, T02 capture, T03 windows, T04 input, T05 exec, T06 a11y, T07 OCR and T12 embed pipeline are done): T08 browser → T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
+- Resume here: Phase 4. Order in PLAN §12 (T01 server, T02 capture, T03 windows, T04 input, T05 exec, T06 a11y, T07 OCR, T08 browser and T12 embed pipeline are done): T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -37,13 +37,20 @@
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
 | P3 | **done** 2026-10-12 | unit suites green (Windows native; Linux/WSL with `-race`; macOS and CI not run yet) · milestone verified on Windows 10 via WSL2 Ubuntu 24.04, accelerator **tcg**, QEMU 8.2.2: image build 10 min 35 s, boot → agent ready 61–70 s, kill → QEMU gone 14–17 ms | D-52…D-55; no accelerated or aarch64 run yet |
-| P4 | in progress (T01–T07, T12 done) | | WebP encoder: deepteams (D-57); EWMH/RandR (D-58); input (D-59); exec (D-60); accessibility (D-61); marks (D-62); OCR (D-63) |
+| P4 | in progress (T01–T08, T12 done) | | WebP encoder: deepteams (D-57); EWMH/RandR (D-58); input (D-59); exec (D-60); accessibility (D-61); marks (D-62); OCR (D-63); browser (D-64) |
 | P5 | not started | | |
 | P6 | not started | | |
 | P7 | not started | | |
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-13 — P4-T08 — done
+- Changed: **`internal/agent/browser`** (new: `types.go` the `Backend` interface and errors, `url.go` the address, selector and text rules, `service.go` the operations, the id table and the stale checks, `axmap.go` the accessibility nodes of a page reduced to what is worth reporting, `chrome.go` the chromedp backend over a pipe) · **`internal/agent/browser.go`** (the `browser` handler and its error codes) · protocol (`max_nodes` and `query` on the request, `truncated` and `note` on the answer) · `cmd/controlsnack-agent` registers it when `chromium` is installed · dependency `chromedp` v0.21.0 with `cdproto` (MIT). The agent is 7.9 MB raw, 3.2 MB gzipped.
+- Decisions: D-64.
+- Tests: the address rules (what is accepted and a long list of what is refused), selector and text rules, field-by-operation refusals, open/navigate/history/tabs, read cap on characters, the tree (ids, query, limits, unrendered elements, finding enough among many), click and type by id with the element asked about again (renamed, gone, other tab, no tree yet, unknown id), by selector, every backend error and its kind, the settle wait and cancellation, concurrency; the accessibility mapping (what is kept, states, values, password fields, hostile names, protocol values); the backend's helpers; mutation-checked: scheme check, tab check, userinfo, field check. **In the real guest** (`TestE2EBrowser`): see D-64.
+- Measured (guest under tcg): the browser's first start 19.5 to 21 s; a page read 0.1 s; a tree 0.07 to 0.3 s; a click 0.6 to 0.9 s (0.4 s of it the settle wait); a link followed 1.8 s; a second tab 2.1 s. Web elements are placed to within 1 pixel of where the desktop accessibility service puts them.
+- Found by the real guest: the ids of a tree are replaced by the next tree, narrowed or not (the test had to read the whole tree again before using an id from it); after a navigation the browser answers "Frame is detached" for an old node, which is the same as "gone"; chromedp 0.21's first `Run` must get the context itself (a timeout on it stops the browser), so the time limit cancels the context instead.
+- Follow-ups: see TODO → Discovered (JavaScript dialogs; the proxy's answer for web addresses without the network arrives with P4-T10 and T11).
 ### 2026-10-13 — P4-T07 — done
 - Changed: **`internal/agent/ocr`** (`engine.go`: the tesseract runner with its limits and error mapping; `tsv.go`: the strict TSV parser and the grouping of words into lines) · **`internal/agent/ocr.go`** (the `ocr` handler: region, enlargement, cache, ids, budget) · **`internal/imaging`** (`Crop`, `Enlarge`) · protocol (`budget_ms`, `scale`, `truncated`) · `cmd/controlsnack-agent` registers the handler when `tesseract` is installed.
 - Decisions: D-63.

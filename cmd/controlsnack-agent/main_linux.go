@@ -14,11 +14,13 @@ import (
 	"os/exec"
 	"os/signal"
 	"os/user"
+	"path/filepath"
 	"runtime"
 	"syscall"
 
 	"github.com/PacifAIst/controlsnack-local/internal/agent"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
+	"github.com/PacifAIst/controlsnack-local/internal/agent/browser"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/ocr"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
@@ -82,6 +84,15 @@ func run() int {
 			cfg.Handlers[protocol.TypeOCR] = agent.NewOCR(x, shots.Hasher, ocr.Tesseract{Path: path}).Handle
 		} else {
 			log.Warn("tesseract is not installed: text recognition is not available")
+		}
+		// The browser is Chromium, driven over the DevTools protocol through a pipe; it starts when the first page is
+		// opened. Its requests go through the guest's proxy, which tunnels only when the session allows the network.
+		if path, err := exec.LookPath("chromium"); err == nil {
+			web := agent.NewBrowser(browser.NewChromium(path, filepath.Join(os.Getenv("HOME"), ".config", "cs-chromium"), "http://127.0.0.1:3128"))
+			defer web.Service.Close() //nolint:errcheck // the agent is ending; the machine goes with it
+			cfg.Handlers[protocol.TypeBrowser] = web.Handle
+		} else {
+			log.Warn("chromium is not installed: the browser tool is not available")
 		}
 		desktop := agent.DesktopHandlers{Desktop: x}
 		cfg.Handlers[protocol.TypeScreenInfo] = desktop.ScreenInfo

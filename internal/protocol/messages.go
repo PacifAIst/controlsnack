@@ -287,14 +287,18 @@ type ExecRes struct {
 }
 
 // BrowserReq is a browser operation (open, navigate, back, forward, reload, click, type, read, ax_tree, tabs,
-// switch_tab).
+// switch_tab). Tabs are numbered from 1, as `tabs` lists them.
 type BrowserReq struct {
 	Op     string `json:"op"`
 	URL    string `json:"url,omitempty"`
-	Target string `json:"target,omitempty"`
+	Target string `json:"target,omitempty"` // click, type: an id (w12) from the last ax_tree, or a CSS selector
 	Text   string `json:"text,omitempty"`
 	Submit bool   `json:"submit,omitempty"`
 	Tab    int    `json:"tab,omitempty"`
+	// MaxNodes and Query narrow an ax_tree: at most this many nodes (1 to 400, default 150), only those with the query
+	// (up to 100 characters) in their role, name, description or value.
+	MaxNodes int    `json:"max_nodes,omitempty"`
+	Query    string `json:"query,omitempty"`
 }
 
 // BrowserTab describes an open tab.
@@ -313,6 +317,10 @@ type BrowserRes struct {
 	Tabs       []BrowserTab `json:"tabs,omitempty"`
 	Generation string       `json:"generation,omitempty"`
 	Nodes      []A11yNode   `json:"nodes,omitempty"`
+	// Truncated is set when the text, or the list of nodes, was cut.
+	Truncated bool `json:"truncated,omitempty"`
+	// Note says why an answer is empty or short in words a model can act on.
+	Note string `json:"note,omitempty"`
 }
 
 // WaitForReq waits inside the guest (condition seconds, screen_change, screen_idle, text_visible, window_title,

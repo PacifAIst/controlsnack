@@ -50,7 +50,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-13) P4-T05 Exec runner (plus the guest `file_peek`) — verified in the guest (D-60)
 - [x] (2026-10-13) P4-T06 Accessibility (AT-SPI) + stubs for other OSes + set-of-marks overlay — verified against Mousepad and Thunar in the guest (D-61, D-62)
 - [x] (2026-10-13) P4-T07 OCR — tesseract over stdin, lines with ids, cache by screen hash; verified in the guest (D-63)
-- [ ] P4-T08 Browser (CDP)
+- [x] (2026-10-13) P4-T08 Browser (CDP) — chromedp over a pipe, ids per tree, places agree with the desktop service to 1 px; verified in the guest (D-64)
 - [ ] P4-T09 wait_for
 - [ ] P4-T10 Guest net proxy
 - [ ] P4-T11 Host net bridge + egress e2e
@@ -133,6 +133,9 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P4-T08 / P4-T13: accessibility of Qt, Electron and Chromium is untested (the image has only GTK3 applications besides the browser); Chromium needs `--force-renderer-accessibility` and is read by the browser tool, not this one. Elements without a Component interface are left out (no area), which loses some custom widgets.
 - [ ] P4-T09 / P7: recognition of the whole screen takes 14 s under tcg (not yet measured with acceleration), so `wait_for text_visible` must try the accessibility names first and read OCR on the active window's region at most every 2 s, never the whole screen; the host sends `budget_ms` for `ocr` as for `a11y_tree`.
 - [ ] P4-T13: the image has English recognition data only (`tesseract-ocr-eng`); add languages only if a task needs them (each is a few MB).
+- [ ] P4-T08 / P4-T13: JavaScript dialogs (`alert`, `confirm`, `prompt`, `beforeunload`) block the page until an action times out; handle `Page.javascriptDialogOpening` by dismissing the dialog and telling the model what it said (a `note` on the next answer). Also not handled: frames inside pages (their elements and password fields), downloads, file pickers.
+- [ ] P4-T10 / P4-T11: with no network the browser's navigation to a web address fails with `net::ERR_PROXY_CONNECTION_FAILED`; once the guest proxy exists it should answer a readable 403 page ("Network is disabled for this session (start with --allow-net)"), and `browser read` then shows that sentence to the model.
+- [ ] P8: the agent is 7.9 MB (3.2 MB gzipped, twice in the host binary for the two guest architectures) because of chromedp and its protocol types; if the release size matters, look at what the protocol packages pull in (the agent is built without debug information already).
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)
