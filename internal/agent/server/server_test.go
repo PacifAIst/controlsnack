@@ -5,12 +5,15 @@ package server
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -357,7 +360,7 @@ func TestConcurrencyIsBounded(t *testing.T) {
 	started := map[uint64]bool{} // which scheduling wins the two slots is up to the runtime
 	release := make(chan struct{})
 	cfg := baseConfig()
-	cfg.MaxInFlight = 2
+	cfg.Workers = map[string]int{PoolExec: 2} // the default, said out loud
 	cfg.Handlers = map[string]Handler{protocol.TypeExec: func(ctx context.Context, req protocol.Frame) (any, []byte, error) {
 		mu.Lock()
 		started[req.Header.ID] = true
@@ -417,7 +420,7 @@ func TestConcurrencyIsBounded(t *testing.T) {
 func TestTooManyWaitingRequestsAreRefused(t *testing.T) {
 	release := make(chan struct{})
 	cfg := baseConfig()
-	cfg.MaxInFlight = 1
+	cfg.Workers = map[string]int{PoolExec: 1}
 	cfg.Handlers = map[string]Handler{protocol.TypeExec: func(ctx context.Context, req protocol.Frame) (any, []byte, error) {
 		select {
 		case <-release:
@@ -523,6 +526,240 @@ func TestIdentityHelpers(t *testing.T) {
 	}
 	for _, bad := range []string{"1280", "x", "1280x", "ax800", "100x100", "9000x800", "1280x800x2", "-1280x800"} {
 		if _, err := ParseDisplay(bad); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
+	}
+}
+
+// --- worker pools (P4-T01) ----------------------------------------------------------------------------------------
+
+// gate is a handler that records when it starts and waits to be released.
+type gate struct {
+	mu      sync.Mutex
+	started []uint64
+	running int
+	peak    int
+	release chan struct{}
+}
+
+func newGate() *gate { return &gate{release: make(chan struct{})} }
+
+func (g *gate) handler(ctx context.Context, req protocol.Frame) (any, []byte, error) {
+	g.mu.Lock()
+	g.started = append(g.started, req.Header.ID)
+	g.running++
+	g.peak = max(g.peak, g.running)
+	g.mu.Unlock()
+	defer func() { g.mu.Lock(); g.running--; g.mu.Unlock() }()
+	select {
+	case <-g.release:
+	case <-ctx.Done():
+	}
+	return nil, nil, nil
+}
+
+func (g *gate) order() []uint64 {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return append([]uint64(nil), g.started...)
+}
+
+func (g *gate) count() int { return len(g.order()) }
+
+func (g *gate) peakRunning() int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.peak
+}
+
+func waitUntil(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatalf("gave up waiting for %s", what)
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+}
+
+func TestPoolsKeepCategoriesApart(t *testing.T) {
+	slow, fast := newGate(), newGate()
+	cfg := baseConfig()
+	cfg.Handlers = map[string]Handler{protocol.TypeExec: slow.handler, protocol.TypeScreenshot: fast.handler}
+	h := start(t, cfg).greeted()
+	h.send(2, protocol.TypeExec, protocol.ExecReq{Command: "x"}, nil)
+	h.send(3, protocol.TypeExec, protocol.ExecReq{Command: "x"}, nil)
+	h.send(4, protocol.TypeExec, protocol.ExecReq{Command: "x"}, nil) // the third waits: exec has two workers
+	waitUntil(t, "two execs running", func() bool { return slow.count() == 2 })
+	h.send(5, protocol.TypeScreenshot, protocol.ScreenshotReq{}, nil)
+	waitUntil(t, "the screenshot to start while the execs are busy", func() bool { return fast.count() == 1 })
+	if slow.count() != 2 {
+		t.Errorf("exec has two workers, but %d started", slow.count())
+	}
+	close(fast.release)
+	close(slow.release)
+	for range 4 {
+		h.recv()
+	}
+	if slow.count() != 3 || slow.peakRunning() != 2 {
+		t.Errorf("the third exec ran after one of the first two finished: started %v, peak %d", slow.order(), slow.peakRunning())
+	}
+}
+
+func TestEachPoolHasThePlannedNumberOfWorkers(t *testing.T) {
+	want := map[string]int{PoolCapture: 1, PoolInput: 1, PoolA11y: 1, PoolOCR: 1, PoolExec: 2, PoolBrowser: 1, PoolWaitFor: 1}
+	for pool, n := range want {
+		if DefaultWorkers[pool] != n {
+			t.Errorf("pool %s has %d workers, PLAN.md section 8 says %d", pool, DefaultWorkers[pool], n)
+		}
+	}
+	// Every request type of the protocol has a pool of its own kind and a capability.
+	for _, typ := range []string{protocol.TypeScreenshot, protocol.TypeScreenInfo, protocol.TypeWindows, protocol.TypeInput, protocol.TypeA11yTree,
+		protocol.TypeA11yAction, protocol.TypeOCR, protocol.TypeExec, protocol.TypeBrowser, protocol.TypeWaitFor, protocol.TypeFilePeek} {
+		if !protocol.IsRequest(typ) || PoolOf(typ) == poolOther || DefaultWorkers[PoolOf(typ)] == 0 || CapabilityOf(typ) == "" {
+			t.Errorf("%s: pool %q capability %q", typ, PoolOf(typ), CapabilityOf(typ))
+		}
+	}
+	if PoolOf("whatever") != poolOther || CapabilityOf("whatever") != "" || CapabilityOf(protocol.TypePing) != protocol.CapPing {
+		t.Error("unknown types go to the spare pool and have no capability")
+	}
+}
+
+func TestInputIsSerializedInOrder(t *testing.T) {
+	g := newGate()
+	cfg := baseConfig()
+	cfg.Handlers = map[string]Handler{protocol.TypeInput: g.handler}
+	h := start(t, cfg).greeted()
+	for id := uint64(2); id < 12; id++ {
+		h.send(id, protocol.TypeInput, protocol.InputReq{}, nil)
+	}
+	waitUntil(t, "the first input to start", func() bool { return g.count() == 1 })
+	time.Sleep(50 * time.Millisecond)
+	if g.count() != 1 {
+		t.Fatalf("input is one at a time, %d started", g.count())
+	}
+	for range 10 {
+		g.release <- struct{}{} // let them through one by one, reading each answer so the next worker can send its own
+		h.recv()
+	}
+	want := []uint64{2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
+	if got := g.order(); !slices.Equal(got, want) || g.peakRunning() != 1 {
+		t.Errorf("input must run in the order it arrived and never in parallel: %v (peak %d)", got, g.peakRunning())
+	}
+}
+
+func TestCancelingAQueuedRequestAnswersAtOnceAndNeverRunsIt(t *testing.T) {
+	g := newGate()
+	cfg := baseConfig()
+	cfg.Handlers = map[string]Handler{protocol.TypeOCR: g.handler}
+	h := start(t, cfg).greeted()
+	h.send(2, protocol.TypeOCR, protocol.OCRReq{}, nil)
+	waitUntil(t, "the first to start", func() bool { return g.count() == 1 })
+	h.send(3, protocol.TypeOCR, protocol.OCRReq{}, nil)
+	h.send(4, protocol.TypeOCR, protocol.OCRReq{}, nil)
+	h.send(1000, protocol.TypeCancel, protocol.CancelBody{ID: 3}, nil)
+	if e := h.errorFrame(3); e.Code != protocol.CodeCanceled {
+		t.Errorf("%+v", e)
+	}
+	g.release <- struct{}{} // the first finishes; the next to start must be 4, not the canceled 3
+	if f := h.recv(); f.Header.ID != 2 {
+		t.Errorf("%+v", f.Header)
+	}
+	waitUntil(t, "request 4 to start", func() bool { return g.count() == 2 })
+	if got := g.order(); !slices.Equal(got, []uint64{2, 4}) {
+		t.Errorf("a canceled request never reaches its handler: %v", got)
+	}
+	close(g.release)
+	h.recv()
+}
+
+func TestTheSessionEndingDropsWhatIsQueued(t *testing.T) {
+	g := newGate()
+	cfg := baseConfig()
+	cfg.Handlers = map[string]Handler{protocol.TypeBrowser: g.handler}
+	h := start(t, cfg).greeted()
+	for id := uint64(2); id < 8; id++ {
+		h.send(id, protocol.TypeBrowser, protocol.BrowserReq{}, nil)
+	}
+	waitUntil(t, "the first to start", func() bool { return g.count() == 1 })
+	_ = h.conn.Close()
+	if err := h.result(3 * time.Second); err != nil {
+		t.Errorf("%v", err)
+	}
+	if g.count() != 1 {
+		t.Errorf("the queued requests of a finished session must not run: %v", g.order())
+	}
+}
+
+func TestCapabilitiesComeFromTheHandlers(t *testing.T) {
+	nop := func(context.Context, protocol.Frame) (any, []byte, error) { return nil, nil, nil }
+	cfg := baseConfig()
+	cfg.Handlers = map[string]Handler{protocol.TypeScreenshot: nop, protocol.TypeScreenInfo: nop, protocol.TypeInput: nop, protocol.TypeExec: nop}
+	cfg.Capabilities = []string{protocol.CapNetProxy, protocol.CapExec} // an extra, and one that is announced twice
+	h := start(t, cfg)
+	h.hello(nonce)
+	var ack protocol.HelloAck
+	if err := protocol.DecodeBody(h.recv(), &ack); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(ack.Capabilities, ","); got != "exec,input,netproxy,ping,screenshot" {
+		t.Errorf("%s", got)
+	}
+}
+
+func TestRequestsAreLoggedWithoutTheirContent(t *testing.T) {
+	var buf syncBuffer
+	cfg := baseConfig()
+	cfg.Log = slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	cfg.Handlers = map[string]Handler{protocol.TypeExec: func(ctx context.Context, req protocol.Frame) (any, []byte, error) {
+		var r protocol.ExecReq
+		_ = protocol.DecodeBody(req, &r)
+		if r.Command == "denied" {
+			return nil, nil, Fail(protocol.CodeUnsupported, "no")
+		}
+		return protocol.ExecRes{Stdout: "the secret output"}, nil, nil
+	}}
+	h := start(t, cfg).greeted()
+	h.send(2, protocol.TypeExec, protocol.ExecReq{Command: "echo hunter2"}, nil)
+	h.recv()
+	h.send(3, protocol.TypeExec, protocol.ExecReq{Command: "denied"}, nil)
+	h.errorFrame(3)
+	_ = h.conn.Close()
+	_ = h.result(3 * time.Second)
+	logs := buf.String()
+	for _, want := range []string{"type=exec", "id=2", "pool=exec", "outcome=ok", "id=3", "outcome=unsupported", "level=WARN", "took_ms="} {
+		if !strings.Contains(logs, want) {
+			t.Errorf("the log lacks %q:\n%s", want, logs)
+		}
+	}
+	for _, leak := range []string{"hunter2", "secret output"} {
+		if strings.Contains(logs, leak) {
+			t.Errorf("the log must not contain request or result content (%q):\n%s", leak, logs)
+		}
+	}
+}
+
+type syncBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+func (s *syncBuffer) String() string { s.mu.Lock(); defer s.mu.Unlock(); return s.b.String() }
+
+func TestParseLogLevel(t *testing.T) {
+	for in, want := range map[string]slog.Level{"": slog.LevelInfo, "info": slog.LevelInfo, " DEBUG ": slog.LevelDebug, "Warn": slog.LevelWarn, "warning": slog.LevelWarn, "error": slog.LevelError} {
+		if got, err := ParseLogLevel(in); err != nil || got != want {
+			t.Errorf("%q: %v %v", in, got, err)
+		}
+	}
+	for _, bad := range []string{"trace", "verbose", "3", "info,debug"} {
+		if _, err := ParseLogLevel(bad); err == nil {
 			t.Errorf("%q accepted", bad)
 		}
 	}

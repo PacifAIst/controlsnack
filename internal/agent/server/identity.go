@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -58,4 +59,19 @@ func ParseDisplay(s string) (protocol.Display, error) {
 		return protocol.Display{}, fmt.Errorf("%q is not a screen size like 1280x800", s)
 	}
 	return protocol.Display{W: wi, H: hi}, nil
+}
+
+// ParseLogLevel reads a log level name (debug, info, warn, error; any case). An empty string means info.
+func ParseLogLevel(s string) (slog.Level, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "", "info":
+		return slog.LevelInfo, nil
+	case "debug":
+		return slog.LevelDebug, nil
+	case "warn", "warning":
+		return slog.LevelWarn, nil
+	case "error":
+		return slog.LevelError, nil
+	}
+	return 0, fmt.Errorf("%q is not a log level (debug, info, warn or error)", s)
 }

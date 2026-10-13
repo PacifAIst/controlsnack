@@ -43,7 +43,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P3-T11 Milestone `run --no-llm --viewer none`: boot with detected accelerator and with `--slow`; doctor verdict matches — verified in WSL with tcg (D-55)
 
 ## Phase 4 — Guest agent: internal/agent, cmd/controlsnack-agent
-- [ ] P4-T01 Agent server (dispatch, workers, cancel, logs)
+- [x] (2026-10-13) P4-T01 Agent server (dispatch, workers, cancel, logs) — per-category FIFO pools (D-56)
 - [ ] P4-T02 Capture + encoding + change detection; WebP benchmark → D-11
 - [ ] P4-T03 Windows and monitors (EWMH, RandR)
 - [ ] P4-T04 Input (XTEST, key parser, Unicode typing, drag, scroll)
@@ -54,7 +54,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P4-T09 wait_for
 - [ ] P4-T10 Guest net proxy
 - [ ] P4-T11 Host net bridge + egress e2e
-- [ ] P4-T12 Embed pipeline (`tools/dev agent`)
+- [x] (2026-10-12) P4-T12 Embed pipeline (`tools/dev agent`) — done with P3-T10: both arches, gzip, SHA256SUMS; `agentbin.For` checks the hashes whenever an agent is loaded (every `run`) and refuses a damaged or mismatched set
 - [ ] P4-T13 Image recipe finalisation + smoke
 
 ## Phase 5 — LLM: internal/llm (required test suite #3)

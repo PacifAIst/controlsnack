@@ -26,6 +26,7 @@ func run() int {
 	fd := flag.Int("fd", 3, "file descriptor of the virtio-serial port to the host")
 	nonce := flag.String("nonce", "", "the nonce of the push that started this agent; the host must repeat it")
 	display := flag.String("display", os.Getenv("CS_DISPLAY"), "screen size WxH to report (default: the size the VM starts with)")
+	logLevel := flag.String("log-level", os.Getenv("CS_LOG_LEVEL"), "debug, info, warn or error (debug logs every request: type, timings, outcome; never content)")
 	version := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 	if *version {
@@ -33,7 +34,12 @@ func run() int {
 		return 0
 	}
 
-	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	level, err := server.ParseLogLevel(*logLevel)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "controlsnack-agent:", err)
+		return 2
+	}
+	log := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
 	cfg, err := config(*nonce, *display)
 	if err != nil {
 		log.Error("cannot start", "error", err)

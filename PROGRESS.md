@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: **P3 done** (T01–T14) → next Phase 4, P4-T01 (agent server: dispatch, workers, cancel, logs — the dispatcher in `internal/agent/server` already exists from P3-T10; P4-T01 extends it) · Updated: 2026-10-12
+- Phase: P3 done; **P4 in progress** (P4-T01 and P4-T12 done) → next P4-T02 (capture + encoding + change detection; WebP benchmark → D-11) · Updated: 2026-10-13
 - Blockers: none. Real runs happen in WSL2 with tcg (x86_64 only): no accelerated boot and nothing aarch64 has been run for real (see TODO → Discovered). A local model server is needed from Phase 5 (none here; `fakellm` covers tests).
-- Resume here: Phase 4. Order in PLAN §12: P4-T01 server → T02 capture/encoding (WebP benchmark → D-11) → T03 windows/monitors → T04 input → T05 exec → T06 a11y → T07 OCR → T08 browser → T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
+- Resume here: Phase 4. Order in PLAN §12 (T01 server and T12 embed pipeline are done): T02 capture/encoding (WebP benchmark → D-11) → T03 windows/monitors → T04 input → T05 exec → T06 a11y → T07 OCR → T08 browser → T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -37,13 +37,19 @@
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
 | P3 | **done** 2026-10-12 | unit suites green (Windows native; Linux/WSL with `-race`; macOS and CI not run yet) · milestone verified on Windows 10 via WSL2 Ubuntu 24.04, accelerator **tcg**, QEMU 8.2.2: image build 10 min 35 s, boot → agent ready 61–70 s, kill → QEMU gone 14–17 ms | D-52…D-55; no accelerated or aarch64 run yet |
-| P4 | not started | | |
+| P4 | in progress (T01, T12 done) | | |
 | P5 | not started | | |
 | P6 | not started | | |
 | P7 | not started | | |
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-13 — P4-T01 (and P4-T12) — done
+- Changed: `internal/agent/server` (`workers.go`: first-in-first-out worker pools, `PoolOf`, `CapabilityOf`, `DefaultWorkers`; `server.go`: dispatch through pools, exact cancel of queued requests, capabilities derived from the handlers, per-request logs; `identity.go`: `ParseLogLevel`); `cmd/controlsnack-agent` (`--log-level` / `CS_LOG_LEVEL`). P4-T12 (the embed pipeline) was already complete from P3-T10.
+- Decisions: D-56 (pools, FIFO, cancel, capabilities, what is logged).
+- Tests: pool isolation, per-pool worker counts against PLAN §8, input order and concurrency 1 (mutation-checked: serving the newest first fails it), cancel of a queued request, a session that ends with a queue, capabilities, log content without request or result content, log level parsing; green under `-race` (5 runs, WSL); lint clean on three OSes.
+- Findings: `net.Pipe` is unbuffered, so a test that releases handlers faster than it reads answers deadlocks the worker that is sending (a test artifact; the real port buffers).
+- Follow-ups: none new. Next: P4-T02 (capture, encoding, change detection; the WebP benchmark records D-11).
 ### 2026-10-12 — P3-T08…P3-T11 — done (Phase 3 complete)
 - Changed: **image build** (`internal/vm/image`: `Builder` with the seven steps, `RunProvision` following the guest console, build lock, free-space check, failure evidence; `internal/vm/imagebuild.go`: the boot check on a throwaway overlay) · **overlays and kept VMs** (`internal/vm/overlay`: qcow2 backing-file check, `Library`, `vm ls|rm`; `internal/platform`: `AcquireLock`, `FreeSpace`) · **agent** (`internal/agent/server`: dispatcher, handshake, cancel, bounded concurrency; `cmd/controlsnack-agent`: minimal agent, ping only; `internal/vm/agentbin`: embedded, hash-checked agents; `internal/vm/agentclient`: installer, client, heartbeat, supervisor) · **session** (`internal/vm`: `NewPrepare`, `Boot`, `Machine`; `internal/session`: the `--no-llm --viewer none` runner with kill switch, control endpoint, session lock and audit log) · recipe (`libglib2.0-bin`, dpkg `confold`, console-only progress lines, stub hook `CS_PORT=-`) · safety (`ProvisioningNIC` exemption, provisioning profile only) · protocol (`ping` → `pong`) · `tools/dev build` runs `agent` first · upstream image is now Debian "generic".
 - Decisions: D-52 (the real build, the genericcloud kernel finding), D-53 (overlays, kept VMs, locks), D-54 (agent connection), D-55 (booting a session VM, the boot-only runner).
