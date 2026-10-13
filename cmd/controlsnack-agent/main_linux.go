@@ -50,6 +50,9 @@ func run() int {
 	}
 	cfg.Log = log
 	cfg.Handlers = map[string]server.Handler{}
+	// Running commands and looking at files need no display.
+	cfg.Handlers[protocol.TypeExec] = agent.NewExec().Handle
+	cfg.Handlers[protocol.TypeFilePeek] = agent.FilePeek{}.Handle
 	// The screen: the agent runs inside the desktop session, so DISPLAY and XAUTHORITY are inherited. Without X it still
 	// runs and answers pings, but announces no screenshot capability, which the host reports in plain words.
 	if x, err := x11.Open(os.Getenv("DISPLAY")); err != nil {

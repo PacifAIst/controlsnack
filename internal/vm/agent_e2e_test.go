@@ -366,3 +366,105 @@ func TestE2EInput(t *testing.T) {
 		}
 	}
 }
+
+// TestE2EExec runs commands in the real guest through the agent: output, exit codes, the user and the environment, a
+// timeout, cancellation (nothing is left running), a big output, a program started in the background, and file_peek.
+func TestE2EExec(t *testing.T) {
+	m, _ := bootE2E(t, 1280, 800)
+	ctx := context.Background()
+	for _, c := range []string{protocol.CapExec, protocol.CapFilePeek} {
+		if !slices.Contains(m.Ack.Capabilities, c) {
+			t.Fatalf("no %s capability: %v", c, m.Ack.Capabilities)
+		}
+	}
+	exec := func(req protocol.ExecReq) protocol.ExecRes {
+		t.Helper()
+		var res protocol.ExecRes
+		if _, err := m.Client.Call(ctx, protocol.TypeExec, req, nil, &res); err != nil {
+			t.Fatalf("exec %q: %v", req.Command, err)
+		}
+		return res
+	}
+
+	res := exec(protocol.ExecReq{Command: "echo hello; echo oops >&2; exit 3"})
+	if res.Stdout != "hello\n" || res.Stderr != "oops\n" || res.ExitCode != 3 || res.TimedOut {
+		t.Errorf("%+v", res)
+	}
+
+	// Who runs it, where, and with what environment.
+	res = exec(protocol.ExecReq{Command: "id -un; pwd; echo $TERM $PAGER $GIT_PAGER $DEBIAN_FRONTEND; echo ${DISPLAY:-no-display}; sudo -n true 2>&1 | head -1"})
+	t.Logf("environment:\n%s", res.Stdout)
+	lines := strings.Split(strings.TrimSpace(res.Stdout), "\n")
+	if len(lines) < 4 || lines[0] != "cs" || lines[1] != "/home/cs/work" || lines[2] != "dumb cat cat noninteractive" || lines[3] == "no-display" {
+		t.Errorf("the command runs as cs in its work directory with the display and the quiet environment: %q", res.Stdout)
+	}
+	if len(lines) >= 5 && !strings.Contains(lines[4], "sudo") && !strings.Contains(lines[4], "password") && !strings.Contains(lines[4], "not found") {
+		t.Errorf("cs has no sudo: %q", lines[4])
+	}
+
+	if res = exec(protocol.ExecReq{Command: "cat; echo done", Stdin: "from stdin\n"}); res.Stdout != "from stdin\ndone\n" {
+		t.Errorf("%+v", res)
+	}
+	if res = exec(protocol.ExecReq{Command: "cd /usr && pwd", Cwd: "/tmp"}); res.Stdout != "/usr\n" {
+		t.Errorf("%+v", res)
+	}
+
+	// A command that takes too long.
+	begin := time.Now()
+	res = exec(protocol.ExecReq{Command: "echo started; sleep 300", TimeoutMS: 1500})
+	t.Logf("timeout: %+v after %s", res, time.Since(begin).Round(time.Millisecond))
+	if !res.TimedOut || res.ExitCode != 124 || res.Stdout != "started\n" || time.Since(begin) > 30*time.Second {
+		t.Errorf("%+v", res)
+	}
+
+	// Cancellation: the host gives up, and the command is gone from the guest.
+	cctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	_, err := m.Client.Call(cctx, protocol.TypeExec, protocol.ExecReq{Command: "sleep 311 & sleep 312; wait"}, nil, nil)
+	cancel()
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("%v", err)
+	}
+	time.Sleep(4 * time.Second)
+	if res = exec(protocol.ExecReq{Command: "pgrep -f '[s]leep 31[12]' | wc -l"}); strings.TrimSpace(res.Stdout) != "0" {
+		t.Errorf("a canceled command leaves nothing running: %q", res.Stdout)
+	}
+
+	// Big output keeps head and tail.
+	res = exec(protocol.ExecReq{Command: "seq 1 100000"})
+	if !res.Truncated || !strings.HasPrefix(res.Stdout, "1\n2\n") || !strings.HasSuffix(res.Stdout, "100000\n") || !strings.Contains(res.Stdout, "bytes omitted") {
+		t.Errorf("%d bytes, truncated %v", len(res.Stdout), res.Truncated)
+	}
+
+	// A program started in the background neither keeps the command waiting nor dies afterwards: the file manager
+	// opens a window, and the exec returned at once.
+	begin = time.Now()
+	res = exec(protocol.ExecReq{Command: "thunar /usr/share/doc & echo launched"})
+	if res.Stdout != "launched\n" || time.Since(begin) > 5*time.Second {
+		t.Errorf("%+v after %s", res, time.Since(begin))
+	}
+	time.Sleep(40 * time.Second)
+	var ws protocol.WindowsRes
+	if _, err := m.Client.Call(ctx, protocol.TypeWindows, protocol.WindowsReq{Op: "list"}, nil, &ws); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, w := range ws.Windows {
+		found = found || strings.EqualFold(w.Class, "Thunar")
+	}
+	if !found {
+		t.Errorf("the program started in the background has a window: %+v", ws.Windows)
+	}
+
+	// file_peek.
+	var fp protocol.FilePeekRes
+	blob, err := m.Client.Call(ctx, protocol.TypeFilePeek, protocol.FilePeekReq{Path: "/etc/os-release", MaxBytes: 200}, nil, &fp)
+	if err != nil || !fp.Exists || fp.Size < 100 || !strings.Contains(string(blob), "Debian") || len(blob) > 200 {
+		t.Errorf("%+v %q %v", fp, blob, err)
+	}
+	if _, err := m.Client.Call(ctx, protocol.TypeFilePeek, protocol.FilePeekReq{Path: "/nonexistent/file"}, nil, &fp); err != nil || fp.Exists {
+		t.Errorf("%+v %v", fp, err)
+	}
+	if _, err := m.Client.Call(ctx, protocol.TypeFilePeek, protocol.FilePeekReq{Path: "/etc"}, nil, &fp); err != nil || !fp.Exists || fp.Size != 0 {
+		t.Errorf("%+v %v", fp, err)
+	}
+}

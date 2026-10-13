@@ -47,7 +47,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-13) P4-T02 Capture + encoding + change detection; WebP benchmark → D-11 — deepteams/webp chosen, 1080p q70 frame 48–56 KB (D-57)
 - [x] (2026-10-13) P4-T03 Windows and monitors (EWMH, RandR) — verified against xfwm4 in the guest (D-58)
 - [x] (2026-10-13) P4-T04 Input (XTEST, key parser, Unicode typing, drag, scroll) — verified in the guest (D-59)
-- [ ] P4-T05 Exec runner
+- [x] (2026-10-13) P4-T05 Exec runner (plus the guest `file_peek`) — verified in the guest (D-60)
 - [ ] P4-T06 Accessibility (AT-SPI) + stubs for other OSes
 - [ ] P4-T07 OCR
 - [ ] P4-T08 Browser (CDP)
