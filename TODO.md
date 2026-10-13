@@ -45,7 +45,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 ## Phase 4 — Guest agent: internal/agent, cmd/controlsnack-agent
 - [x] (2026-10-13) P4-T01 Agent server (dispatch, workers, cancel, logs) — per-category FIFO pools (D-56)
 - [x] (2026-10-13) P4-T02 Capture + encoding + change detection; WebP benchmark → D-11 — deepteams/webp chosen, 1080p q70 frame 48–56 KB (D-57)
-- [ ] P4-T03 Windows and monitors (EWMH, RandR)
+- [x] (2026-10-13) P4-T03 Windows and monitors (EWMH, RandR) — verified against xfwm4 in the guest (D-58)
 - [ ] P4-T04 Input (XTEST, key parser, Unicode typing, drag, scroll)
 - [ ] P4-T05 Exec runner
 - [ ] P4-T06 Accessibility (AT-SPI) + stubs for other OSes

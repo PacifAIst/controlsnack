@@ -8,15 +8,19 @@ package vm
 import (
 	"bytes"
 	"context"
+	"errors"
 	"image"
 	"image/png"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/PacifAIst/controlsnack-local/internal/imaging"
 	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack-local/internal/vm/agentclient"
 )
 
 // differing counts pixels whose channels differ by more than tol, and the total.
@@ -124,5 +128,109 @@ func TestE2EScreenshot(t *testing.T) {
 	// Refusals travel back as the protocol's errors.
 	if _, err := m.Client.Call(ctx, protocol.TypeScreenshot, protocol.ScreenshotReq{Format: "gif"}, nil, nil); err == nil {
 		t.Error("an unknown format is an error")
+	}
+}
+
+// TestE2EWindows opens a terminal and a file manager in the real guest and checks what the agent reports about the
+// monitors and the windows, and that focusing and maximizing really move the window manager (xfwm4).
+func TestE2EWindows(t *testing.T) {
+	m, _ := bootE2E(t, 1280, 800)
+	ctx := context.Background()
+	for _, c := range []string{protocol.CapWindows, protocol.CapScreenshot} {
+		if !slices.Contains(m.Ack.Capabilities, c) {
+			t.Fatalf("no %s capability: %v", c, m.Ack.Capabilities)
+		}
+	}
+	time.Sleep(20 * time.Second)
+
+	info := func() protocol.ScreenInfoRes {
+		t.Helper()
+		var res protocol.ScreenInfoRes
+		if _, err := m.Client.Call(ctx, protocol.TypeScreenInfo, nil, nil, &res); err != nil {
+			t.Fatalf("screen_info: %v", err)
+		}
+		return res
+	}
+	list := func() []protocol.Window {
+		t.Helper()
+		var res protocol.WindowsRes
+		if _, err := m.Client.Call(ctx, protocol.TypeWindows, protocol.WindowsReq{Op: "list"}, nil, &res); err != nil {
+			t.Fatalf("windows: %v", err)
+		}
+		return res.Windows
+	}
+	find := func(ws []protocol.Window, class string) *protocol.Window {
+		for i := range ws {
+			if strings.EqualFold(ws[i].Class, class) {
+				return &ws[i]
+			}
+		}
+		return nil
+	}
+
+	si := info()
+	t.Logf("screen_info: %+v", si)
+	if len(si.Monitors) != 1 || si.Monitors[0].Bounds != (protocol.Rect{0, 0, 1280, 800}) || !si.Monitors[0].Primary {
+		t.Errorf("one primary monitor of 1280x800: %+v", si.Monitors)
+	}
+
+	// A terminal.
+	chord(t, m, "ctrl", "alt", "t")
+	time.Sleep(25 * time.Second)
+	ws := list()
+	term := find(ws, "Xfce4-terminal")
+	if term == nil {
+		t.Fatalf("no terminal among the windows: %+v", ws)
+	}
+	t.Logf("terminal: %+v", *term)
+	if !strings.HasPrefix(term.Title, "Terminal") || term.PID <= 0 || !term.Active || term.Bounds[2] < 200 || term.Bounds[3] < 100 || term.Minimal {
+		t.Errorf("%+v", *term)
+	}
+	if got := info().ActiveWindow; got == nil || got.ID != term.ID {
+		t.Errorf("the active window of screen_info is the terminal: %+v", got)
+	}
+
+	// A file manager, started from the terminal: it comes up in front and takes the focus.
+	typeText(t, m, "thunar /usr/share/doc &\n")
+	time.Sleep(45 * time.Second)
+	ws = list()
+	files := find(ws, "Thunar")
+	if files == nil || len(ws) < 2 {
+		t.Fatalf("no file manager among the windows: %+v", ws)
+	}
+	t.Logf("files: %+v", *files)
+	if ws[0].ID != files.ID || !files.Active || !strings.Contains(files.Title, "doc") {
+		t.Errorf("the topmost window comes first and has the focus: %+v", ws)
+	}
+
+	// Focus the terminal again.
+	if _, err := m.Client.Call(ctx, protocol.TypeWindows, protocol.WindowsReq{Op: "focus", WindowID: term.ID}, nil, nil); err != nil {
+		t.Fatalf("focus: %v", err)
+	}
+	ws = list()
+	if ws[0].ID != term.ID || !ws[0].Active || find(ws, "Thunar").Active {
+		t.Errorf("after focus the terminal is in front and active: %+v", ws)
+	}
+
+	// Maximize the file manager: it fills the screen below the panel.
+	if _, err := m.Client.Call(ctx, protocol.TypeWindows, protocol.WindowsReq{Op: "maximize", WindowID: files.ID}, nil, nil); err != nil {
+		t.Fatalf("maximize: %v", err)
+	}
+	time.Sleep(2 * time.Second)
+	files = find(list(), "Thunar")
+	t.Logf("maximized: %+v", *files)
+	if files.Bounds[0] > 2 || files.Bounds[2] < 1270 || files.Bounds[1] < 15 || files.Bounds[3] < 700 {
+		t.Errorf("a maximized window fills the screen below the panel: %+v", files.Bounds)
+	}
+
+	// Refusals.
+	var re *agentclient.RemoteError
+	_, err := m.Client.Call(ctx, protocol.TypeWindows, protocol.WindowsReq{Op: "focus", WindowID: "0x1"}, nil, nil)
+	if !errors.As(err, &re) || re.Code != protocol.CodeNotFound {
+		t.Errorf("a window that is not there is not_found: %v", err)
+	}
+	_, err = m.Client.Call(ctx, protocol.TypeWindows, protocol.WindowsReq{Op: "focus", WindowID: "root"}, nil, nil)
+	if !errors.As(err, &re) || re.Code != protocol.CodeInvalidArgs {
+		t.Errorf("a malformed id is invalid_args: %v", err)
 	}
 }

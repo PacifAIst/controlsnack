@@ -57,6 +57,9 @@ func run() int {
 	} else {
 		defer x.Close()
 		cfg.Handlers[protocol.TypeScreenshot] = agent.NewScreenshots(x).Handle
+		desktop := agent.DesktopHandlers{Desktop: x}
+		cfg.Handlers[protocol.TypeScreenInfo] = desktop.ScreenInfo
+		cfg.Handlers[protocol.TypeWindows] = desktop.Windows
 		if *screenSize == "" {
 			if w, h, err := x.Size(); err == nil {
 				cfg.Display = protocol.Display{W: w, H: h}

@@ -22,6 +22,12 @@ type Conn struct {
 
 	mu  sync.Mutex
 	buf *image.RGBA
+
+	atomMu sync.Mutex
+	atoms  map[string]xproto.Atom
+
+	randrOnce sync.Once
+	randr15   bool
 }
 
 // Open connects to an X display (":0"; an empty string means $DISPLAY) and checks that its screen can be read.
@@ -40,7 +46,7 @@ func Open(display string) (*Conn, error) {
 		xc.Close()
 		return nil, err
 	}
-	return &Conn{c: xc, root: scr.Root}, nil
+	return &Conn{c: xc, root: scr.Root, atoms: map[string]xproto.Atom{}}, nil
 }
 
 // Close ends the connection.
