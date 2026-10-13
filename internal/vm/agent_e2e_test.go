@@ -234,3 +234,135 @@ func TestE2EWindows(t *testing.T) {
 		t.Errorf("a malformed id is invalid_args: %v", err)
 	}
 }
+
+// TestE2EInput drives the real guest through the agent's `input` request. What was typed is read back exactly, with
+// Unicode, through the terminal's window title (an escape sequence in the typed command sets it, and `windows`
+// reports it); mouse clicks and drags are read back through the active window and window bounds.
+func TestE2EInput(t *testing.T) {
+	m, dir := bootE2E(t, 1280, 800)
+	ctx := context.Background()
+	if !slices.Contains(m.Ack.Capabilities, protocol.CapInput) {
+		t.Fatalf("no input capability: %v", m.Ack.Capabilities)
+	}
+	time.Sleep(20 * time.Second)
+
+	input := func(events ...protocol.InputEvent) protocol.InputRes {
+		t.Helper()
+		var res protocol.InputRes
+		if _, err := m.Client.Call(ctx, protocol.TypeInput, protocol.InputReq{Events: events}, nil, &res); err != nil {
+			t.Fatalf("input %+v: %v", events, err)
+		}
+		return res
+	}
+	list := func() []protocol.Window {
+		t.Helper()
+		var res protocol.WindowsRes
+		if _, err := m.Client.Call(ctx, protocol.TypeWindows, protocol.WindowsReq{Op: "list"}, nil, &res); err != nil {
+			t.Fatal(err)
+		}
+		return res.Windows
+	}
+	byClass := func(class string) *protocol.Window {
+		for _, w := range list() {
+			if strings.EqualFold(w.Class, class) {
+				return &w
+			}
+		}
+		return nil
+	}
+	shot := func(name string) {
+		t.Helper()
+		p := filepath.Join(dir, name+".png")
+		if err := m.Screendump(ctx, p); err != nil {
+			t.Fatal(err)
+		}
+		if keep := os.Getenv("CONTROLSNACK_E2E_SHOTS"); keep != "" {
+			if data, err := os.ReadFile(p); err == nil {
+				_ = os.WriteFile(filepath.Join(keep, name+".png"), data, 0o600)
+			}
+		}
+	}
+
+	// A terminal, opened with a key combination.
+	res := input(protocol.InputEvent{Type: "key", Keys: "ctrl+alt+t"})
+	t.Logf("opening a terminal: hash after %s", res.ScreenHashAfter)
+	time.Sleep(25 * time.Second)
+	term := byClass("Xfce4-terminal")
+	if term == nil {
+		t.Fatalf("no terminal after ctrl+alt+t: %+v", list())
+	}
+
+	// Typed text with Unicode, read back through the title.
+	const unicode = "héllo wörld 日本語 😀 € ñ"
+	input(
+		protocol.InputEvent{Type: "text", Text: `printf '\033]0;%s\007' '` + unicode + `'; sleep 60`},
+		protocol.InputEvent{Type: "key", Keys: "Return"},
+	)
+	time.Sleep(3 * time.Second)
+	term = byClass("Xfce4-terminal")
+	t.Logf("title after typing: %q", term.Title)
+	if !strings.Contains(term.Title, unicode) {
+		t.Errorf("what was typed must come back exactly, Unicode included: got %q, want it to contain %q", term.Title, unicode)
+	}
+	shot("typed")
+	input(protocol.InputEvent{Type: "key", Keys: "ctrl+c"}) // ends the sleep: the prompt is back
+
+	// A key with repeat: type "abcdeXX", erase two characters, close the quote.
+	input(
+		protocol.InputEvent{Type: "text", Text: `printf '\033]0;%s\007' 'abcdeXX`},
+		protocol.InputEvent{Type: "key", Keys: "BackSpace", Repeat: 2},
+		protocol.InputEvent{Type: "text", Text: "'; sleep 60\n"},
+	)
+	time.Sleep(3 * time.Second)
+	if title := byClass("Xfce4-terminal").Title; !strings.Contains(title, "abcde") || strings.Contains(title, "XX") {
+		t.Errorf("BackSpace twice erases XX: %q", title)
+	}
+	input(protocol.InputEvent{Type: "key", Keys: "ctrl+c"}) // ends the sleep before the next command is typed
+
+	// A second window, then a click on the terminal's title bar gives the terminal the focus back.
+	input(protocol.InputEvent{Type: "text", Text: "thunar /usr/share/doc &\n"})
+	time.Sleep(45 * time.Second)
+	if w := byClass("Thunar"); w == nil || !w.Active {
+		t.Fatalf("the file manager opens in front: %+v", list())
+	}
+	term = byClass("Xfce4-terminal")
+	cx, cy := term.Bounds[0]+term.Bounds[2]/2, term.Bounds[1]+10
+	input(protocol.InputEvent{Type: "click", X: cx, Y: cy})
+	time.Sleep(2 * time.Second)
+	if w := byClass("Xfce4-terminal"); !w.Active {
+		t.Errorf("a click on the title bar focuses the window: %+v", list())
+	}
+
+	// A drag on the title bar moves the window.
+	before := byClass("Xfce4-terminal").Bounds
+	res = input(protocol.InputEvent{Type: "drag", X: cx, Y: cy, DragTo: &protocol.Point{X: cx + 300, Y: cy + 150}})
+	time.Sleep(2 * time.Second)
+	after := byClass("Xfce4-terminal").Bounds
+	t.Logf("drag: %v -> %v, hash after %s", before, after, res.ScreenHashAfter)
+	if dx, dy := after[0]-before[0], after[1]-before[1]; dx < 280 || dx > 320 || dy < 130 || dy > 170 || after[2] != before[2] {
+		t.Errorf("the window moved by (%d, %d), expected about (300, 150) with the same size", dx, dy)
+	}
+	shot("dragged")
+
+	// The hash the input reports is the screenshot's hash of the same screen.
+	var s protocol.ScreenshotRes
+	if _, err := m.Client.Call(ctx, protocol.TypeScreenshot, protocol.ScreenshotReq{Format: "jpeg", MaxLongEdge: 320, IfChangedSince: res.ScreenHashAfter}, nil, &s); err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("screenshot after the drag: %+v", s)
+
+	// Refusals.
+	var re *agentclient.RemoteError
+	for name, ev := range map[string]protocol.InputEvent{
+		"off the screen": {Type: "click", X: 5000, Y: 5},
+		"two keys":       {Type: "key", Keys: "ctrl+a+b"},
+		"unknown key":    {Type: "key", Keys: "Foo"},
+		"a control char": {Type: "text", Text: "a\x07b"},
+		"unknown event":  {Type: "tap"},
+	} {
+		_, err := m.Client.Call(ctx, protocol.TypeInput, protocol.InputReq{Events: []protocol.InputEvent{ev}}, nil, nil)
+		if !errors.As(err, &re) || re.Code != protocol.CodeInvalidArgs {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}

@@ -56,7 +56,10 @@ func run() int {
 		log.Warn("no access to the screen: screenshots are not available", "error", err, "display", os.Getenv("DISPLAY"))
 	} else {
 		defer x.Close()
-		cfg.Handlers[protocol.TypeScreenshot] = agent.NewScreenshots(x).Handle
+		shots := agent.NewScreenshots(x)
+		cfg.Handlers[protocol.TypeScreenshot] = shots.Handle
+		// The input handler reports the screen hash with the screenshots' hasher, so the two can be compared.
+		cfg.Handlers[protocol.TypeInput] = agent.NewInput(x, x, shots.Hasher).Handle
 		desktop := agent.DesktopHandlers{Desktop: x}
 		cfg.Handlers[protocol.TypeScreenInfo] = desktop.ScreenInfo
 		cfg.Handlers[protocol.TypeWindows] = desktop.Windows

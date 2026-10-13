@@ -26,6 +26,9 @@ type Conn struct {
 	atomMu sync.Mutex
 	atoms  map[string]xproto.Atom
 
+	xtestOnce sync.Once
+	xtestErr  error
+
 	randrOnce sync.Once
 	randr15   bool
 }
@@ -46,7 +49,9 @@ func Open(display string) (*Conn, error) {
 		xc.Close()
 		return nil, err
 	}
-	return &Conn{c: xc, root: scr.Root, atoms: map[string]xproto.Atom{}}, nil
+	c := &Conn{c: xc, root: scr.Root, atoms: map[string]xproto.Atom{}}
+	go c.drainEvents()
+	return c, nil
 }
 
 // Close ends the connection.

@@ -46,7 +46,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-13) P4-T01 Agent server (dispatch, workers, cancel, logs) — per-category FIFO pools (D-56)
 - [x] (2026-10-13) P4-T02 Capture + encoding + change detection; WebP benchmark → D-11 — deepteams/webp chosen, 1080p q70 frame 48–56 KB (D-57)
 - [x] (2026-10-13) P4-T03 Windows and monitors (EWMH, RandR) — verified against xfwm4 in the guest (D-58)
-- [ ] P4-T04 Input (XTEST, key parser, Unicode typing, drag, scroll)
+- [x] (2026-10-13) P4-T04 Input (XTEST, key parser, Unicode typing, drag, scroll) — verified in the guest (D-59)
 - [ ] P4-T05 Exec runner
 - [ ] P4-T06 Accessibility (AT-SPI) + stubs for other OSes
 - [ ] P4-T07 OCR
@@ -126,6 +126,8 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P4-T06: draw the set-of-marks overlay (D-30) in `internal/imaging` once a11y node bounds exist (`marks_generation` answers `unsupported` until then); `x/image/font/basicfont` is the plan's font.
 - [ ] P5 / P6 / P7-T06: every picture the host receives from the guest goes through `imaging.Inspect` (declared format and size, at most 4096 per side) before anything decodes it.
 - [ ] P8-T04: if the performance pass wants faster capture, add MIT-SHM (`gen2brain/shm` is pure Go) behind `x11.Conn.Capture`; measure first (1280x800 capture plus PNG took 312 ms under tcg).
+- [ ] P4-T13: the guest has no CJK font, so correctly typed CJK characters show as empty boxes in screenshots (Latin, Greek, Cyrillic, emoji and the euro sign render); `fonts-noto-cjk` is about 60 MB: decide at the image rewrite whether screenshots of CJK text matter enough.
+- [ ] P4-T04: scroll, middle and right clicks and double clicks are unit-tested but not yet checked against a real application; cover them in the P4-T13 smoke (scroll a Thunar folder, double-click to open a file). An `xdotool type` fallback for Unicode is only worth building if an application ever ignores the borrowed keycode.
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)

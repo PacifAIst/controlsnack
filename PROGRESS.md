@@ -1,8 +1,8 @@
 # PROGRESS
 ## Now
-- Phase: P3 done; **P4 in progress** (P4-T01, T02, T03 and T12 done) → next P4-T04 (input: XTEST, key parser, Unicode typing, drag, scroll) · Updated: 2026-10-13
+- Phase: P3 done; **P4 in progress** (P4-T01 to T04 and T12 done) → next P4-T05 (exec runner: bash -lc, process groups, timeouts, output caps) · Updated: 2026-10-13
 - Blockers: none. Real runs happen in WSL2 with tcg (x86_64 only): no accelerated boot and nothing aarch64 has been run for real (see TODO → Discovered). A local model server is needed from Phase 5 (none here; `fakellm` covers tests).
-- Resume here: Phase 4. Order in PLAN §12 (T01 server, T02 capture, T03 windows and T12 embed pipeline are done): T04 input → T05 exec → T06 a11y → T07 OCR → T08 browser → T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
+- Resume here: Phase 4. Order in PLAN §12 (T01 server, T02 capture, T03 windows, T04 input and T12 embed pipeline are done): T05 exec → T06 a11y → T07 OCR → T08 browser → T09 wait_for → T10 guest net proxy → T11 host net bridge → T12 embed pipeline (already built: `go run ./tools/dev agent`; the host verifies the embedded hashes) → T13 image recipe finalisation and smoke (rebuild the image; type into mousepad and read it back via a11y; exec echo; browser opens a local file; OCR finds known text). The real image is built (`~/.cache/controlsnack/images/base-113449acc878.qcow2` in WSL, recipe 1da67d15e41a, 765 MiB); `go test -tags e2e -run TestE2EBoot ./internal/vm/` (in WSL, via `scripts/wsl-go.sh`) boots it in about a minute.
 
 ## Environment (verified)
 | Item | Value | Verified on |
@@ -37,13 +37,20 @@
 | P1 | **done** 2026-10-12 | `controlsnack --help` and `run --help` list everything; `config show` works | 17 third-party deps, all MIT/BSD-3/Apache-2.0 (go-licenses verified with a negative control) |
 | P2 | **done** 2026-10-12 | `internal/safety` coverage ≥ 85 %: **93.0 %** · fuzzing clean (exec policy 60 s / 364 k execs, fence 30 s / 500 k, egress 40 s / 5.4 M) · tests green with `-race` (13 packages, Linux/WSL) | 4 gaps found by the table/fuzz are listed in the log; D-39…D-42 |
 | P3 | **done** 2026-10-12 | unit suites green (Windows native; Linux/WSL with `-race`; macOS and CI not run yet) · milestone verified on Windows 10 via WSL2 Ubuntu 24.04, accelerator **tcg**, QEMU 8.2.2: image build 10 min 35 s, boot → agent ready 61–70 s, kill → QEMU gone 14–17 ms | D-52…D-55; no accelerated or aarch64 run yet |
-| P4 | in progress (T01–T03, T12 done) | | WebP encoder: deepteams (D-57); EWMH/RandR (D-58) |
+| P4 | in progress (T01–T04, T12 done) | | WebP encoder: deepteams (D-57); EWMH/RandR (D-58); input (D-59) |
 | P5 | not started | | |
 | P6 | not started | | |
 | P7 | not started | | |
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-13 — P4-T04 — done
+- Changed: `internal/agent/x11` (`keysyms.go` names and combo parsing; `keymap.go` keyboard mapping and spare keycode; `keyboard.go` the key sequencer; `input.go` XTEST, keymap reading, event drain); `internal/agent/input.go` (the `input` handler); `internal/protocol` documents the `drag` event; the agent registers `input` with the screenshot handler's hasher.
+- Decisions: D-59.
+- Tests: combo parsing (30 cases, 16 refusals), keysyms, keymap preferences and edges, the key sequencer against a fake XTEST device (combinations, shifted and AltGr keys, repeat, modifiers never left down after an error or a cancellation, typing with a borrowed keycode, Latin-1 and emoji, refusals), the handler (every gesture, drag steps and timing, 24 validation refusals that do nothing, device errors, cancellation, the hash after waiting for the screen to change); **in the real guest** typing with Unicode read back exactly, key combinations, click-to-focus, a drag that moves a window by exactly (300, 150), the hash comparison, five refusals.
+- Found by tests: a failed key release would never have been retried; a character's shift released the shift of the user's own combination; control characters in text were refused only after the characters before them were typed.
+- Findings: xgb's event queue must be drained or the connection stops after a few thousand keymap changes; bash rewrites the terminal title at every prompt (a test must keep the shell busy to read it); the guest has no CJK font.
+- Follow-ups: see TODO → Discovered (CJK font decision at P4-T13; the xdotool fallback only if needed).
 ### 2026-10-13 — P4-T03 — done
 - Changed: `internal/agent/x11` (`ewmh.go`: windows, active window, focus, maximize; `monitors.go`: RandR; `props.go`: property decoding, text cleaning, ids, frame math, ClientMessage encoding; the connection gained an atom cache); `internal/agent/desktop.go` (the `screen_info` and `windows` handlers); `cmd/controlsnack-agent` registers them.
 - Decisions: D-58.

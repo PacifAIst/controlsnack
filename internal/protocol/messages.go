@@ -162,8 +162,8 @@ type WindowsRes struct {
 
 // InputEvent is one low-level input action in guest pixels.
 type InputEvent struct {
-	Type   string `json:"type"`        // move, down, up, click, scroll, key, text
-	X      int    `json:"x,omitempty"` // move, down, up, click, scroll
+	Type   string `json:"type"`        // move, down, up, click, scroll, drag, key, text
+	X      int    `json:"x,omitempty"` // move, down, up, click, scroll, drag (the start); down, up, click and drag move there first
 	Y      int    `json:"y,omitempty"`
 	Button string `json:"button,omitempty"` // left (default), right, middle
 	Double bool   `json:"double,omitempty"` // click
@@ -171,8 +171,8 @@ type InputEvent struct {
 	DY     int    `json:"dy,omitempty"`
 	Keys   string `json:"keys,omitempty"` // key: one xdotool-style combination, e.g. ctrl+l
 	Repeat int    `json:"repeat,omitempty"`
-	Text   string `json:"text,omitempty"` // text
-	DragTo *Point `json:"drag_to,omitempty"`
+	Text   string `json:"text,omitempty"`    // text
+	DragTo *Point `json:"drag_to,omitempty"` // drag: press at x, y, move here in about ten steps over 200 ms, release
 }
 
 // InputReq is a batch of input events executed in order.
