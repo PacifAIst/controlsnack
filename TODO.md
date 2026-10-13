@@ -49,7 +49,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-13) P4-T04 Input (XTEST, key parser, Unicode typing, drag, scroll) — verified in the guest (D-59)
 - [x] (2026-10-13) P4-T05 Exec runner (plus the guest `file_peek`) — verified in the guest (D-60)
 - [x] (2026-10-13) P4-T06 Accessibility (AT-SPI) + stubs for other OSes + set-of-marks overlay — verified against Mousepad and Thunar in the guest (D-61, D-62)
-- [ ] P4-T07 OCR
+- [x] (2026-10-13) P4-T07 OCR — tesseract over stdin, lines with ids, cache by screen hash; verified in the guest (D-63)
 - [ ] P4-T08 Browser (CDP)
 - [ ] P4-T09 wait_for
 - [ ] P4-T10 Guest net proxy
@@ -131,6 +131,8 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P7-T06 / P7 host: send `budget_ms` with `a11y_tree` and `ocr` scaled by the accelerator factor (D-61): under tcg an element costs about 25 to 35 ms and a tree has a fixed 0.5 s, so the default 1.5 s budget truncates a desktop tree; keep `marks_generation` on for local backends in vision mode (D-62); the host decides whether an older kept generation is acceptable for an action (the agent keeps four and re-checks the element).
 - [ ] P8-T04: the accessibility walk is latency bound (two round trips per level: the element, then its children). Ask for the children in the same round trip as the element's states (one wasted call on leaves) and keep the application list for a second; measure with acceleration first, tcg is the slow path.
 - [ ] P4-T08 / P4-T13: accessibility of Qt, Electron and Chromium is untested (the image has only GTK3 applications besides the browser); Chromium needs `--force-renderer-accessibility` and is read by the browser tool, not this one. Elements without a Component interface are left out (no area), which loses some custom widgets.
+- [ ] P4-T09 / P7: recognition of the whole screen takes 14 s under tcg (not yet measured with acceleration), so `wait_for text_visible` must try the accessibility names first and read OCR on the active window's region at most every 2 s, never the whole screen; the host sends `budget_ms` for `ocr` as for `a11y_tree`.
+- [ ] P4-T13: the image has English recognition data only (`tesseract-ocr-eng`); add languages only if a task needs them (each is a few MB).
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)

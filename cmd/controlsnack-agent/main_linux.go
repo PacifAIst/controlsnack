@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"os/signal"
 	"os/user"
 	"runtime"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/PacifAIst/controlsnack-local/internal/agent"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
+	"github.com/PacifAIst/controlsnack-local/internal/agent/ocr"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
 	"github.com/PacifAIst/controlsnack-local/internal/buildinfo"
@@ -74,6 +76,12 @@ func run() int {
 			shots.Marks = ax.Service
 		} else {
 			log.Warn("no session bus: the accessibility tree is not available")
+		}
+		// Text recognition is tesseract's, installed in the image; without it the capability is not announced.
+		if path, err := exec.LookPath("tesseract"); err == nil {
+			cfg.Handlers[protocol.TypeOCR] = agent.NewOCR(x, shots.Hasher, ocr.Tesseract{Path: path}).Handle
+		} else {
+			log.Warn("tesseract is not installed: text recognition is not available")
 		}
 		desktop := agent.DesktopHandlers{Desktop: x}
 		cfg.Handlers[protocol.TypeScreenInfo] = desktop.ScreenInfo
