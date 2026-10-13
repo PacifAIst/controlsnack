@@ -37,10 +37,10 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P3-T14 `controlsnack doctor` (§7.10, D-33) *(R1)*
 - [x] (2026-10-12) P3-T06 Image manager
 - [x] (2026-10-12) P3-T07 Seed builder + guest templates
-- [ ] P3-T08 `image build` orchestration (§7.5)
-- [ ] P3-T09 Overlays and kept VMs (§7.6) + `vm ls|rm`
-- [ ] P3-T10 Agent installer + client (§7.7) and minimal agent
-- [ ] P3-T11 Milestone `run --no-llm --viewer none`: boot with detected accelerator and with `--slow`; doctor verdict matches
+- [x] (2026-10-12) P3-T08 `image build` orchestration (§7.5) — real build: 10 min 35 s under tcg, 765 MiB (D-52)
+- [x] (2026-10-12) P3-T09 Overlays and kept VMs (§7.6) + `vm ls|rm` (D-53)
+- [x] (2026-10-12) P3-T10 Agent installer + client (§7.7) and minimal agent (D-54)
+- [x] (2026-10-12) P3-T11 Milestone `run --no-llm --viewer none`: boot with detected accelerator and with `--slow`; doctor verdict matches — verified in WSL with tcg (D-55)
 
 ## Phase 4 — Guest agent: internal/agent, cmd/controlsnack-agent
 - [ ] P4-T01 Agent server (dispatch, workers, cancel, logs)
@@ -108,7 +108,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-12) P2-T08 / P6-T01: create `internal/platform/listen.go` (the single 127.0.0.1-only listener helper). `tools/dev check` → `repo` already rejects any other file that opens a listener or binds a wildcard address.
 - [x] (2026-10-12) P3-T14: `controlsnack doctor --json` step added to the macOS and Windows CI jobs (QEMU installed first; report kept as an artifact). Verify the action versions and the `choco`/`brew` package names at P8-T05.
 - [ ] P3-T06 / P5 / P6: register the doctor's extra `Check`s — base image (T06), local model servers (`llm detect`, P5), viewer browsers (P6-T04); PLAN §7.10 item 3.
-- [ ] P3-T10 / P4-T12: make `tools/dev build` run `agent` first once the host embeds the guest agents (D-04); `agentbin` will use `//go:embed *` so a clean checkout (only PLACEHOLDER.txt) still compiles.
+- [x] (2026-10-12) P3-T10 / P4-T12: `tools/dev build` runs `agent` first (the host embeds the guest agents, D-04); `agentbin` uses `//go:embed *`, so a clean checkout (only PLACEHOLDER.txt) still compiles.
 - [ ] P6-T06: add the forbidden front-end API scan (innerHTML, eval, inline handlers…) to `tools/dev check` → `repo`.
 - [ ] P8-T02: `tools/dev licenses` only checks; add the `go-licenses report` → THIRD_PARTY_LICENSES.md generation (module path is `github.com/google/go-licenses/v2`).
 - [ ] P8-T05: verify the GitHub Actions versions in .github/workflows/ci.yml (checkout@v4, setup-go@v5, cache@v4) against current releases; the workflow could not be run locally.
@@ -117,6 +117,12 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P7-T06: call `safety.AssertQEMUArgv` before every QEMU launch (runtime and provisioning profiles); build the session's `policy.Engine` with `Options{NetEgress, Scripts: <file_peek reader>}` and feed `Profile.Apply` the engine's verdict; treat any `audit.Log.Append` error as fatal (kill source `audit_failure`).
 - [ ] P7-T06 / P4-T11: the net bridge uses `egress.Policy.Dial` and `egress.Tracker`; every decision goes to the audit log as kind `net`.
 - [ ] Cleanup: `internal/cli/simple.go` still groups the small commands in one file (D-38); split when convenient.
+- [ ] P3-T11 / first hardware: no accelerated boot has been measured (this user cannot open `/dev/kvm` in WSL; Windows has no QEMU). Record "boot → agent ready (accelerated)" (target < 45 s) from the first KVM, WHPX or HVF run, or from the CI doctor artifacts plus a CI `run --no-llm` smoke on a runner with KVM. `sudo usermod -aG kvm $USER` (then restarting WSL) would make the WSL runs accelerated.
+- [ ] P3-T11 / aarch64: nothing aarch64 has run for real (no `qemu-system-aarch64` here): the `virt` machine, the UEFI variable store copy (`vars.fd`) and the arm64 agent are covered by goldens and fakes only.
+- [ ] P4-T13: rebuild the image once the agent has its features (the recipe hash changes with every recipe edit); the desktop has no wallpaper (black background: fine for screenshots, but decide whether `desktop-base` or a plain colour is wanted); check the first-boot time again.
+- [ ] P7-T06: replace the boot-only runner with the full session (model loop, viewer, `--vm`/`--keep-vm` through `overlay.Library` including the generated name for a bare `--keep-vm`, `--allow-net` with the net port); keep what the boot-only runner already does in this order: kill switch → control endpoint → session lock → audit `start` → directory → boot → `ready`; the viewer's server takes over the `/control/kill` handler (P6-T01).
+- [ ] P7-T06: `vm.Boot`'s agent heartbeat and timeouts are scaled by the accelerator factor; make the session treat `StateDown` as "agent_down" for the model loop (PLAN §11) and decide how long a tool call waits for a reconnect.
+- [ ] P3-T14 / P3-T06: the doctor's extra checks are still unregistered; now that images exist, add the "base image present, matches the recipe, boots" check (`image verify` already does the first two).
 
 ## Parking lot (out of scope for v1 — do not implement)
 - Multi-machine / Pro features (remote viewer, P2P, tunnels, link sharing, accounts)
