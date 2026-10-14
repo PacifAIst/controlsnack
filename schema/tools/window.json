@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/window.json",
+  "title": "window",
+  "description": "List the windows, give one the focus, or maximize one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["op"],
+  "properties": {
+    "op": {
+      "enum": ["list", "focus", "maximize"],
+      "description": "What to do."
+    },
+    "window_id": {
+      "type": "string",
+      "pattern": "^(0x[0-9a-fA-F]{1,16}|[0-9]{1,12})$",
+      "description": "The window's id as list shows it, for focus and maximize."
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/key.json",
+  "title": "key",
+  "description": "Press one key or one key combination, such as Return, Escape, ctrl+l or alt+F4 (xdotool names). One combination for each call; use type_text for text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["keys"],
+  "properties": {
+    "keys": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "The key or combination, with + between the keys."
+    },
+    "repeat": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 1,
+      "description": "How many times to press it."
+    }
+  }
+}

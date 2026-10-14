@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/screenshot.json",
+  "title": "screenshot",
+  "description": "Take a fresh screenshot of the screen. It ends your batch of actions: the next observation carries the new image.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {}
+}

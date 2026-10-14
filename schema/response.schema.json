@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/response.json",
+  "title": "ControlSnack model response",
+  "description": "What the model answers in JSON mode: its actions for this turn, in order. maxItems is the session's limit on actions in one response (3 here; set at run time). The arguments of each tool are described by the files in tools/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["actions"],
+  "properties": {
+    "thought": { "type": "string", "maxLength": 600 },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool", "args"],
+        "properties": {
+          "tool": {
+            "enum": ["screenshot", "read_accessibility_tree", "click_element", "set_text", "read_screen_text", "exec", "browser", "mouse", "scroll", "key", "type_text", "window", "wait_for", "ask_user", "done"]
+          },
+          "args": { "type": "object" },
+          "reason": { "type": "string", "maxLength": 300 }
+        }
+      }
+    }
+  }
+}

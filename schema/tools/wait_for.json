@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/wait_for.json",
+  "title": "wait_for",
+  "description": "Wait inside the virtual machine until something happens, without spending turns: some seconds pass, the screen changes or goes quiet, a text appears on the screen, a window title contains a text, or an element with a given name appears. It answers when the time is up as well.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["condition", "timeout_s"],
+  "properties": {
+    "condition": {
+      "enum": ["seconds", "screen_change", "screen_idle", "text_visible", "window_title", "element"],
+      "description": "What to wait for: seconds waits the whole time; screen_change until anything on the screen changes; screen_idle until it has not changed for a second; text_visible, window_title and element need a value."
+    },
+    "value": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "The text to look for on the screen, in a window title, or in the name of an element."
+    },
+    "timeout_s": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 60,
+      "description": "Seconds to wait at most."
+    }
+  }
+}

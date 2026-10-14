@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/mouse.json",
+  "title": "mouse",
+  "description": "Move the mouse or press its buttons at a point of the screenshot you were given (pixels of that image, origin at the top left). Prefer click_element when the target has an id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["op", "x", "y"],
+  "properties": {
+    "op": {
+      "enum": ["move", "click", "double_click", "right_click", "middle_click", "drag", "down", "up"],
+      "description": "What to do; drag presses at x, y, moves to to_x, to_y and releases."
+    },
+    "x": {
+      "type": "integer",
+      "description": "Horizontal position in the screenshot."
+    },
+    "y": {
+      "type": "integer",
+      "description": "Vertical position in the screenshot."
+    },
+    "to_x": {
+      "type": "integer",
+      "description": "Where a drag ends: horizontal position."
+    },
+    "to_y": {
+      "type": "integer",
+      "description": "Where a drag ends: vertical position."
+    }
+  }
+}

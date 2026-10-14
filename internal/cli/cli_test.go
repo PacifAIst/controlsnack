@@ -140,8 +140,7 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 		{"run", "--task", "x"},
 		{"llm", "probe"},
 		{"llm", "models"},
-		{"schema"},
-		{"schema", "--format", "openai"},
+		{"schema", "--format", "openai"}, // P5-T02
 	}
 	for _, args := range cmds {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
@@ -156,6 +155,24 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 				t.Errorf("exit 70 is not a usage error: %q", r.errOut)
 			}
 		})
+	}
+}
+
+// `controlsnack schema` prints the real schema in JSON mode: the response envelope and the arguments of every tool.
+func TestSchemaPrintsTheToolSchemas(t *testing.T) {
+	r := runCLI(t, nil, "linux", Services{}, "schema")
+	if r.code != 0 {
+		t.Fatalf("exit code %d\n%s", r.code, r.errOut)
+	}
+	var doc struct {
+		Response map[string]any            `json:"response"`
+		Tools    map[string]map[string]any `json:"tools"`
+	}
+	if err := json.Unmarshal([]byte(r.out), &doc); err != nil {
+		t.Fatalf("not JSON: %v\n%.300s", err, r.out)
+	}
+	if len(doc.Tools) != 15 || doc.Tools["exec"]["title"] != "exec" || doc.Response["title"] == nil {
+		t.Errorf("%d tools: %v", len(doc.Tools), doc.Response["title"])
 	}
 }
 

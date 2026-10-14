@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/scroll.json",
+  "title": "scroll",
+  "description": "Turn the mouse wheel by notches at a point of the screenshot you were given: a positive dy scrolls down and a negative one up; a positive dx scrolls right and a negative one left.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["x", "y", "dy"],
+  "properties": {
+    "x": {
+      "type": "integer",
+      "description": "Horizontal position in the screenshot."
+    },
+    "y": {
+      "type": "integer",
+      "description": "Vertical position in the screenshot."
+    },
+    "dy": {
+      "type": "integer",
+      "minimum": -20,
+      "maximum": 20,
+      "description": "Notches down (positive) or up (negative)."
+    },
+    "dx": {
+      "type": "integer",
+      "minimum": -20,
+      "maximum": 20,
+      "description": "Notches right (positive) or left (negative)."
+    }
+  }
+}

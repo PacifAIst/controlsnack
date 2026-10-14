@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/browser.json",
+  "title": "browser",
+  "description": "Control the web browser (Chromium). open and navigate go to an address (http, https or file); back, forward and reload move through the history; click and type act on an element of the page; read returns the text of the page; ax_tree lists the elements of the page with ids (w1, w2, ...); tabs lists the open tabs and switch_tab makes one of them the current one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["op"],
+  "properties": {
+    "op": {
+      "enum": ["open", "navigate", "back", "forward", "reload", "click", "type", "read", "ax_tree", "tabs", "switch_tab"],
+      "description": "What to do."
+    },
+    "url": {
+      "type": "string",
+      "maxLength": 2048,
+      "description": "The address, for open and navigate."
+    },
+    "target": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "The element, for click and type: an id (w12) from ax_tree, or a CSS selector."
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "The text to type, for type; it replaces what the field holds."
+    },
+    "submit": {
+      "type": "boolean",
+      "default": false,
+      "description": "Press Enter after typing."
+    },
+    "tab": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "The tab's number as tabs lists it (from 1), for switch_tab."
+    }
+  }
+}

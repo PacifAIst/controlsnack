@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/set_text.json",
+  "title": "set_text",
+  "description": "Replace the contents of a text field with a text. The id is an accessibility element (a...) or a web page element (w...) that takes text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "text"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[aw][0-9]{1,5}$",
+      "description": "The text field's id, for example a9 or w4."
+    },
+    "text": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "The new contents of the field."
+    },
+    "submit": {
+      "type": "boolean",
+      "default": false,
+      "description": "Press Enter afterwards."
+    }
+  }
+}

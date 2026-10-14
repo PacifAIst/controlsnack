@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/read_screen_text.json",
+  "title": "read_screen_text",
+  "description": "Recognize the text on the screen, or in a region of it, and list the lines with ids (o1, o2, ...) and positions. Use it when an application gives no accessibility information. The positions are in the pixels of the screenshot you were given.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "region": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "Only this part of the screen: [x, y, width, height], with the origin at the top left."
+    }
+  }
+}

@@ -58,7 +58,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-14) P4-T13 Image recipe finalisation + smoke — `TestE2EImageSmoke` passes in the real VM; payload sizes in PROGRESS.md (D-68, D-69, D-70)
 
 ## Phase 5 — LLM: internal/llm (required test suite #3)
-- [ ] P5-T01 Actions + schemas (§5.3)
+- [x] (2026-10-14) P5-T01 Actions + schemas (§5.3) — `schema/tools/*.json`, `internal/llm/actions` (typed arguments, registry, `Parse`), `controlsnack schema --format jsonmode`; the other formats are T02 (D-72)
 - [ ] P5-T02 Renderings + profiles
 - [ ] P5-T03 Parser + repair (§9.5)
 - [ ] P5-T04 Ollama backend

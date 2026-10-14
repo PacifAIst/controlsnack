@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/ask_user.json",
+  "title": "ask_user",
+  "description": "Ask the user a question and wait for the answer in the chat. Use it when the task is unclear, when something you need is missing, or after an action was rejected and you cannot see how to go on.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["question"],
+  "properties": {
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "The question."
+    }
+  }
+}

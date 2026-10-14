@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/done.json",
+  "title": "done",
+  "description": "End the task: say whether it succeeded and give the user a short summary of what was done or why it was not.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["success", "summary"],
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "Whether the task was done."
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "What was done, or why it could not be."
+    }
+  }
+}

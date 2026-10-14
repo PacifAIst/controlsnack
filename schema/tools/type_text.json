@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/type_text.json",
+  "title": "type_text",
+  "description": "Type text into the element that has the keyboard focus, as a person would at the keyboard. Any Unicode text; a newline presses Enter and a tab presses Tab.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "The text to type."
+    }
+  }
+}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
 	"github.com/PacifAIst/controlsnack-local/internal/platform"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
@@ -42,7 +43,7 @@ func DefaultServices() Services {
 		Audit:  audit.NewAdmin(auditDir),
 		Doctor: vm.NewDoctor(),
 		LLM:    detect.NewService(),
-		Schema: schema.NewPrinter(),
+		Schema: actions.NewPrinter(),
 	}
 }
 

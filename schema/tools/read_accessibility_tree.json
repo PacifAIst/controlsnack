@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/read_accessibility_tree.json",
+  "title": "read_accessibility_tree",
+  "description": "Read the accessibility tree: the windows, buttons, text fields and other elements of the applications, with ids (a1, a2, ... for the desktop; w1, w2, ... for a web page), names, states, positions and the actions they offer. An id is only valid for the generation the tree reports: read the tree again after the screen has changed.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "enum": ["active_window", "desktop", "browser"],
+      "default": "active_window",
+      "description": "What to read: the window that has the focus (default), every window of the desktop, or the page in the browser."
+    },
+    "query": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Only elements whose role, name, description or value contain this text."
+    },
+    "max_nodes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 400,
+      "default": 150,
+      "description": "At most this many elements."
+    }
+  }
+}

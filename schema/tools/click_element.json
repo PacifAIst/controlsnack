@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/tools/click_element.json",
+  "title": "click_element",
+  "description": "Click an element by its id: from the accessibility tree (a...), from the browser's tree (w...) or from the recognized screen text (o...). Prefer this to clicking at coordinates. A stale id is refused: read the tree again.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[awo][0-9]{1,5}$",
+      "description": "The element's id, for example a17, w3 or o12."
+    },
+    "button": {
+      "enum": ["left", "right", "middle"],
+      "default": "left",
+      "description": "The mouse button."
+    },
+    "double": {
+      "type": "boolean",
+      "default": false,
+      "description": "Double click."
+    }
+  }
+}
