@@ -144,7 +144,7 @@ func (r Request) Validate() error {
 	default:
 		return fmt.Errorf("mode %q is not native, structured or json", r.Mode)
 	}
-	images := 0
+	images, owed := 0, 0 // owed: the calls of the last assistant message that no tool message has answered yet
 	for i, m := range r.Messages {
 		switch m.Role {
 		case RoleSystem:
@@ -152,16 +152,26 @@ func (r Request) Validate() error {
 				return fmt.Errorf("message %d: a system message comes first, and only once", i+1)
 			}
 		case RoleUser:
+			if owed > 0 {
+				return fmt.Errorf("message %d: %d of the tool calls before it have no tool message (every call is answered, the APIs refuse a conversation where one is not)", i+1, owed)
+			}
 		case RoleAssistant:
+			if owed > 0 {
+				return fmt.Errorf("message %d: %d of the tool calls before it have no tool message (every call is answered, the APIs refuse a conversation where one is not)", i+1, owed)
+			}
 			if len(m.Calls) > 0 && r.Mode != ModeNative {
 				return fmt.Errorf("message %d: tool calls are only part of a conversation in native mode", i+1)
 			}
+			owed = len(m.Calls)
 		case RoleTool:
 			if m.CallID == "" && m.Tool == "" {
 				return fmt.Errorf("message %d: a tool message says which call it answers", i+1)
 			}
 			if i == 0 || (r.Messages[i-1].Role != RoleAssistant && r.Messages[i-1].Role != RoleTool) {
 				return fmt.Errorf("message %d: a tool message follows the assistant message that made the call, or another tool message", i+1)
+			}
+			if owed--; owed < 0 {
+				return fmt.Errorf("message %d: there are more tool messages than the assistant message before them made calls", i+1)
 			}
 		default:
 			return fmt.Errorf("message %d: the role %q is not system, user, assistant or tool", i+1, m.Role)
@@ -181,6 +191,9 @@ func (r Request) Validate() error {
 	}
 	if images > maxImages {
 		return fmt.Errorf("the request has %d images, more than the %d allowed (only the latest screenshot stays in context)", images, maxImages)
+	}
+	if owed > 0 {
+		return fmt.Errorf("%d of the last tool calls have no tool message", owed)
 	}
 	if r.Messages[len(r.Messages)-1].Role == RoleAssistant {
 		return errors.New("the conversation ends with the assistant's message: there is nothing to answer")

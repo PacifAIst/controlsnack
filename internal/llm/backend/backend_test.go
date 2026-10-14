@@ -54,6 +54,16 @@ func TestValidateRefusesWhatABackendCannotUse(t *testing.T) {
 		r    Request
 		word string
 	}{
+		{"a call that nothing answers, then the user", Request{Mode: ModeNative, Set: set, Messages: []Message{user,
+			{Role: RoleAssistant, Calls: []parse.ToolCall{{ID: "a", Name: "exec"}, {ID: "b", Name: "key"}}}, {Role: RoleTool, CallID: "a"}, user}}, "1 of the tool calls"},
+		{"a call that nothing answers, then the assistant", Request{Mode: ModeNative, Set: set, Messages: []Message{user,
+			{Role: RoleAssistant, Calls: []parse.ToolCall{{ID: "a", Name: "exec"}}}, {Role: RoleAssistant, Text: "?"}, user}}, "1 of the tool calls"},
+		{"a call that nothing answers, at the end", Request{Mode: ModeNative, Set: set, Messages: []Message{user,
+			{Role: RoleAssistant, Calls: []parse.ToolCall{{ID: "a", Name: "exec"}, {ID: "b", Name: "key"}}}, {Role: RoleTool, CallID: "a"}}}, "no tool message"},
+		{"more results than calls", Request{Mode: ModeNative, Set: set, Messages: []Message{user,
+			{Role: RoleAssistant, Calls: []parse.ToolCall{{ID: "a", Name: "exec"}}}, {Role: RoleTool, CallID: "a"}, {Role: RoleTool, CallID: "b"}}}, "more tool messages"},
+		{"a result after an assistant message that made no call", Request{Mode: ModeNative, Set: set, Messages: []Message{user,
+			{Role: RoleAssistant, Text: "no calls"}, {Role: RoleTool, CallID: "a"}}}, "more tool messages"},
 		{"no messages", Request{Mode: ModeJSON}, "no messages"},
 		{"too many messages", Request{Mode: ModeJSON, Messages: make([]Message, 401)}, "more than"},
 		{"an unknown mode", Request{Mode: "chat", Messages: []Message{user}}, "native, structured or json"},

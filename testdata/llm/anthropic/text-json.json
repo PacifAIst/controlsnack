@@ -1,0 +1,15 @@
+{
+  "id": "msg_01Hh7yZ3Kp9Qw2Lm4Nv6Bx8C",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-haiku-5-5",
+  "content": [
+    {
+      "type": "text",
+      "text": "```json\n{\"thought\": \"Open a terminal.\", \"actions\": [{\"tool\": \"key\", \"args\": {\"keys\": \"ctrl+alt+t\"}, \"reason\": \"open a terminal\"}]}\n```"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": { "input_tokens": 1870, "output_tokens": 49 }
+}

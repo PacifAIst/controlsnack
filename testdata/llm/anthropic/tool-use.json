@@ -1,0 +1,31 @@
+{
+  "id": "msg_01XFDUDYJgAACzvnptvVoYEL",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-5-5",
+  "content": [
+    { "type": "thinking", "thinking": "I should check the kernel first.", "signature": "EqQBCkYIARgCIkB..." },
+    { "type": "text", "text": "I will read the kernel version and wait a moment." },
+    {
+      "type": "tool_use",
+      "id": "toolu_01A09q90qw90lq917835lq9",
+      "name": "exec",
+      "input": { "command": "uname -r", "reason": "find the kernel version" }
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_01B7rT2xKcLm4nOp5qRs6tUv",
+      "name": "wait_for",
+      "input": { "condition": "seconds", "timeout_s": 1 }
+    }
+  ],
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 2095,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 112,
+    "service_tier": "standard"
+  }
+}

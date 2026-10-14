@@ -106,6 +106,7 @@ func TestANativeRequest(t *testing.T) {
 		{Role: backend.RoleUser, Text: "task", Images: []backend.Image{{MIME: backend.MIMEPNG, Data: png}}},
 		{Role: backend.RoleAssistant, Text: "I will look.", Calls: []parse.ToolCall{call, {Name: "key", Args: json.RawMessage(`"not an object"`)}}},
 		{Role: backend.RoleTool, CallID: "c1", Tool: "exec", Text: `{"ok":true}`},
+		{Role: backend.RoleTool, CallID: "call_2", Tool: "key", Text: `{"ok":false}`},
 		{Role: backend.RoleUser, Text: "next"},
 	}}
 	if _, err := b.Complete(context.Background(), req); err != nil {
@@ -127,7 +128,7 @@ func TestANativeRequest(t *testing.T) {
 	}
 	msgs := body["messages"].([]any)
 	m := func(i int) map[string]any { return msgs[i].(map[string]any) }
-	if len(msgs) != 5 || m(0)["role"] != "system" || m(0)["content"] != "sys" {
+	if len(msgs) != 6 || m(0)["role"] != "system" || m(0)["content"] != "sys" {
 		t.Fatalf("messages %v", msgs)
 	}
 	if imgs := m(1)["images"].([]any); len(imgs) != 1 || imgs[0] != base64.StdEncoding.EncodeToString(png) {
@@ -144,8 +145,11 @@ func TestANativeRequest(t *testing.T) {
 	if m(3)["role"] != "tool" || m(3)["tool_name"] != "exec" || m(3)["content"] != `{"ok":true}` {
 		t.Errorf("the tool result: %v", m(3))
 	}
-	if _, has := m(4)["tool_name"]; has || m(4)["images"] != nil {
-		t.Errorf("a user message: %v", m(4))
+	if m(4)["role"] != "tool" || m(4)["tool_name"] != "key" {
+		t.Errorf("the second tool result: %v", m(4))
+	}
+	if _, has := m(5)["tool_name"]; has || m(5)["images"] != nil {
+		t.Errorf("a user message: %v", m(5))
 	}
 }
 
