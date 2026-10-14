@@ -1,0 +1,21 @@
+{
+  "id": "chatcmpl-x7y8z9a0b1c2d3e4f5g6h7",
+  "object": "chat.completion",
+  "created": 1790000100,
+  "model": "qwen2.5-vl-7b-instruct",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": "<think>\nA terminal is needed; the shortcut is ctrl+alt+t.\n</think>\n{\"thought\": \"Open a terminal.\", \"actions\": [{\"tool\": \"key\", \"args\": {\"keys\": \"ctrl+alt+t\"}, \"reason\": \"open a terminal\"}]}"
+      }
+    }
+  ],
+  "usage": { "prompt_tokens": 1764, "completion_tokens": 71, "total_tokens": 1835 },
+  "stats": {},
+  "model_info": { "arch": "qwen2vl", "quant": "Q4_K_M", "format": "gguf", "context_length": 32768 },
+  "runtime": { "name": "llama.cpp-mac-arm64-apple-metal-advsimd", "version": "1.50.2", "supported_formats": ["gguf"] }
+}

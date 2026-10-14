@@ -1,0 +1,29 @@
+{
+  "choices": [
+    {
+      "finish_reason": "tool_calls",
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "I will click the OK button.",
+        "tool_calls": [
+          {
+            "type": "function",
+            "function": {
+              "name": "click_element",
+              "arguments": "{\"id\":\"a17\"}"
+            },
+            "id": "gVf0ZpQ2rLhK1uXyWnB3sDaE4cTjM5oI"
+          }
+        ]
+      }
+    }
+  ],
+  "created": 1790000200,
+  "model": "gpt-3.5-turbo-0613",
+  "system_fingerprint": "b4200-1a2b3c4d",
+  "object": "chat.completion",
+  "usage": { "completion_tokens": 24, "prompt_tokens": 1650, "total_tokens": 1674 },
+  "id": "chatcmpl-rQ7sT9uV1wX3yZ5aB7cD9eF1gH3iJ5kL",
+  "timings": { "prompt_n": 1650, "prompt_ms": 5123.4, "predicted_n": 24, "predicted_ms": 1210.5 }
+}

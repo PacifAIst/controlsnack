@@ -62,7 +62,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-14) P5-T02 Renderings + profiles — `actions.Set` (full and compact), `Render` for openai, ollama and anthropic, the plain and strict envelopes, `controlsnack schema --format ... --tools ...` (D-73)
 - [x] (2026-10-14) P5-T03 Parser + repair (§9.5) — `internal/llm/parse`: native calls, JSON answers (whole, fenced, first object), reasoning blocks, trailing commas, the limit on actions, `RepairMessage` and `Feedback` (D-74)
 - [x] (2026-10-14) P5-T04 Ollama backend — `internal/llm/backend` (the contract), `backend/httpx` (timeouts, retries, errors, address checks), `backend/ollama`; fake-server tests and fixtures; not yet run against a real Ollama (D-75)
-- [ ] P5-T05 OpenAI-compatible backend
+- [x] (2026-10-14) P5-T05 OpenAI-compatible backend — `backend/openai` (LM Studio, llama.cpp, vLLM, OpenAI); fake-server tests and fixtures; not yet run against a real server (D-76)
 - [ ] P5-T06 Anthropic-compatible backend
 - [ ] P5-T07 Detection + probe + cache + `llm probe|models`
 - [ ] P5-T08 Prompt + observation rendering + context budget

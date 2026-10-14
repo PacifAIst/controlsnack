@@ -1,0 +1,45 @@
+{
+  "id": "chatcmpl-AbCdEf123456",
+  "object": "chat.completion",
+  "created": 1790000000,
+  "model": "gpt-4o-2024-08-06",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_9sZ3kQ1vYx",
+            "type": "function",
+            "function": {
+              "name": "exec",
+              "arguments": "{\"command\":\"uname -r\",\"reason\":\"find out the kernel version\"}"
+            }
+          },
+          {
+            "id": "call_Pq0wLm8cTd",
+            "type": "function",
+            "function": {
+              "name": "wait_for",
+              "arguments": "{\n  \"condition\": \"seconds\",\n  \"timeout_s\": 1\n}"
+            }
+          }
+        ],
+        "refusal": null
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 2034,
+    "completion_tokens": 58,
+    "total_tokens": 2092,
+    "prompt_tokens_details": { "cached_tokens": 0, "audio_tokens": 0 },
+    "completion_tokens_details": { "reasoning_tokens": 0 }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_a1b2c3d4e5"
+}

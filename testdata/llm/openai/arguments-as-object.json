@@ -1,0 +1,20 @@
+{
+  "id": "chatcmpl-obj",
+  "object": "chat.completion",
+  "model": "local-model",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+          { "id": "c1", "type": "function", "function": { "name": "type_text", "arguments": { "text": "hello é" } } },
+          { "type": "function", "function": { "name": "key", "arguments": "" } }
+        ]
+      }
+    }
+  ],
+  "usage": { "prompt_tokens": 10, "completion_tokens": 5 }
+}

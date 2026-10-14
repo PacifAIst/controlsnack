@@ -1,0 +1,17 @@
+{
+  "id": "gen-1790000300-AbCd",
+  "model": "vendor/some-vision-model",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "content": [
+          { "type": "text", "text": "{\"actions\": [{\"tool\": \"screenshot\", \"args\": {}}]}" }
+        ]
+      }
+    }
+  ],
+  "usage": { "prompt_tokens": 900, "completion_tokens": 18 }
+}
