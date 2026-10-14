@@ -70,3 +70,9 @@ func (e *Error) Error() string {
 	}
 	return b.String()
 }
+
+// NewError makes an Error whose texts are safe to show and to log: the tool and every problem are cleaned and cut. It is
+// for the code that finds a fault of its own in what a model sent (the parser), before any schema is looked at.
+func NewError(code, tool string, problems ...Problem) *Error {
+	return newError(code, tool, problems...)
+}
