@@ -1,0 +1,8 @@
+  vision        skipped         the backend says the model does not take images
+  webp          skipped         no vision
+  native_tools  ok       800ms  called done as asked (native)
+  structured    FAILED   700ms  no action in the answer: I would rather explain it in words.
+  json          ok       600ms  called done as asked (json)
+
+Screenshots      none: the model does not see images, so a session runs in text-only mode (screen text instead of pictures)
+Actions          native tool calls

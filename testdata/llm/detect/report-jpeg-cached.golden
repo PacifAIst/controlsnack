@@ -1,0 +1,9 @@
+  vision        ok       1s     answered {"color":"red"}
+  webp          FAILED   1s     answered {"color":"white"}
+  native_tools  FAILED   100ms  ollama: bad request (HTTP 400): x does not support tools
+  structured    ok       3s     called done as asked (json)
+  json          skipped         not asked
+
+Screenshots      jpeg
+Actions          a JSON answer held to the schema by the server
+(an earlier probe)

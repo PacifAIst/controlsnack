@@ -1,0 +1,4 @@
+  native_tools  FAILED    no tool call in the answer: Sure!
+
+Screenshots      none: the model does not see images, so a session runs in text-only mode (screen text instead of pictures)
+Actions          none of the ways worked

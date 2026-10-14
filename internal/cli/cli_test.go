@@ -138,8 +138,6 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 	// Every command that is not built yet must say so and exit 70 rather than pretend.
 	cmds := [][]string{
 		{"run", "--task", "x"},
-		{"llm", "probe"},
-		{"llm", "models"},
 	}
 	for _, args := range cmds {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
@@ -735,5 +733,46 @@ func TestVMCommandsReachTheStore(t *testing.T) {
 		if r := runCLI(t, nil, "linux", Services{VMs: f}, tt.args...); r.code != 0 || len(f.calls) != 1 || f.calls[0] != tt.want {
 			t.Errorf("%v: code %d calls %v (%s)", tt.args, r.code, f.calls, r.errOut)
 		}
+	}
+}
+
+type fakeLLM struct {
+	probed, listed int
+	got            config.Config
+	err            error
+}
+
+func (f *fakeLLM) Probe(_ context.Context, w io.Writer, cfg config.Config) error {
+	f.probed++
+	f.got = cfg
+	_, _ = io.WriteString(w, "probed\n")
+	return f.err
+}
+
+func (f *fakeLLM) Models(_ context.Context, w io.Writer, cfg config.Config) error {
+	f.listed++
+	f.got = cfg
+	_, _ = io.WriteString(w, "listed\n")
+	return f.err
+}
+
+func TestLLMCommandsCallTheServiceWithTheConfig(t *testing.T) {
+	fl := &fakeLLM{}
+	svc := Services{LLM: fl}
+	args := []string{"--llm", "ollama", "--model", "qwen2.5vl:7b", "--base-url", "http://127.0.0.1:11434"}
+	r := runCLI(t, nil, "linux", svc, append([]string{"llm", "probe"}, args...)...)
+	if r.code != 0 || fl.probed != 1 || !strings.Contains(r.out, "probed") {
+		t.Fatalf("probe: code %d, calls %d\n%s%s", r.code, fl.probed, r.out, r.errOut)
+	}
+	if fl.got.LLM.Backend != "ollama" || fl.got.LLM.Model != "qwen2.5vl:7b" || fl.got.LLM.BaseURL != "http://127.0.0.1:11434" {
+		t.Fatalf("the service got %+v", fl.got.LLM)
+	}
+	r = runCLI(t, nil, "linux", svc, "llm", "models")
+	if r.code != 0 || fl.listed != 1 || !strings.Contains(r.out, "listed") {
+		t.Fatalf("models: code %d, calls %d\n%s%s", r.code, fl.listed, r.out, r.errOut)
+	}
+	fl.err = exitcode.New(exitcode.Failure, errors.New("no local model server answered"))
+	if r = runCLI(t, nil, "linux", svc, "llm", "probe"); r.code != exitcode.Failure || !strings.Contains(r.errOut, "no local model server answered") {
+		t.Fatalf("an error of the service is reported: code %d\n%s", r.code, r.errOut)
 	}
 }

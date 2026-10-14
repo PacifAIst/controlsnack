@@ -1,0 +1,9 @@
+  vision        ok       4s     answered {"color":"red"}
+  webp          ok       4s     answered {"color":"red"}
+  native_tools  FAILED   100ms  ollama: bad request (HTTP 400): x does not support tools
+  structured    skipped         the API has no way to hold a model to a schema
+  json          ok       3s     called done as asked (json)
+
+Context window   4096 tokens
+Screenshots      webp
+Actions          a JSON answer asked for in the prompt

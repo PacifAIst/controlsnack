@@ -1,0 +1,9 @@
+  vision        ok  2.3s   answered {"color":"red"}
+  webp          ok  900ms  answered {"color":"red"}
+  native_tools  ok  1.1s   called done as asked (native)
+  structured    ok  1.4s   called done as asked (json)
+  json          ok         called done as asked (json)
+
+Context window   32768 tokens
+Screenshots      webp
+Actions          native tool calls
