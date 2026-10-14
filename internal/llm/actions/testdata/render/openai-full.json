@@ -1,0 +1,569 @@
+[
+  {
+    "function": {
+      "description": "Take a fresh screenshot of the screen. It ends your batch of actions: the next observation carries the new image.",
+      "name": "screenshot",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Read the accessibility tree: the windows, buttons, text fields and other elements of the applications, with ids (a1, a2, ... for the desktop; w1, w2, ... for a web page), names, states, positions and the actions they offer. An id is only valid for the generation the tree reports: read the tree again after the screen has changed.",
+      "name": "read_accessibility_tree",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "max_nodes": {
+            "default": 150,
+            "description": "At most this many elements.",
+            "maximum": 400,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "query": {
+            "description": "Only elements whose role, name, description or value contain this text.",
+            "maxLength": 100,
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "scope": {
+            "default": "active_window",
+            "description": "What to read: the window that has the focus (default), every window of the desktop, or the page in the browser.",
+            "enum": [
+              "active_window",
+              "desktop",
+              "browser"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Click an element by its id: from the accessibility tree (a...), from the browser's tree (w...) or from the recognized screen text (o...). Prefer this to clicking at coordinates. A stale id is refused: read the tree again.",
+      "name": "click_element",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "button": {
+            "default": "left",
+            "description": "The mouse button.",
+            "enum": [
+              "left",
+              "right",
+              "middle"
+            ],
+            "type": "string"
+          },
+          "double": {
+            "default": false,
+            "description": "Double click.",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "The element's id, for example a17, w3 or o12.",
+            "pattern": "^[awo][0-9]{1,5}$",
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Replace the contents of a text field with a text. The id is an accessibility element (a...) or a web page element (w...) that takes text.",
+      "name": "set_text",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "The text field's id, for example a9 or w4.",
+            "pattern": "^[aw][0-9]{1,5}$",
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "submit": {
+            "default": false,
+            "description": "Press Enter afterwards.",
+            "type": "boolean"
+          },
+          "text": {
+            "description": "The new contents of the field.",
+            "maxLength": 4000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Recognize the text on the screen, or in a region of it, and list the lines with ids (o1, o2, ...) and positions. Use it when an application gives no accessibility information. The positions are in the pixels of the screenshot you were given.",
+      "name": "read_screen_text",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "region": {
+            "description": "Only this part of the screen: [x, y, width, height], with the origin at the top left.",
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Run a shell command in the virtual machine as the user cs (bash -lc). Prefer this to the mouse and keyboard when a task can be done from the command line. The output comes back as text; some commands need the user's confirmation and some are refused.",
+      "name": "exec",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "description": "The command line.",
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "cwd": {
+            "description": "The directory to run in; the home directory by default.",
+            "maxLength": 1024,
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "stdin": {
+            "description": "Text given to the command on its standard input.",
+            "maxLength": 65536,
+            "type": "string"
+          },
+          "timeout_s": {
+            "default": 60,
+            "description": "Seconds to wait before the command is stopped.",
+            "maximum": 600,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Control the web browser (Chromium). open and navigate go to an address (http, https or file); back, forward and reload move through the history; click and type act on an element of the page; read returns the text of the page; ax_tree lists the elements of the page with ids (w1, w2, ...); tabs lists the open tabs and switch_tab makes one of them the current one.",
+      "name": "browser",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "description": "What to do.",
+            "enum": [
+              "open",
+              "navigate",
+              "back",
+              "forward",
+              "reload",
+              "click",
+              "type",
+              "read",
+              "ax_tree",
+              "tabs",
+              "switch_tab"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "submit": {
+            "default": false,
+            "description": "Press Enter after typing.",
+            "type": "boolean"
+          },
+          "tab": {
+            "description": "The tab's number as tabs lists it (from 1), for switch_tab.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "target": {
+            "description": "The element, for click and type: an id (w12) from ax_tree, or a CSS selector.",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "text": {
+            "description": "The text to type, for type; it replaces what the field holds.",
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "url": {
+            "description": "The address, for open and navigate.",
+            "maxLength": 2048,
+            "type": "string"
+          }
+        },
+        "required": [
+          "op"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Move the mouse or press its buttons at a point of the screenshot you were given (pixels of that image, origin at the top left). Prefer click_element when the target has an id.",
+      "name": "mouse",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "description": "What to do; drag presses at x, y, moves to to_x, to_y and releases.",
+            "enum": [
+              "move",
+              "click",
+              "double_click",
+              "right_click",
+              "middle_click",
+              "drag",
+              "down",
+              "up"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "to_x": {
+            "description": "Where a drag ends: horizontal position.",
+            "type": "integer"
+          },
+          "to_y": {
+            "description": "Where a drag ends: vertical position.",
+            "type": "integer"
+          },
+          "x": {
+            "description": "Horizontal position in the screenshot.",
+            "type": "integer"
+          },
+          "y": {
+            "description": "Vertical position in the screenshot.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "op",
+          "x",
+          "y"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Turn the mouse wheel by notches at a point of the screenshot you were given: a positive dy scrolls down and a negative one up; a positive dx scrolls right and a negative one left.",
+      "name": "scroll",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "dx": {
+            "description": "Notches right (positive) or left (negative).",
+            "maximum": 20,
+            "minimum": -20,
+            "type": "integer"
+          },
+          "dy": {
+            "description": "Notches down (positive) or up (negative).",
+            "maximum": 20,
+            "minimum": -20,
+            "type": "integer"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "x": {
+            "description": "Horizontal position in the screenshot.",
+            "type": "integer"
+          },
+          "y": {
+            "description": "Vertical position in the screenshot.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "dy"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Press one key or one key combination, such as Return, Escape, ctrl+l or alt+F4 (xdotool names). One combination for each call; use type_text for text.",
+      "name": "key",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "keys": {
+            "description": "The key or combination, with + between the keys.",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "repeat": {
+            "default": 1,
+            "description": "How many times to press it.",
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "keys"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Type text into the element that has the keyboard focus, as a person would at the keyboard. Any Unicode text; a newline presses Enter and a tab presses Tab.",
+      "name": "type_text",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "text": {
+            "description": "The text to type.",
+            "maxLength": 4000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "List the windows, give one the focus, or maximize one.",
+      "name": "window",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "description": "What to do.",
+            "enum": [
+              "list",
+              "focus",
+              "maximize"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "window_id": {
+            "description": "The window's id as list shows it, for focus and maximize.",
+            "pattern": "^(0x[0-9a-fA-F]{1,16}|[0-9]{1,12})$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "op"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Wait inside the virtual machine until something happens, without spending turns: some seconds pass, the screen changes or goes quiet, a text appears on the screen, a window title contains a text, or an element with a given name appears. It answers when the time is up as well.",
+      "name": "wait_for",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "condition": {
+            "description": "What to wait for: seconds waits the whole time; screen_change until anything on the screen changes; screen_idle until it has not changed for a second; text_visible, window_title and element need a value.",
+            "enum": [
+              "seconds",
+              "screen_change",
+              "screen_idle",
+              "text_visible",
+              "window_title",
+              "element"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "timeout_s": {
+            "description": "Seconds to wait at most.",
+            "maximum": 60,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "value": {
+            "description": "The text to look for on the screen, in a window title, or in the name of an element.",
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "condition",
+          "timeout_s"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Ask the user a question and wait for the answer in the chat. Use it when the task is unclear, when something you need is missing, or after an action was rejected and you cannot see how to go on.",
+      "name": "ask_user",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "question": {
+            "description": "The question.",
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "End the task: say whether it succeeded and give the user a short summary of what was done or why it was not.",
+      "name": "done",
+      "parameters": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "description": "A short note on why you do this; the user sees it.",
+            "maxLength": 300,
+            "type": "string"
+          },
+          "success": {
+            "description": "Whether the task was done.",
+            "type": "boolean"
+          },
+          "summary": {
+            "description": "What was done, or why it could not be.",
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "required": [
+          "success",
+          "summary"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  }
+]

@@ -236,7 +236,7 @@ func TestEveryToolParsesItsOwnMinimalExample(t *testing.T) {
 }
 
 func TestJSONModeDocument(t *testing.T) {
-	doc, err := JSONMode(3)
+	doc, err := fullSet(t).JSONMode(3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -260,16 +260,21 @@ func TestJSONModeDocument(t *testing.T) {
 	}
 }
 
-func TestPrinter(t *testing.T) {
-	var out bytes.Buffer
-	if err := NewPrinter().Print(&out, "jsonmode"); err != nil || !json.Valid(out.Bytes()) || !strings.HasSuffix(out.String(), "\n") {
-		t.Errorf("jsonmode: %v, valid %v", err, json.Valid(out.Bytes()))
-	}
-	// The renderings for the backends are P5-T02.
-	for _, format := range []string{"openai", "anthropic", "ollama"} {
-		if err := NewPrinter().Print(&out, format); exitcode.Of(err) != exitcode.NotImplemented {
-			t.Errorf("%s: %v", format, err)
+func TestPrinterPrintsEveryFormatOfEveryProfile(t *testing.T) {
+	for _, format := range []string{"jsonmode", "openai", "anthropic", "ollama"} {
+		for _, profile := range []string{"full", "compact"} {
+			var out bytes.Buffer
+			if err := NewPrinter().Print(&out, format, profile); err != nil || !json.Valid(out.Bytes()) || !strings.HasSuffix(out.String(), "\n") {
+				t.Errorf("%s %s: %v, valid %v", format, profile, err, json.Valid(out.Bytes()))
+			}
 		}
+	}
+	var out bytes.Buffer
+	if err := NewPrinter().Print(&out, "openai", "tiny"); exitcode.Of(err) != exitcode.Usage {
+		t.Errorf("an unknown profile is a usage error: %v", err)
+	}
+	if err := NewPrinter().Print(&out, "xml", "full"); err == nil {
+		t.Error("an unknown format is refused")
 	}
 }
 

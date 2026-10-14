@@ -239,7 +239,7 @@ func TestEnvelopeNamesTheTools(t *testing.T) {
 		t.Errorf("required: %v, %v", doc.Required, doc.Properties.Actions.Items.Required)
 	}
 
-	env, err := Envelope(5)
+	env, err := fullSet(t).Envelope(5, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestEnvelopeNamesTheTools(t *testing.T) {
 	if err := json.Unmarshal(env, &got); err != nil || got.Properties.Actions.MaxItems != 5 {
 		t.Errorf("the limit is set to 5: %v %s", err, env)
 	}
-	if _, err := Envelope(0); err == nil {
+	if _, err := fullSet(t).Envelope(0, false); err == nil {
 		t.Error("a response holds at least one action")
 	}
 }
@@ -270,4 +270,13 @@ func TestCompactProfileIsThePlans(t *testing.T) {
 	if len(Tools()) != 15 {
 		t.Errorf("the plan lists 15 tools, there are %d", len(Tools()))
 	}
+}
+
+func fullSet(t *testing.T) *Set {
+	t.Helper()
+	s, err := NewSet(ProfileFull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
 }

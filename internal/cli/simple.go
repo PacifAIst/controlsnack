@@ -74,22 +74,26 @@ will use kvm, whpx or hvf, or will use tcg (slow). Exit code 0 when a VM can run
 }
 
 func (a *app) newSchemaCmd() *cobra.Command {
-	var format string
+	var format, tools string
 	cmd := &cobra.Command{
 		Use:         "schema",
 		Short:       "Print the tool/action JSON schema in a backend's format",
 		Args:        noArgs,
 		Annotations: map[string]string{annotationConfig: cfgNone},
 		RunE: func(*cobra.Command, []string) error {
+			if tools != "full" && tools != "compact" {
+				return exitcode.Usagef("unknown tool profile %q; use full or compact", tools)
+			}
 			for _, f := range schema.Formats {
 				if f == format {
-					return a.env.Services.Schema.Print(a.env.Stdout, format)
+					return a.env.Services.Schema.Print(a.env.Stdout, format, tools)
 				}
 			}
 			return exitcode.Usagef("unknown schema format %q; use one of: %v", format, schema.Formats)
 		},
 	}
 	cmd.Flags().StringVar(&format, "format", "jsonmode", "format: jsonmode, openai, anthropic, ollama")
+	cmd.Flags().StringVar(&tools, "tools", "full", "tool profile: full, compact")
 	return cmd
 }
 

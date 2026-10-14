@@ -6,7 +6,6 @@ package actions
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"slices"
 	"strings"
 	"sync"
@@ -156,24 +155,7 @@ func CompactTools() []*Tool {
 // DefaultMaxActions is the number of actions a response may hold unless the session says otherwise.
 const DefaultMaxActions = 3
 
-// Envelope is the JSON Schema of a model's answer in JSON mode, with the limit on the number of actions set to
-// maxActions.
-func Envelope(maxActions int) (json.RawMessage, error) {
-	if maxActions < 1 {
-		return nil, fmt.Errorf("a response holds at least one action, not %d", maxActions)
-	}
-	var doc map[string]any
-	if err := json.Unmarshal(schema.Response, &doc); err != nil {
-		return nil, fmt.Errorf("the response schema is not JSON: %w", err)
-	}
-	props, _ := doc["properties"].(map[string]any)
-	list, _ := props["actions"].(map[string]any)
-	if list == nil {
-		return nil, fmt.Errorf("the response schema has no actions")
-	}
-	list["maxItems"] = maxActions
-	return json.Marshal(doc)
-}
+// toolList is the names of every tool for messages: "screenshot, exec, ...".
+func toolList() string { return joinNames(Names()) }
 
-// toolList is the names for messages: "screenshot, exec, ...".
-func toolList() string { return strings.Join(Names(), ", ") }
+func joinNames(names []string) string { return strings.Join(names, ", ") }

@@ -59,7 +59,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 
 ## Phase 5 — LLM: internal/llm (required test suite #3)
 - [x] (2026-10-14) P5-T01 Actions + schemas (§5.3) — `schema/tools/*.json`, `internal/llm/actions` (typed arguments, registry, `Parse`), `controlsnack schema --format jsonmode`; the other formats are T02 (D-72)
-- [ ] P5-T02 Renderings + profiles
+- [x] (2026-10-14) P5-T02 Renderings + profiles — `actions.Set` (full and compact), `Render` for openai, ollama and anthropic, the plain and strict envelopes, `controlsnack schema --format ... --tools ...` (D-73)
 - [ ] P5-T03 Parser + repair (§9.5)
 - [ ] P5-T04 Ollama backend
 - [ ] P5-T05 OpenAI-compatible backend

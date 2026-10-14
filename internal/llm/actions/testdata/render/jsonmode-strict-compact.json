@@ -1,0 +1,413 @@
+{
+  "$id": "https://controlsnack.com/schema/v1/response.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What the model answers in JSON mode: its actions for this turn, in order. maxItems is the session's limit on actions in one response (3 here; set at run time). The arguments of each tool are described by the files in tools/.",
+  "properties": {
+    "actions": {
+      "items": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "max_nodes": {
+                    "default": 150,
+                    "description": "At most this many elements.",
+                    "maximum": 400,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "query": {
+                    "description": "Only elements whose role, name, description or value contain this text.",
+                    "maxLength": 100,
+                    "type": "string"
+                  },
+                  "scope": {
+                    "default": "active_window",
+                    "description": "What to read: the window that has the focus (default), every window of the desktop, or the page in the browser.",
+                    "enum": [
+                      "active_window",
+                      "desktop",
+                      "browser"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "read_accessibility_tree"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "button": {
+                    "default": "left",
+                    "description": "The mouse button.",
+                    "enum": [
+                      "left",
+                      "right",
+                      "middle"
+                    ],
+                    "type": "string"
+                  },
+                  "double": {
+                    "default": false,
+                    "description": "Double click.",
+                    "type": "boolean"
+                  },
+                  "id": {
+                    "description": "The element's id, for example a17, w3 or o12.",
+                    "pattern": "^[awo][0-9]{1,5}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "click_element"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "command": {
+                    "description": "The command line.",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "cwd": {
+                    "description": "The directory to run in; the home directory by default.",
+                    "maxLength": 1024,
+                    "type": "string"
+                  },
+                  "stdin": {
+                    "description": "Text given to the command on its standard input.",
+                    "maxLength": 65536,
+                    "type": "string"
+                  },
+                  "timeout_s": {
+                    "default": 60,
+                    "description": "Seconds to wait before the command is stopped.",
+                    "maximum": 600,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "command"
+                ],
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "exec"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "op": {
+                    "description": "What to do; drag presses at x, y, moves to to_x, to_y and releases.",
+                    "enum": [
+                      "move",
+                      "click",
+                      "double_click",
+                      "right_click",
+                      "middle_click",
+                      "drag",
+                      "down",
+                      "up"
+                    ],
+                    "type": "string"
+                  },
+                  "to_x": {
+                    "description": "Where a drag ends: horizontal position.",
+                    "type": "integer"
+                  },
+                  "to_y": {
+                    "description": "Where a drag ends: vertical position.",
+                    "type": "integer"
+                  },
+                  "x": {
+                    "description": "Horizontal position in the screenshot.",
+                    "type": "integer"
+                  },
+                  "y": {
+                    "description": "Vertical position in the screenshot.",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "op",
+                  "x",
+                  "y"
+                ],
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "mouse"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "keys": {
+                    "description": "The key or combination, with + between the keys.",
+                    "maxLength": 64,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "repeat": {
+                    "default": 1,
+                    "description": "How many times to press it.",
+                    "maximum": 20,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "keys"
+                ],
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "key"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "description": "The text to type.",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "type_text"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "condition": {
+                    "description": "What to wait for: seconds waits the whole time; screen_change until anything on the screen changes; screen_idle until it has not changed for a second; text_visible, window_title and element need a value.",
+                    "enum": [
+                      "seconds",
+                      "screen_change",
+                      "screen_idle",
+                      "text_visible",
+                      "window_title",
+                      "element"
+                    ],
+                    "type": "string"
+                  },
+                  "timeout_s": {
+                    "description": "Seconds to wait at most.",
+                    "maximum": 60,
+                    "minimum": 0.1,
+                    "type": "number"
+                  },
+                  "value": {
+                    "description": "The text to look for on the screen, in a window title, or in the name of an element.",
+                    "maxLength": 200,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "condition",
+                  "timeout_s"
+                ],
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "wait_for"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "question": {
+                    "description": "The question.",
+                    "maxLength": 1000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "question"
+                ],
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "ask_user"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": false,
+                "properties": {
+                  "success": {
+                    "description": "Whether the task was done.",
+                    "type": "boolean"
+                  },
+                  "summary": {
+                    "description": "What was done, or why it could not be.",
+                    "maxLength": 2000,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "success",
+                  "summary"
+                ],
+                "type": "object"
+              },
+              "reason": {
+                "maxLength": 300,
+                "type": "string"
+              },
+              "tool": {
+                "const": "done"
+              }
+            },
+            "required": [
+              "tool",
+              "args"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "type": "array"
+    },
+    "thought": {
+      "maxLength": 600,
+      "type": "string"
+    }
+  },
+  "required": [
+    "actions"
+  ],
+  "title": "ControlSnack model response",
+  "type": "object"
+}

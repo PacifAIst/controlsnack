@@ -140,7 +140,6 @@ func TestPlaceholdersExitSeventy(t *testing.T) {
 		{"run", "--task", "x"},
 		{"llm", "probe"},
 		{"llm", "models"},
-		{"schema", "--format", "openai"}, // P5-T02
 	}
 	for _, args := range cmds {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
@@ -173,6 +172,30 @@ func TestSchemaPrintsTheToolSchemas(t *testing.T) {
 	}
 	if len(doc.Tools) != 15 || doc.Tools["exec"]["title"] != "exec" || doc.Response["title"] == nil {
 		t.Errorf("%d tools: %v", len(doc.Tools), doc.Response["title"])
+	}
+}
+
+// Every format prints, for both profiles; the compact profile has fewer tools.
+func TestSchemaFormatsAndProfiles(t *testing.T) {
+	count := func(args ...string) int {
+		t.Helper()
+		r := runCLI(t, nil, "linux", Services{}, append([]string{"schema"}, args...)...)
+		if r.code != 0 {
+			t.Fatalf("schema %v: exit code %d\n%s", args, r.code, r.errOut)
+		}
+		var list []json.RawMessage
+		if err := json.Unmarshal([]byte(r.out), &list); err != nil {
+			t.Fatalf("schema %v: not a list of tools: %v", args, err)
+		}
+		return len(list)
+	}
+	for _, format := range []string{"openai", "anthropic", "ollama"} {
+		if full, compact := count("--format", format), count("--format", format, "--tools", "compact"); full != 15 || compact != 9 {
+			t.Errorf("%s: %d tools in the full profile and %d in the compact one, want 15 and 9", format, full, compact)
+		}
+	}
+	if r := runCLI(t, nil, "linux", Services{}, "schema", "--tools", "tiny"); r.code != exitcode.Usage || !strings.Contains(r.errOut, "full or compact") {
+		t.Errorf("an unknown profile is a usage error: %d %q", r.code, r.errOut)
 	}
 }
 

@@ -8,7 +8,8 @@ import "io"
 // Formats are the renderings `controlsnack schema --format` accepts.
 var Formats = []string{"jsonmode", "openai", "anthropic", "ollama"}
 
-// Printer renders the tool schema for one backend format. internal/llm/actions provides it.
+// Printer renders the tool schema for one backend format and one tool profile (full or compact).
+// internal/llm/actions provides it.
 type Printer interface {
-	Print(w io.Writer, format string) error
+	Print(w io.Writer, format, profile string) error
 }
