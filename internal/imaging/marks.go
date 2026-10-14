@@ -33,6 +33,20 @@ const (
 	minMarkSize = 4
 )
 
+// Drawn returns the marks that DrawMarks draws on a picture of the given bounds, in the order it draws them (the biggest
+// first): the ones that lie inside the picture, are big enough and have a label. The caller that has to tell the model
+// which elements carry a box asks the same question DrawMarks does.
+func Drawn(b image.Rectangle, marks []Mark) []Mark {
+	ordered := make([]Mark, 0, len(marks))
+	for _, m := range marks {
+		if m.W >= minMarkSize && m.H >= minMarkSize && m.X < b.Dx() && m.Y < b.Dy() && m.X+m.W > 0 && m.Y+m.H > 0 && m.Label != "" {
+			ordered = append(ordered, m)
+		}
+	}
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].W*ordered[i].H > ordered[j].W*ordered[j].H })
+	return ordered
+}
+
 // DrawMarks returns a copy of img with the marks drawn on it. The first argument is never changed (it may be the screen
 // the viewer shows). Bigger boxes are drawn first, so the label of a small element inside a big one stays visible;
 // boxes that lie outside the picture or are too small are left out. Drawing is clipped to the picture.
@@ -41,13 +55,7 @@ func DrawMarks(img image.Image, marks []Mark) *image.RGBA {
 	out := image.NewRGBA(b)
 	draw.Draw(out, b, img, b.Min, draw.Src)
 
-	ordered := make([]Mark, 0, len(marks))
-	for _, m := range marks {
-		if m.W >= minMarkSize && m.H >= minMarkSize && m.X < b.Dx() && m.Y < b.Dy() && m.X+m.W > 0 && m.Y+m.H > 0 && m.Label != "" {
-			ordered = append(ordered, m)
-		}
-	}
-	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].W*ordered[i].H > ordered[j].W*ordered[j].H })
+	ordered := Drawn(b, marks)
 
 	face := basicfont.Face7x13
 	for i, m := range ordered {

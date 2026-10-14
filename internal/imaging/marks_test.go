@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"reflect"
 	"testing"
 )
 
@@ -158,5 +159,35 @@ func TestDrawMarksColoursCycle(t *testing.T) {
 	}
 	if len(seen) != len(markColors) {
 		t.Errorf("%d distinct colors among 8 boxes, want %d", len(seen), len(markColors))
+	}
+}
+
+func TestDrawnIsWhatDrawMarksDraws(t *testing.T) {
+	b := image.Rect(0, 0, 100, 80)
+	marks := []Mark{
+		{Label: "1", X: 10, Y: 10, W: 20, H: 10},   // drawn
+		{Label: "2", X: 0, Y: 0, W: 60, H: 60},     // drawn, bigger: first
+		{Label: "3", X: 10, Y: 10, W: 3, H: 30},    // too narrow
+		{Label: "4", X: 200, Y: 10, W: 20, H: 20},  // right of the picture
+		{Label: "5", X: -50, Y: -50, W: 40, H: 40}, // above and left of it
+		{Label: "", X: 10, Y: 10, W: 20, H: 20},    // nothing to write
+		{Label: "6", X: -10, Y: 70, W: 30, H: 30},  // partly inside
+	}
+	got := Drawn(b, marks)
+	var labels []string
+	for _, m := range got {
+		labels = append(labels, m.Label)
+	}
+	if want := []string{"2", "6", "1"}; !reflect.DeepEqual(labels, want) {
+		t.Fatalf("Drawn = %v, want %v (the biggest first)", labels, want)
+	}
+	// And DrawMarks changes the picture at exactly those marks' corners and nowhere near the ones it leaves out.
+	src := image.NewRGBA(b)
+	out := DrawMarks(src, marks)
+	if out.RGBAAt(0, 0) == src.RGBAAt(0, 0) || out.RGBAAt(11, 11) == src.RGBAAt(11, 11) {
+		t.Error("a mark in Drawn is not on the picture")
+	}
+	if out.RGBAAt(98, 10) != src.RGBAAt(98, 10) {
+		t.Error("a mark outside the picture changed it")
 	}
 }

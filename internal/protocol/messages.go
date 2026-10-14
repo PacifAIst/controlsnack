@@ -116,13 +116,16 @@ type ScreenshotReq struct {
 
 // ScreenshotRes describes the image in the blob, or says nothing changed (Unchanged, no blob).
 type ScreenshotRes struct {
-	W         int     `json:"w,omitempty"`
-	H         int     `json:"h,omitempty"`
-	Format    string  `json:"format,omitempty"`
-	Hash      string  `json:"hash"`
-	Cursor    Point   `json:"cursor"`
-	Scale     float64 `json:"scale,omitempty"` // image pixels per guest pixel
-	Unchanged bool    `json:"unchanged,omitempty"`
+	W      int     `json:"w,omitempty"`
+	H      int     `json:"h,omitempty"`
+	Format string  `json:"format,omitempty"`
+	Hash   string  `json:"hash"`
+	Cursor Point   `json:"cursor"`
+	Scale  float64 `json:"scale,omitempty"` // image pixels per guest pixel
+	// Marked lists the ids of the elements that got a numbered box on the picture (the set-of-marks overlay), in the order
+	// of their numbers; empty when the picture has none.
+	Marked    []string `json:"marked,omitempty"`
+	Unchanged bool     `json:"unchanged,omitempty"`
 }
 
 // Monitor is one display.

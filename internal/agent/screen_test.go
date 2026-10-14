@@ -11,6 +11,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"slices"
 	"strings"
 	"testing"
 
@@ -253,7 +254,7 @@ func (f fakeMarks) Marks(g string) ([]a11y.Mark, bool) { return f.marks, g == f.
 func TestScreenshotWithMarks(t *testing.T) {
 	scr := testScreen(640, 400)
 	s := NewScreenshots(scr)
-	s.Marks = fakeMarks{gen: "g3", marks: []a11y.Mark{{ID: "a7", X: 100, Y: 100, W: 200, H: 100}, {ID: "a8", X: 400, Y: 200, W: 100, H: 50}}}
+	s.Marks = fakeMarks{gen: "g3", marks: []a11y.Mark{{ID: "a7", X: 100, Y: 100, W: 200, H: 100}, {ID: "a10", X: 400, Y: 200, W: 100, H: 50}, {ID: "a9", X: 0, Y: 0, W: 2, H: 2}, {ID: "a11", X: 5000, Y: 5000, W: 50, H: 50}}}
 
 	plain, plainBlob, err := shoot(t, s, protocol.ScreenshotReq{Format: "png", MaxLongEdge: 320})
 	if err != nil {
@@ -265,6 +266,12 @@ func TestScreenshotWithMarks(t *testing.T) {
 	}
 	if res.W != plain.W || res.H != plain.H || res.Scale != 0.5 || res.Hash != plain.Hash || bytes.Equal(blob, plainBlob) {
 		t.Fatalf("the marks change the picture, not its size, scale or hash (the hash is the screen's): %+v vs %+v", res, plain)
+	}
+	if !slices.Equal(res.Marked, []string{"a7", "a10"}) {
+		t.Errorf("the response names the boxes that are on the picture, by number (not the ones too small or off the screen): %v", res.Marked)
+	}
+	if len(plain.Marked) != 0 {
+		t.Errorf("a picture without marks names none: %v", plain.Marked)
 	}
 	got, err := png.Decode(bytes.NewReader(blob))
 	if err != nil {

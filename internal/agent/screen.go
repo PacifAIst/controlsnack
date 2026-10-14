@@ -9,6 +9,8 @@ import (
 	"image"
 	"math"
 	"regexp"
+	"slices"
+	"strconv"
 
 	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
 	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
@@ -102,8 +104,11 @@ func (s *Screenshots) Handle(ctx context.Context, req protocol.Frame) (any, []by
 		return nil, nil, err
 	}
 	var shown image.Image = scaled
+	var marked []string
 	if len(marks) > 0 {
-		shown = imaging.DrawMarks(scaled, scaleMarks(marks, scale))
+		scaledMarks := scaleMarks(marks, scale)
+		shown = imaging.DrawMarks(scaled, scaledMarks)
+		marked = drawnIDs(marks, imaging.Drawn(scaled.Bounds(), scaledMarks))
 	}
 	data, err := imaging.Encode(shown, format, r.Quality)
 	if err != nil {
@@ -114,7 +119,7 @@ func (s *Screenshots) Handle(ctx context.Context, req protocol.Frame) (any, []by
 			format, size(len(data)), size(protocol.MaxBlobBytes))
 	}
 	b := shown.Bounds()
-	return protocol.ScreenshotRes{W: b.Dx(), H: b.Dy(), Format: string(format), Hash: hash, Cursor: cursor, Scale: scale}, data, nil
+	return protocol.ScreenshotRes{W: b.Dx(), H: b.Dy(), Format: string(format), Hash: hash, Cursor: cursor, Scale: scale, Marked: marked}, data, nil
 }
 
 // cursor is the pointer position, or the origin when the display cannot say (the position is a convenience).
@@ -146,4 +151,27 @@ func scaleMarks(marks []a11y.Mark, scale float64) []imaging.Mark {
 		out = append(out, imaging.Mark{Label: m.ID[1:], X: x0, Y: y0, W: x1 - x0, H: y1 - y0})
 	}
 	return out
+}
+
+// drawnIDs names the elements whose boxes are on the picture, in the order of their numbers: the model is told which
+// ids it can look for as a number on the image.
+func drawnIDs(marks []a11y.Mark, drawn []imaging.Mark) []string {
+	byLabel := make(map[string]string, len(marks))
+	for _, m := range marks {
+		if len(m.ID) >= 2 {
+			byLabel[m.ID[1:]] = m.ID
+		}
+	}
+	ids := make([]string, 0, len(drawn))
+	for _, d := range drawn {
+		if id, ok := byLabel[d.Label]; ok {
+			ids = append(ids, id)
+		}
+	}
+	slices.SortFunc(ids, func(a, b string) int {
+		na, _ := strconv.Atoi(a[1:])
+		nb, _ := strconv.Atoi(b[1:])
+		return na - nb
+	})
+	return ids
 }
