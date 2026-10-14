@@ -14,6 +14,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -137,7 +138,7 @@ func (b *Bridge) Serve(ctx context.Context, conn io.ReadWriteCloser) error {
 	stop := context.AfterFunc(ctx, func() { _ = sess.Close() })
 	defer stop()
 	for {
-		st, err := sess.AcceptStream()
+		st, err := acceptStream(sess)
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil
@@ -146,6 +147,21 @@ func (b *Bridge) Serve(ctx context.Context, conn io.ReadWriteCloser) error {
 		}
 		go b.handle(ctx, st)
 	}
+}
+
+// acceptStream accepts the guest's next stream. smux hands out a wrapper whose finalizer closes the stream when the
+// wrapper is garbage collected (the finalizer of OpenStream's wrapper was removed for that reason, smux issue 997, the
+// one of AcceptStream's was not). The wrapper embeds the stream, so code that holds the stream only through a promoted
+// method (`defer st.Close()`) leaves the wrapper unreachable: a collection then closes a stream that is still in use and
+// the guest sees its connection end with nothing said (found as a rare failure of a test whose host kept a stream
+// waiting). A stream here lives until its handler closes it.
+func acceptStream(sess *smux.Session) (*smux.Stream, error) {
+	st, err := sess.AcceptStream()
+	if err != nil {
+		return nil, err
+	}
+	runtime.SetFinalizer(st, nil)
+	return st, nil
 }
 
 // refuse answers a request with a reason and records why.

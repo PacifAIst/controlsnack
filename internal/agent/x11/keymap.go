@@ -53,13 +53,22 @@ func (k Keymap) Lookup(keysym uint32) (Stroke, bool) {
 	return s, ok
 }
 
-// Spare is a keycode that has no keysym at all, which can carry a temporary mapping for a character the keyboard does
-// not have. The highest one is taken: the low codes are the ones real keys use.
+// Spare is a keycode that has no keysym at all, which can carry a mapping for a character the keyboard does not have.
+// The highest one is taken: the low codes are the ones real keys use.
 func (k Keymap) Spare() (byte, bool) {
-	if k.Per <= 0 {
-		return 0, false
+	if s := k.Spares(1); len(s) > 0 {
+		return s[0], true
 	}
-	for i := len(k.syms) - k.Per; i >= 0; i -= k.Per {
+	return 0, false
+}
+
+// Spares lists up to limit keycodes that have no keysym at all, the highest first.
+func (k Keymap) Spares(limit int) []byte {
+	var out []byte
+	if k.Per <= 0 {
+		return out
+	}
+	for i := len(k.syms) - k.Per; i >= 0 && len(out) < limit; i -= k.Per {
 		empty := true
 		for _, ks := range k.syms[i : i+k.Per] {
 			if ks != 0 {
@@ -68,8 +77,8 @@ func (k Keymap) Spare() (byte, bool) {
 			}
 		}
 		if code := int(k.Min) + i/k.Per; empty && code <= 255 && code >= int(k.Min) {
-			return byte(code), true //nolint:gosec // code is between Min and 255: checked in the condition
+			out = append(out, byte(code)) //nolint:gosec // code is between Min and 255: checked in the condition
 		}
 	}
-	return 0, false
+	return out
 }

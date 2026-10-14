@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -53,6 +54,10 @@ func (h *fakeHost) serve(conn io.ReadWriteCloser) {
 		if err != nil {
 			return
 		}
+		// smux closes an accepted stream when its wrapper is garbage collected, and `defer st.Close()` below keeps only
+		// the stream inside it alive: a collection while the silent host waits ended the guest's request with an end of
+		// file, once in a few hundred runs of the test. The real host does the same (netbridge.acceptStream).
+		runtime.SetFinalizer(st, nil)
 		go h.stream(st)
 	}
 }

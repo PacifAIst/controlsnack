@@ -36,6 +36,11 @@ echo /usr/sbin/lightdm >/etc/X11/default-display-manager
 install -d -o cs -g cs -m 0755 /home/cs/work /home/cs/Downloads
 chmod 0755 /usr/local/lib/controlsnack/bootstrap.sh
 systemctl set-default graphical.target
+# The XFCE settings daemon publishes its own cursor setting over GTK's (gtk3-settings.ini), and its default is a
+# blinking cursor; a screen that blinks never goes quiet. Change the packaged default rather than copy the file.
+xsettings=/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+sed -i 's|\(name="CursorBlink" type="bool" value="\)true|\1false|' "$xsettings"
+grep -q 'name="CursorBlink" type="bool" value="false"' "$xsettings" || { say "the cursor blink default could not be changed"; false; }
 
 say "removing what must not be there"
 for pkg in unattended-upgrades openssh-server xfce4-screensaver light-locker; do
@@ -66,6 +71,12 @@ test -x /usr/local/lib/controlsnack/bootstrap.sh
 test -f /etc/xdg/autostart/controlsnack-bootstrap.desktop
 test -f /etc/udev/rules.d/99-controlsnack.rules
 test -d /home/cs/work
+test -f /etc/xdg/xfce4/terminal/terminalrc
+test -f /etc/gtk-3.0/settings.ini
+grep -q ThunarDetailsView /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/thunar.xml
+for lang in zh ja ko; do
+    fc-list ":lang=$lang" | grep -q . || { say "no font for the language $lang"; false; }
+done
 if getent passwd debian >/dev/null; then say "the default user 'debian' exists"; false; fi
 if id -nG cs | tr ' ' '\n' | grep -qx -e sudo -e adm -e root; then say "cs has too many groups"; false; fi
 

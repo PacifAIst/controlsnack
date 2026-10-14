@@ -6,6 +6,7 @@ package a11y
 import (
 	"context"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 	"testing"
@@ -112,6 +113,41 @@ func TestWalkDropsElementsWithoutAnArea(t *testing.T) {
 	got := described(walk(t, b, frame, Options{}))
 	if slices.Contains(got, "button:Flat") || slices.Contains(got, "button:Zero") {
 		t.Errorf("elements with no area cannot be seen or clicked: %v", got)
+	}
+}
+
+// A list that is scrolled has a cell for every row: those out of view are put at the smallest number there is, and are
+// not worth reporting.
+func TestWalkDropsCellsScrolledOutOfView(t *testing.T) {
+	b := newFakeBus()
+	frame := b.add("frame", fakeNode{role: roleFrame, name: "Files"})
+	b.child(frame, b.add("in", fakeNode{role: roleTableCell, name: "in view", x: 10, y: 100, w: 50, h: 26}))
+	b.child(frame, b.add("out", fakeNode{role: roleTableCell, name: "scrolled away", x: math.MinInt32, y: math.MinInt32, w: 50, h: 26}))
+	b.child(frame, b.add("half", fakeNode{role: roleTableCell, name: "half away", x: 10, y: math.MinInt32, w: 50, h: 26}))
+	got := described(walk(t, b, frame, Options{}))
+	if want := []string{"frame:Files", "table cell:in view"}; !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// The name of a file in a detailed list is the child of an unnamed cell, below hundreds of cells of the level above (700 here, more than the old limit on what a walk looked at):
+// the walk must still get there.
+func TestWalkReachesTheNamesInsideCellsOfALongList(t *testing.T) {
+	b := newFakeBus()
+	frame := b.add("frame", fakeNode{role: roleFrame, name: "Files"})
+	for i := range 700 {
+		cell := b.add(fmt.Sprintf("cell%d", i), fakeNode{role: roleTableCell, x: 10, y: 20 + i*3, w: 150, h: 26}) // no name of its own
+		b.child(frame, cell)
+		b.child(cell, b.add(fmt.Sprintf("icon%d", i), fakeNode{role: roleTableCell, x: 12, y: 20 + i*3, w: 16, h: 26}))
+		b.child(cell, b.add(fmt.Sprintf("name%d", i), fakeNode{role: roleTableCell, name: fmt.Sprintf("file%03d.txt", i), x: 30, y: 20 + i*3, w: 100, h: 26}))
+	}
+	tree := walk(t, b, frame, Options{})
+	got := described(tree)
+	if len(got) != DefaultMaxNodes || !tree.Truncated {
+		t.Fatalf("%d nodes (truncated %v), want the %d of the default limit and a truncated list", len(got), tree.Truncated, DefaultMaxNodes)
+	}
+	if got[1] != "table cell:file000.txt" || got[2] != "table cell:file001.txt" {
+		t.Errorf("the names come after the frame, in order: %v", got[:4])
 	}
 }
 

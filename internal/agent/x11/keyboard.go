@@ -22,6 +22,44 @@ const (
 	defaultRemapSettle = 15 * time.Millisecond // clients refresh their keymap on MappingNotify; give them a moment
 )
 
+// Keycodes borrowed for characters the keyboard lacks (D-68). An application looks a key event's keycode up in the
+// server's mapping when it handles the event, which on a slow machine or a busy application can be long after the
+// event was sent: a keycode that is given another character in between types the wrong one (日本語 came out as 日語語).
+// So every character gets a keycode of its own, the mapping is kept after the request, and a keycode is only taken over
+// by another character after it has been unused for a while.
+const (
+	maxLent    = 64
+	lentMinAge = 2 * time.Second
+)
+
+type lentSlot struct {
+	code byte
+	sym  uint32
+	used time.Time
+}
+
+// lentKeys is the keycodes the agent has borrowed and the character each carries. It outlives the requests: a Conn
+// keeps one, and each request's Keyboard works on it.
+type lentKeys struct{ slots []lentSlot }
+
+func (l *lentKeys) find(keysym uint32) (*lentSlot, bool) {
+	for i := range l.slots {
+		if l.slots[i].sym == keysym {
+			return &l.slots[i], true
+		}
+	}
+	return nil, false
+}
+
+func (l *lentKeys) has(code byte) bool {
+	for i := range l.slots {
+		if l.slots[i].code == code {
+			return true
+		}
+	}
+	return false
+}
+
 // device is what the keyboard needs from the X server: the real one is the XTEST extension plus the core keyboard
 // mapping requests, a fake one records what was asked.
 type device interface {
@@ -39,14 +77,18 @@ type Keyboard struct {
 	delay  time.Duration
 	settle time.Duration
 	sleep  func(time.Duration)
+	now    func() time.Time
 
-	held     []byte // keys that are down, so an error cannot leave one stuck
-	spare    byte   // the keycode borrowed for a character the keyboard lacks (0 = none yet)
-	spareSym uint32 // what it is mapped to now
+	held []byte // keys that are down, so an error cannot leave one stuck
+	lent *lentKeys
 }
 
-func newKeyboard(dev device, km Keymap) *Keyboard {
-	return &Keyboard{dev: dev, km: km, delay: defaultKeyDelay, settle: defaultRemapSettle, sleep: time.Sleep}
+// newKeyboard makes the keyboard of one request. lent is the borrowed keycodes of the connection (nil: none yet).
+func newKeyboard(dev device, km Keymap, lent *lentKeys) *Keyboard {
+	if lent == nil {
+		lent = &lentKeys{}
+	}
+	return &Keyboard{dev: dev, km: km, delay: defaultKeyDelay, settle: defaultRemapSettle, sleep: time.Sleep, now: time.Now, lent: lent}
 }
 
 func (k *Keyboard) down(code byte) error {
@@ -71,8 +113,9 @@ func (k *Keyboard) up(code byte) error {
 	return nil
 }
 
-// finish releases whatever is still held (last pressed first) and gives the borrowed keycode back. It runs after every
-// request, successful or not: a modifier that stays down would turn the user's next keystrokes into shortcuts.
+// finish releases whatever is still held (last pressed first). It runs after every request, successful or not: a
+// modifier that stays down would turn the user's next keystrokes into shortcuts. The borrowed keycodes keep their
+// characters (see lentMinAge).
 func (k *Keyboard) finish() error {
 	var first error
 	for len(k.held) > 0 {
@@ -82,43 +125,73 @@ func (k *Keyboard) finish() error {
 			first = err
 		}
 	}
-	if k.spare != 0 && k.spareSym != 0 {
-		if err := k.dev.remap(k.spare, k.km.Per, 0); err != nil && first == nil {
-			first = err
-		}
-		k.spareSym = 0
-	}
 	if err := k.dev.sync(); err != nil && first == nil {
 		first = err
 	}
 	return first
 }
 
-// strokeFor finds how to type a keysym, borrowing the spare keycode when the keyboard does not have it.
+// strokeFor finds how to type a keysym, borrowing a keycode when the keyboard does not have it.
 func (k *Keyboard) strokeFor(keysym uint32) (Stroke, error) {
 	for _, ks := range keysymAlternates(keysym) {
+		if slot, ok := k.lent.find(ks); ok { // borrowed before, possibly by an earlier request
+			slot.used = k.now()
+			return Stroke{Code: slot.code}, nil
+		}
 		if s, ok := k.km.Lookup(ks); ok {
 			return s, nil
 		}
 	}
 	if keysym < 0x100 || keysym >= unicodeKeysymBase { // a character: it can be typed by remapping
-		spare, ok := k.km.Spare()
-		if !ok {
-			return Stroke{}, ErrNoSpareKeycode
+		code, err := k.borrow(keysym)
+		if err != nil {
+			return Stroke{}, err
 		}
-		if k.spareSym != keysym {
-			if err := k.dev.remap(spare, k.km.Per, keysym); err != nil {
-				return Stroke{}, fmt.Errorf("remapping keycode %d: %w", spare, err)
-			}
-			if err := k.dev.sync(); err != nil {
-				return Stroke{}, err
-			}
-			k.sleep(k.settle)
-			k.spare, k.spareSym = spare, keysym
-		}
-		return Stroke{Code: spare}, nil
+		return Stroke{Code: code}, nil
 	}
 	return Stroke{}, &KeyError{fmt.Sprintf("this keyboard has no key for keysym %#x", keysym)}
+}
+
+// borrow gives a character a keycode of its own: a free one while there are some (up to maxLent), then the one that has
+// been unused the longest, after it has been unused for lentMinAge.
+func (k *Keyboard) borrow(keysym uint32) (byte, error) {
+	l := k.lent
+	var slot *lentSlot
+	if len(l.slots) < maxLent {
+		for _, code := range k.km.Spares(maxLent + len(l.slots)) {
+			if !l.has(code) {
+				l.slots = append(l.slots, lentSlot{code: code})
+				slot = &l.slots[len(l.slots)-1]
+				break
+			}
+		}
+	}
+	if slot == nil {
+		if len(l.slots) == 0 {
+			return 0, ErrNoSpareKeycode
+		}
+		oldest := 0
+		for i := range l.slots {
+			if l.slots[i].used.Before(l.slots[oldest].used) {
+				oldest = i
+			}
+		}
+		slot = &l.slots[oldest]
+		if wait := lentMinAge - k.now().Sub(slot.used); wait > 0 {
+			k.sleep(wait)
+		}
+	}
+	if err := k.dev.remap(slot.code, k.km.Per, keysym); err != nil {
+		slot.sym = 0 // whatever it carried is not known any more
+		return 0, fmt.Errorf("remapping keycode %d: %w", slot.code, err)
+	}
+	slot.sym = keysym
+	slot.used = k.now()
+	if err := k.dev.sync(); err != nil {
+		return 0, err
+	}
+	k.sleep(k.settle)
+	return slot.code, nil
 }
 
 // modifier finds a modifier's keycode.

@@ -1,0 +1,5 @@
+# ControlSnack: a cursor that blinks is a screen that never goes quiet, and the agent waits for a quiet screen
+# (wait_for screen_idle). Read by xfce4-terminal after the user's own file, which does not exist in this image.
+[Configuration]
+MiscCursorBlinks=FALSE
+MiscBell=FALSE

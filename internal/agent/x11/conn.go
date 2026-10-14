@@ -30,6 +30,10 @@ type Conn struct {
 
 	randrOnce sync.Once
 	randr15   bool
+
+	// keyMu serializes the requests that press keys: they share the keycodes borrowed for characters the keyboard lacks.
+	keyMu sync.Mutex
+	lent  lentKeys
 }
 
 // Open connects to an X display (":0"; an empty string means $DISPLAY) and checks that its screen can be read.

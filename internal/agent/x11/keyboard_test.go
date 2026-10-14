@@ -100,9 +100,20 @@ func (f *fakeDevice) trace() string {
 
 func newTestKeyboard() (*Keyboard, *fakeDevice) {
 	dev := &fakeDevice{failErr: errors.New("BadRequest")}
-	k := newKeyboard(dev, testKeymap())
+	k := newKeyboard(dev, testKeymap(), nil)
 	k.sleep = func(time.Duration) {}
 	return k, dev
+}
+
+// testKeymapWithSpares is the test keyboard with its n highest keycodes free (255 down to 256-n).
+func testKeymapWithSpares(n int) Keymap {
+	km := testKeymap()
+	for code := 255; code > 255-n; code-- {
+		for col := 0; col < km.Per; col++ {
+			km.syms[(code-int(km.Min))*km.Per+col] = 0
+		}
+	}
+	return NewKeymap(km.Min, km.Per, km.syms)
 }
 
 func press(t *testing.T, k *Keyboard, combo string, repeat int) error {
@@ -253,16 +264,12 @@ func TestTypeBorrowsAKeycodeForWhatTheKeyboardLacks(t *testing.T) {
 	if err := k.Type(context.Background(), "a日b"); err != nil {
 		t.Fatal(err)
 	}
-	want := "down 38, up 38, " +
-		"remap 255=0x10065e5, down 255, up 255, " + // the character of U+65E5 on the spare keycode
-		"down 98, up 98" // b is not on the test keyboard either... see below
-	_ = want
 	trace := dev.trace()
-	if !strings.Contains(trace, "remap 255=0x10065e5, down 255, up 255") {
+	if !strings.Contains(trace, "remap 255=0x10065e5, down 255, up 255") { // the character of U+65E5 on the spare keycode
 		t.Errorf("%s", trace)
 	}
-	if !strings.HasSuffix(trace, "remap 255=0x0") {
-		t.Errorf("the borrowed keycode is given back at the end: %s", trace)
+	if strings.Contains(trace, "=0x0") {
+		t.Errorf("the borrowed keycode keeps its character after the request (an application may not have looked yet): %s", trace)
 	}
 	// Syncs wait for the server after the remap and at the end.
 	if dev.ops[len(dev.ops)-1] != "sync" {
@@ -280,6 +287,96 @@ func TestTypeRemapsOnlyWhenTheCharacterChanges(t *testing.T) {
 	}
 	if !strings.Contains(dev.trace(), "remap 255=0x100672c") { // 本
 		t.Errorf("%s", dev.trace())
+	}
+}
+
+// Every character gets a keycode of its own: an application that looks the keycode up late still finds the character
+// it was sent (日本語 came out as 日語語 when one keycode was remapped for each).
+func TestTypeGivesEachNewCharacterItsOwnKeycode(t *testing.T) {
+	dev := &fakeDevice{failErr: errors.New("BadRequest")}
+	k := newKeyboard(dev, testKeymapWithSpares(4), nil)
+	k.sleep = func(time.Duration) {}
+	if err := k.Type(context.Background(), "日本語日"); err != nil {
+		t.Fatal(err)
+	}
+	want := "remap 255=0x10065e5, down 255, up 255, " + // 日
+		"remap 254=0x100672c, down 254, up 254, " + // 本
+		"remap 253=0x1008a9e, down 253, up 253, " + // 語
+		"down 255, up 255" // 日 again: its keycode still has it
+	if got := dev.trace(); got != want {
+		t.Errorf("\n got %s\nwant %s", got, want)
+	}
+}
+
+// The borrowed keycodes belong to the connection, not to a request: the next request finds the character where it was
+// left, with the keyboard mapping read again (which now has the character on that keycode).
+func TestBorrowedKeycodesOutliveTheRequest(t *testing.T) {
+	dev := &fakeDevice{failErr: errors.New("BadRequest")}
+	lent := &lentKeys{}
+	first := newKeyboard(dev, testKeymapWithSpares(3), lent)
+	first.sleep = func(time.Duration) {}
+	if err := first.Type(context.Background(), "日本"); err != nil {
+		t.Fatal(err)
+	}
+	// The server's mapping as the next request reads it: 255 and 254 carry the two characters.
+	km := testKeymapWithSpares(3)
+	for code, ks := range map[int]uint32{255: 0x10065e5, 254: 0x100672c} {
+		for col := 0; col < km.Per; col++ {
+			km.syms[(code-int(km.Min))*km.Per+col] = ks
+		}
+	}
+	km = NewKeymap(km.Min, km.Per, km.syms)
+	dev.ops = nil
+	second := newKeyboard(dev, km, lent)
+	second.sleep = func(time.Duration) {}
+	if err := second.Type(context.Background(), "本語日"); err != nil {
+		t.Fatal(err)
+	}
+	want := "down 254, up 254, " + // 本 where it was left
+		"remap 253=0x1008a9e, down 253, up 253, " + // 語 takes the one free keycode
+		"down 255, up 255" // 日 where it was left
+	if got := dev.trace(); got != want {
+		t.Errorf("\n got %s\nwant %s", got, want)
+	}
+}
+
+// When there is no free keycode left, the one unused the longest is taken, and only after it has been unused for
+// lentMinAge: an application may still be about to look it up.
+func TestBorrowedKeycodeIsTakenOverOnlyWhenItHasBeenUnusedForAWhile(t *testing.T) {
+	dev := &fakeDevice{failErr: errors.New("BadRequest")}
+	k := newKeyboard(dev, testKeymapWithSpares(2), nil)
+	now := time.Unix(1000, 0)
+	k.now = func() time.Time { return now }
+	var slept []time.Duration
+	k.sleep = func(d time.Duration) {
+		if d > k.settle {
+			slept = append(slept, d)
+		}
+		now = now.Add(d)
+	}
+	if err := k.Type(context.Background(), "日本"); err != nil { // both keycodes are taken now
+		t.Fatal(err)
+	}
+	if len(slept) != 0 {
+		t.Fatalf("free keycodes need no wait: %v", slept)
+	}
+	if err := k.Type(context.Background(), "日語"); err != nil { // 日 is used again: 本 has been unused the longest
+		t.Fatal(err)
+	}
+	if !strings.Contains(dev.trace(), "remap 254=0x1008a9e") { // 語 takes 本's keycode (254), not 日's (255)
+		t.Errorf("%s", dev.trace())
+	}
+	if len(slept) != 1 || slept[0] > lentMinAge || slept[0] < lentMinAge-time.Second {
+		t.Errorf("the keycode of 本 was used a moment ago, so taking it over waits for the rest of %s: %v", lentMinAge, slept)
+	}
+	// A keycode that has been idle long enough is taken at once.
+	now = now.Add(time.Minute)
+	slept = nil
+	if err := k.Type(context.Background(), "x語"); err != nil { // x is not on the test keyboard either: 日's keycode goes
+		t.Fatal(err)
+	}
+	if len(slept) != 0 {
+		t.Errorf("an idle keycode is taken at once: %v", slept)
 	}
 }
 
@@ -309,7 +406,7 @@ func TestTypeRefusals(t *testing.T) {
 		full.syms[len(full.syms)-full.Per+i] = 0xfd00 + uint32(i) + 1
 	}
 	full = NewKeymap(full.Min, full.Per, full.syms)
-	k2 := newKeyboard(&fakeDevice{}, full)
+	k2 := newKeyboard(&fakeDevice{}, full, nil)
 	k2.sleep = func(time.Duration) {}
 	if err := k2.Type(context.Background(), "日"); !errors.Is(err, ErrNoSpareKeycode) {
 		t.Errorf("%v", err)

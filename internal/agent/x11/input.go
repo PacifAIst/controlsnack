@@ -127,18 +127,22 @@ func (c *Conn) KeyCombo(ctx context.Context, combo string, repeat int) error {
 	if err != nil {
 		return err
 	}
+	c.keyMu.Lock()
+	defer c.keyMu.Unlock()
 	km, err := c.keymap()
 	if err != nil {
 		return err
 	}
-	return newKeyboard(c, km).Press(ctx, cb, repeat)
+	return newKeyboard(c, km, &c.lent).Press(ctx, cb, repeat)
 }
 
 // TypeText types text (any Unicode) into the window that has the focus.
 func (c *Conn) TypeText(ctx context.Context, text string) error {
+	c.keyMu.Lock()
+	defer c.keyMu.Unlock()
 	km, err := c.keymap()
 	if err != nil {
 		return err
 	}
-	return newKeyboard(c, km).Type(ctx, text)
+	return newKeyboard(c, km, &c.lent).Type(ctx, text)
 }

@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -712,5 +713,53 @@ func TestEventRecordsAreAcceptedByTheAuditLog(t *testing.T) {
 	}
 	if got := string(events[1].Record().Data); !strings.Contains(got, `"up":10`) || !strings.Contains(got, `"down":2048`) || !strings.Contains(got, `"ms":1500`) {
 		t.Errorf("data of a closed event: %s", got)
+	}
+}
+
+// holdOnly keeps a stream the way `defer st.Close()` does: through the stream inside the wrapper, not the wrapper.
+func holdOnly(st *smux.Stream, release <-chan struct{}) {
+	defer st.Close()
+	<-release
+}
+
+// smux closes an accepted stream when its wrapper is garbage collected; the bridge must not let that happen to a stream
+// that is still waiting (a guest's connection ended with nothing said, rarely, when a collection came at the wrong time).
+func TestAcceptedStreamsAreNotClosedByTheGarbageCollector(t *testing.T) {
+	host, guest := tcpPair(t)
+	ready := make(chan struct{})
+	release := make(chan struct{})
+	defer close(release)
+	go func() {
+		sess, err := smux.Server(host, protocol.NetMuxConfig())
+		if err != nil {
+			return
+		}
+		st, err := acceptStream(sess)
+		if err != nil {
+			return
+		}
+		close(ready)
+		holdOnly(st, release)
+	}()
+	sess, err := smux.Client(guest, protocol.NetMuxConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := sess.OpenStream()
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-ready:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the stream was not accepted")
+	}
+	for i := 0; i < 30; i++ {
+		runtime.GC()
+		time.Sleep(10 * time.Millisecond)
+	}
+	_ = st.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+	if _, err := st.Read(make([]byte, 1)); !errors.Is(err, smux.ErrTimeout) {
+		t.Errorf("the guest's read ends with %v: the host's stream was closed while it was waiting", err)
 	}
 }

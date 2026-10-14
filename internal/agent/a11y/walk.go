@@ -5,6 +5,7 @@ package a11y
 
 import (
 	"context"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -27,9 +28,11 @@ const (
 	defaultConcurrency = 8
 	// exploreFactor bounds the work for one walk: at most this many elements per node asked for are looked at, and never
 	// fewer than exploreFloor (the elements worth reporting are often below several levels of layout: a window of a GTK
-	// application has six or seven before its first button, so a walk for five nodes must still get there).
-	exploreFactor = 4
-	exploreFloor  = 200
+	// application has six or seven before its first button, so a walk for five nodes must still get there). A list shows
+	// the same: a file manager's detailed list has a cell for every column of every file, scrolled out of view or not,
+	// and the name of a file is one level below its cell (D-69). The time budget, not this, is what normally ends a walk.
+	exploreFactor = 8
+	exploreFloor  = 1000
 
 	maxNameRunes  = 300
 	maxDescRunes  = 200
@@ -348,6 +351,10 @@ func (w *walker) describe(ctx context.Context, ref Ref, role string, info Info) 
 		if !isRootLike(role) {
 			return n, false
 		}
+	}
+	// A cell of a list that is scrolled out of view still exists, and GTK puts it at the smallest number there is.
+	if n.X == math.MinInt32 || n.Y == math.MinInt32 {
+		return n, false
 	}
 	return n, true
 }

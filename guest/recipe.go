@@ -39,6 +39,7 @@ var Packages = []string{
 	"at-spi2-core", "libatk-adaptor", "gsettings-desktop-schemas", "libglib2.0-bin", // glib-compile-schemas
 	// the browser, text recognition, typing fallback, fonts
 	"chromium", "tesseract-ocr", "tesseract-ocr-eng", "libwebp7", "xdotool", "fonts-dejavu-core", "fonts-noto-core",
+	"fonts-wqy-microhei", // Chinese, Japanese and Korean text: without a font it shows as empty boxes (a few MB; fonts-noto-cjk is 60 MB)
 	// network lock-down and the basics of a shell session
 	"nftables", "ca-certificates", "nano", "less", "file", "unzip", "zip",
 }
@@ -64,6 +65,9 @@ var layout = []struct{ source, path, mode string }{
 	{"chromium-flags.sh", "/etc/chromium.d/controlsnack", "0644"},
 	{"nftables.conf", "/etc/nftables.conf", "0644"},
 	{"controlsnack.gschema.override", "/usr/share/glib-2.0/schemas/90_controlsnack.gschema.override", "0644"},
+	{"terminalrc", "/etc/xdg/xfce4/terminal/terminalrc", "0644"},
+	{"gtk3-settings.ini", "/etc/gtk-3.0/settings.ini", "0644"},
+	{"thunar.xml", "/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/thunar.xml", "0644"},
 }
 
 // ProvisionPath is where the provisioning script is written; cloud-init runs it.
