@@ -204,7 +204,7 @@ func message(m backend.Message) chatMessage {
 	for i, c := range m.Calls {
 		var tc toolCall
 		tc.ID, tc.Type, tc.Function.Name = callID(c.ID, i), "function", c.Name
-		tc.Function.Arguments = string(objectOrEmpty(c.Args))
+		tc.Function.Arguments = string(parse.Object(c.Args))
 		cm.ToolCalls = append(cm.ToolCalls, tc)
 	}
 	if m.Role == backend.RoleTool {
@@ -221,15 +221,6 @@ func callID(id string, i int) string {
 		return id
 	}
 	return fmt.Sprintf("call_%d", i+1)
-}
-
-// objectOrEmpty returns raw if it is a JSON object, else {}.
-func objectOrEmpty(raw json.RawMessage) json.RawMessage {
-	var obj map[string]json.RawMessage
-	if json.Unmarshal(raw, &obj) != nil || obj == nil {
-		return json.RawMessage("{}")
-	}
-	return raw
 }
 
 // Complete asks the model for its next move.

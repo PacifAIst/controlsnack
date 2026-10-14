@@ -166,22 +166,13 @@ func message(m backend.Message) chatMessage {
 	}
 	for _, c := range m.Calls {
 		var tc toolCall
-		tc.ID, tc.Function.Name, tc.Function.Arguments = c.ID, c.Name, objectOrEmpty(c.Args)
+		tc.ID, tc.Function.Name, tc.Function.Arguments = c.ID, c.Name, parse.Object(c.Args)
 		cm.ToolCalls = append(cm.ToolCalls, tc)
 	}
 	if m.Role == backend.RoleTool {
 		cm.ToolName = m.Tool
 	}
 	return cm
-}
-
-// objectOrEmpty returns raw if it is a JSON object, else {}: Ollama wants the arguments of a call as an object.
-func objectOrEmpty(raw json.RawMessage) json.RawMessage {
-	var obj map[string]json.RawMessage
-	if json.Unmarshal(raw, &obj) != nil || obj == nil {
-		return json.RawMessage("{}")
-	}
-	return raw
 }
 
 // Complete asks the model for its next move.

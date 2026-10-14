@@ -326,3 +326,26 @@ func TestParsingIsBounded(t *testing.T) {
 		t.Error("nothing here")
 	}
 }
+
+func TestObjectNormalizesTheArgumentsOfACall(t *testing.T) {
+	for name, tc := range map[string]struct{ in, want string }{
+		"object":             {`{"a":1,"b":[2]}`, `{"a":1,"b":[2]}`},
+		"object with spaces": {"  {\"a\": 1}\n", `{"a": 1}`},
+		"string holding one": {`"{\"a\":1,\"z\":\"x\"}"`, `{"a":1,"z":"x"}`},
+		"string with spaces": {`" {\"a\":1} "`, `{"a":1}`},
+		"empty":              {``, `{}`},
+		"null":               {`null`, `{}`},
+		"empty string":       {`""`, `{}`},
+		"string of words":    {`"not an object"`, `{}`},
+		"string of an array": {`"[1,2]"`, `{}`},
+		"an array":           {`[1,2]`, `{}`},
+		"a number":           {`7`, `{}`},
+		"broken":             {`{"a":`, `{}`},
+		"broken string":      {`"abc`, `{}`},
+		"string of a string": {`"\"{}\""`, `{}`},
+	} {
+		if got := string(Object(json.RawMessage(tc.in))); got != tc.want {
+			t.Errorf("%s: Object(%s) = %s, want %s", name, tc.in, got, tc.want)
+		}
+	}
+}

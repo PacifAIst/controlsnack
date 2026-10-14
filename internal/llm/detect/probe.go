@@ -113,11 +113,16 @@ func probeImage() *image.RGBA {
 	return img
 }
 
+// The words of the probe's questions. They are exported so that a fake model server can recognize a probe among the
+// requests it gets and answer as the capabilities it plays say (internal/llm/fakellm); a test there runs the real probe
+// against it, so a change of these words that the fake does not follow is found.
 const (
-	visionQuestion = `This picture is white with one colored square in its middle. What color is the colored square? Answer with only this JSON object: {"color":"<one word>"}`
-	doneAsk        = `Call the done tool with success set to true and the summary "ok". Do nothing else.`
-	// doneAnswer is the shape asked for in the checks that do not use native calls.
-	doneAnswer = `Answer with only this JSON object and nothing else: {"thought":"checking","actions":[{"tool":"done","args":{"success":true,"summary":"ok"}}]}`
+	// ProbeVisionQuestion goes with the test picture.
+	ProbeVisionQuestion = `This picture is white with one colored square in its middle. What color is the colored square? Answer with only this JSON object: {"color":"<one word>"}`
+	// ProbeDoneAsk is the native-call question.
+	ProbeDoneAsk = `Call the done tool with success set to true and the summary "ok". Do nothing else.`
+	// ProbeDoneAnswer is the shape asked for in the checks that do not use native calls.
+	ProbeDoneAnswer = `Answer with only this JSON object and nothing else: {"thought":"checking","actions":[{"tool":"done","args":{"success":true,"summary":"ok"}}]}`
 )
 
 // probeDeadline bounds one question: the first one may have to load the model.
@@ -257,7 +262,7 @@ func (p *prober) vision(ctx context.Context, info ModelInfo) error {
 			return fmt.Errorf("making the test picture: %w", err)
 		}
 		resp, c, err := p.ask(ctx, step.check, backend.Request{
-			Messages: []backend.Message{{Role: backend.RoleUser, Text: visionQuestion, Images: []backend.Image{{MIME: step.format.MIME(), Data: data}}}},
+			Messages: []backend.Message{{Role: backend.RoleUser, Text: ProbeVisionQuestion, Images: []backend.Image{{MIME: step.format.MIME(), Data: data}}}},
 			Mode:     backend.ModeJSON,
 		})
 		if err != nil {
@@ -300,7 +305,7 @@ func (p *prober) doneIn(resp backend.Response) (string, bool) {
 
 func (p *prober) native(ctx context.Context) error {
 	resp, c, err := p.ask(ctx, CheckNativeTools, backend.Request{
-		Messages: []backend.Message{{Role: backend.RoleUser, Text: doneAsk}},
+		Messages: []backend.Message{{Role: backend.RoleUser, Text: ProbeDoneAsk}},
 		Set:      p.set, Mode: backend.ModeNative, MaxActions: 1,
 	})
 	if err != nil {
@@ -322,7 +327,7 @@ func (p *prober) native(ctx context.Context) error {
 
 func (p *prober) structured(ctx context.Context) error {
 	resp, c, err := p.ask(ctx, CheckStructured, backend.Request{
-		Messages: []backend.Message{{Role: backend.RoleUser, Text: doneAnswer}},
+		Messages: []backend.Message{{Role: backend.RoleUser, Text: ProbeDoneAnswer}},
 		Set:      p.set, Mode: backend.ModeStructured, MaxActions: 1,
 	})
 	if err != nil {
@@ -338,7 +343,7 @@ func (p *prober) structured(ctx context.Context) error {
 
 func (p *prober) json(ctx context.Context) error {
 	resp, c, err := p.ask(ctx, CheckJSON, backend.Request{
-		Messages: []backend.Message{{Role: backend.RoleUser, Text: doneAnswer}},
+		Messages: []backend.Message{{Role: backend.RoleUser, Text: ProbeDoneAnswer}},
 		Mode:     backend.ModeJSON, MaxActions: 1,
 	})
 	if err != nil {

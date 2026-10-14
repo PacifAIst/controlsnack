@@ -4,6 +4,7 @@
 package parse
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -292,4 +293,23 @@ func evaluate(set *actions.Set, items []pending, res *Result) {
 		}
 		res.Actions = append(res.Actions, Item{Index: it.index, CallID: it.callID, Action: a})
 	}
+}
+
+// Object returns the arguments of a call as the JSON object they are, for sending a call back to a backend as part of the
+// conversation: an object stays as it is, a string that holds one (how OpenAI-compatible servers send them) gives the
+// object, and anything else gives {}. The text is not reordered or rewritten.
+func Object(raw json.RawMessage) json.RawMessage {
+	s := bytes.TrimSpace(raw)
+	if len(s) > 0 && s[0] == '"' {
+		var inner string
+		if json.Unmarshal(s, &inner) != nil {
+			return json.RawMessage("{}")
+		}
+		s = bytes.TrimSpace([]byte(inner))
+	}
+	var obj map[string]json.RawMessage
+	if json.Unmarshal(s, &obj) != nil || obj == nil {
+		return json.RawMessage("{}")
+	}
+	return json.RawMessage(s)
 }

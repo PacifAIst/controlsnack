@@ -189,7 +189,7 @@ func assistantMessage(m backend.Message) message {
 		blocks = append(blocks, block{Type: "text", Text: m.Text})
 	}
 	for i, c := range m.Calls {
-		blocks = append(blocks, block{Type: "tool_use", ID: callID(c.ID, i), Name: c.Name, Input: objectOrEmpty(c.Args)})
+		blocks = append(blocks, block{Type: "tool_use", ID: callID(c.ID, i), Name: c.Name, Input: parse.Object(c.Args)})
 	}
 	if len(blocks) == 0 {
 		blocks = append(blocks, block{Type: "text", Text: noText})
@@ -209,15 +209,6 @@ func callID(id string, i int) string {
 		return id
 	}
 	return fmt.Sprintf("call_%d", i+1)
-}
-
-// objectOrEmpty returns raw if it is a JSON object, else {}: the input of a tool call is an object.
-func objectOrEmpty(raw json.RawMessage) json.RawMessage {
-	var obj map[string]json.RawMessage
-	if json.Unmarshal(raw, &obj) != nil || obj == nil {
-		return json.RawMessage("{}")
-	}
-	return raw
 }
 
 // Complete asks the model for its next move.
