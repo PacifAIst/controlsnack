@@ -37,6 +37,9 @@ type RemoteError struct {
 
 func (e *RemoteError) Error() string { return e.Code + ": " + e.Message }
 
+// ErrorCode is the protocol error code; callers that must not import this package ask for it with an interface.
+func (e *RemoteError) ErrorCode() string { return e.Code }
+
 // State is where the client is in the life of its connection.
 type State int
 

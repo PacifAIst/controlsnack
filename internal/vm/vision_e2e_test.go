@@ -12,14 +12,17 @@ import (
 	"fmt"
 	"image"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/PacifAIst/controlsnack-local/internal/imaging"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/vision"
 	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack-local/internal/safety/untrusted"
 )
 
 // TestE2EVisionPipeline takes the pictures the model would be given from the real guest: scaled down, with the numbered
@@ -92,4 +95,74 @@ func TestE2EVisionPipeline(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("second plain capture reused=%v (a quiet screen: %v)", again.Reused, plain.Hash == again.Hash)
+}
+
+// TestE2ETextOnlyObserver looks at the real guest the way a model without vision does: no picture, the accessibility tree
+// and the text recognized on the screen, rendered as the observation the model would read.
+func TestE2ETextOnlyObserver(t *testing.T) {
+	m, _ := bootE2E(t, 1280, 800)
+	ctx := context.Background()
+	time.Sleep(20 * time.Second)
+
+	var res protocol.ExecRes
+	cmd := `(setsid xfce4-terminal --geometry=70x12 -e "bash -c 'clear; echo TEXT ONLY MARKER 4711; echo Second line: Hello World; sleep 900'" >/dev/null 2>&1 &); echo launched`
+	if _, err := m.Client.Call(ctx, protocol.TypeExec, protocol.ExecReq{Command: cmd}, nil, &res); err != nil || res.Stdout != "launched\n" {
+		t.Fatalf("%+v %v", res, err)
+	}
+	deadline := time.Now().Add(3 * time.Minute)
+	for {
+		var ws protocol.WindowsRes
+		if _, err := m.Client.Call(ctx, protocol.TypeWindows, protocol.WindowsReq{Op: "list"}, nil, &ws); err != nil {
+			t.Fatal(err)
+		}
+		if slices.ContainsFunc(ws.Windows, func(w protocol.Window) bool { return strings.EqualFold(w.Class, "Xfce4-terminal") }) {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the terminal did not open")
+		}
+		time.Sleep(5 * time.Second)
+	}
+	time.Sleep(8 * time.Second)
+
+	setup := vision.Setup{Mode: backend.ModeJSON, Profile: "compact"}
+	o, err := vision.NewObserver(m.Client, vision.ObserverConfig{Setup: setup, Guest: prompt.Size{W: 1280, H: 800}, TreeBudget: 20 * time.Second, OCRBudget: 90 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	begin := time.Now()
+	seen, err := o.Look(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("looked in %s: %d tree nodes, %d lines of text, notes %v", time.Since(begin).Round(time.Millisecond), len(seen.UI.Nodes), len(seen.OCR.Lines), seen.Notes)
+	if seen.Shot != nil || seen.OCR == nil || seen.UI == nil || seen.Active == nil {
+		t.Fatalf("seen = %+v", seen)
+	}
+
+	obs := prompt.Observation{Turn: 1, Network: "disabled", Task: "read the terminal", Budget: prompt.Budget{ActionsLeft: 50, TurnsLeft: 30, TimeLeft: 20 * time.Minute}}
+	seen.Fill(&obs)
+	text := prompt.Renderer{Fencer: untrustedFencer(t), Format: prompt.FormatText}.Observation(obs, prompt.Limits{})
+	t.Logf("what the model reads:\n%s", text)
+	var found bool
+	for _, l := range seen.OCR.Lines {
+		if strings.Contains(strings.ToLower(l.Text), "4711") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("the marker text was not recognized in %d lines", len(seen.OCR.Lines))
+	}
+	if strings.Contains(text, "[image attached") || !strings.Contains(text, "mode: text-only") || !strings.Contains(text, "OCR generation") {
+		t.Errorf("observation:\n%s", text)
+	}
+}
+
+func untrustedFencer(t *testing.T) *untrusted.Fencer {
+	t.Helper()
+	f, err := untrusted.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
 }
