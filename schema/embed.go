@@ -15,6 +15,12 @@ var AuditRecord []byte
 //go:embed response.schema.json
 var Response []byte
 
+// Observation is the JSON Schema of what the model receives each turn with --obs-format json
+// (schema/observation.schema.json).
+//
+//go:embed observation.schema.json
+var Observation []byte
+
 // Tools holds the JSON Schema of each tool's arguments, one file for each: tools/<tool>.json.
 //
 //go:embed tools/*.json

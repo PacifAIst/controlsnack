@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/observation.json",
+  "title": "ControlSnack observation",
+  "description": "What the model receives each turn when --obs-format is json (PLAN.md section 5.2); the default form is compact text with the same parts. All coordinates are pixels of the attached image. Every string that came from the virtual machine (window title, element names, screen text, command output) is inside a fence, <<untrusted:NONCE source>> ... <<end:NONCE>>, where NONCE is the session's: the nodes of the tree and the lines of screen text are one fenced string each, with one element or line to a line.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["turn", "screen", "network", "mode", "tools", "budget"],
+  "properties": {
+    "turn": { "type": "integer", "minimum": 0 },
+    "screen": { "$ref": "#/$defs/size" },
+    "cursor": { "$ref": "#/$defs/point" },
+    "network": { "type": "string", "maxLength": 20 },
+    "mode": { "type": "string", "maxLength": 20 },
+    "tools": { "type": "string", "maxLength": 20 },
+    "task": { "type": "string", "maxLength": 16000 },
+    "active_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "bounds", "title"],
+      "properties": {
+        "class": { "type": "string", "maxLength": 40 },
+        "bounds": { "$ref": "#/$defs/rect" },
+        "title": { "type": "string", "description": "Fenced, source window.title." }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generation", "scope", "nodes_shown", "nodes_total"],
+      "properties": {
+        "generation": { "type": "string", "maxLength": 24 },
+        "scope": { "type": "string", "maxLength": 24, "description": "What was read: active_window, desktop or browser." },
+        "nodes_shown": { "type": "integer", "minimum": 0 },
+        "nodes_total": { "type": "integer", "minimum": 0 },
+        "cut": { "type": "boolean", "description": "The tree was cut where it was read." },
+        "note": { "type": "string", "description": "Fenced, source ui.note." },
+        "nodes": { "type": "string", "description": "Fenced, source ui. One element a line: id, role, \"name\", [x,y,w,h], then value=, states= and actions= when there are any." }
+      }
+    },
+    "ocr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generation", "lines_shown", "lines_total"],
+      "properties": {
+        "generation": { "type": "string", "maxLength": 24 },
+        "lines_shown": { "type": "integer", "minimum": 0 },
+        "lines_total": { "type": "integer", "minimum": 0 },
+        "cut": { "type": "boolean" },
+        "lines": { "type": "string", "description": "Fenced, source ocr. One line of text a line: id, \"text\", [x,y,w,h]." }
+      }
+    },
+    "last_results": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "tool", "status"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 1 },
+          "tool": { "type": "string", "maxLength": 40 },
+          "status": { "type": "string", "maxLength": 60, "description": "ok, error <code>, not run or dropped." },
+          "detail": { "type": "string", "maxLength": 400 },
+          "outputs": { "type": "array", "items": { "type": "string", "description": "Fenced, source exec.stdout, exec.stderr, browser.text, ..." } }
+        }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } },
+    "user_messages": { "type": "array", "items": { "type": "string" } },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actions_left", "turns_left", "time_left_s"],
+      "properties": {
+        "actions_left": { "type": "integer" },
+        "turns_left": { "type": "integer" },
+        "time_left_s": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["w", "h"],
+      "properties": {
+        "w": { "type": "integer", "minimum": 1 },
+        "h": { "type": "integer", "minimum": 1 },
+        "marks": { "type": "string", "maxLength": 40, "description": "The elements the numbered boxes of the image mark, such as a1..a23." }
+      }
+    }
+  },
+  "$defs": {
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["w", "h"],
+      "properties": { "w": { "type": "integer", "minimum": 0 }, "h": { "type": "integer", "minimum": 0 } }
+    },
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": { "x": { "type": "integer" }, "y": { "type": "integer" } }
+    },
+    "rect": {
+      "type": "array",
+      "description": "x, y, width, height.",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "type": "integer" }
+    }
+  }
+}

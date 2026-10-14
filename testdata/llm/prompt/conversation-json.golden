@@ -1,0 +1,28 @@
+--- 1 system
+(system prompt)
+--- 2 user
+TURN 1 · screen 1280x800 · cursor 640,400 · network: disabled · mode: vision · tools: full
+ACTIVE WINDOW: xfce4-terminal [0,0,1280,770]
+<<untrusted:3f9a1c window.title>>Terminal - cs@guest: ~<<end:3f9a1c>>
+BUDGET actions_left=41 turns_left=88 time_left=47m
+--- 3 assistant
+{"thought":"x","actions":[{"tool":"exec","args":{"command":"uname -r"}}]}
+--- 4 user (1 image)
+TURN 2 · screen 1280x800 · cursor 640,400 · network: disabled · mode: vision · tools: full
+TASK: Open a terminal and print the kernel version
+ACTIVE WINDOW: xfce4-terminal [0,0,1280,770]
+<<untrusted:3f9a1c window.title>>Terminal - cs@guest: ~<<end:3f9a1c>>
+UI generation g12 · scope active_window · 3/3 nodes
+<<untrusted:3f9a1c ui>>
+a1 frame "Terminal - cs@guest: ~" [0,0,1280,770]
+a9 terminal "Terminal" [0,60,1280,700] states=focused,editable actions=focus
+a17 push_button "OK" [600,500,80,30] actions=click
+<<end:3f9a1c>>
+LAST RESULTS
+1. exec ok exit=0 31ms
+<<untrusted:3f9a1c exec.stdout>>6.12.x-amd64<<end:3f9a1c>>
+NOTE: Not run, because it was not valid:
+  - action 2 (key): args.keys: is required
+USER: please hurry
+BUDGET actions_left=41 turns_left=88 time_left=47m
+[image attached: 1280x800, marks for a1..a23]
