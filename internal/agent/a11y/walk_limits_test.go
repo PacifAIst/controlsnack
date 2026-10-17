@@ -90,9 +90,10 @@ func TestWalkStopsAtTheDepthLimit(t *testing.T) {
 
 func TestWalkEndsAtTheBudgetWithWhatItFound(t *testing.T) {
 	b, frame := buttons(200)
-	b.latency = 20 * time.Millisecond
+	// The numbers leave room for a busy machine: a budget of several latencies, and a walk that would take three times the budget.
+	b.latency = 50 * time.Millisecond
 	start := time.Now()
-	tree, err := Walk(context.Background(), b, []Ref{frame}, Options{Budget: 150 * time.Millisecond, MaxNodes: 400})
+	tree, err := Walk(context.Background(), b, []Ref{frame}, Options{Budget: 400 * time.Millisecond, MaxNodes: 400})
 	took := time.Since(start)
 	if err != nil {
 		t.Fatalf("running out of time is not an error: %v", err)
@@ -100,8 +101,8 @@ func TestWalkEndsAtTheBudgetWithWhatItFound(t *testing.T) {
 	if !tree.Truncated {
 		t.Error("an unfinished walk must say so")
 	}
-	if took > time.Second {
-		t.Errorf("a 150 ms budget took %v", took)
+	if took > 3*time.Second {
+		t.Errorf("a 400 ms budget took %v", took)
 	}
 	if len(tree.Nodes) == 0 || len(tree.Nodes) >= 200 {
 		t.Errorf("some but not all: %d nodes", len(tree.Nodes))

@@ -6,6 +6,7 @@ package detect
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -53,7 +54,12 @@ func (d *Detector) Models(ctx context.Context, t Target) ([]ModelInfo, error) {
 		models, err = d.openaiModels(ctx, t)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("listing the models of %s at %s: %w", t.Backend, t.BaseURL, err)
+		hint := ""
+		var he *httpx.Error
+		if errors.As(err, &he) && he.Kind == httpx.KindAuth {
+			hint = " (the server wants an API key: put it in an environment variable and name that variable with --api-key-env)"
+		}
+		return nil, fmt.Errorf("listing the models of %s at %s: %w%s", t.Backend, t.BaseURL, err, hint)
 	}
 	return models, nil
 }
@@ -204,13 +210,13 @@ func (d *Detector) lmstudioModels(ctx context.Context, t Target) ([]ModelInfo, e
 	return out, nil
 }
 
-// openaiModels asks the plain /models list: names only.
+// openaiModels asks the plain /models list: names, and what llama.cpp adds to it.
 func (d *Detector) openaiModels(ctx context.Context, t Target) ([]ModelInfo, error) {
 	data, err := d.get(ctx, t, t.BaseURL+"/models", authHeaders(t))
 	if err != nil {
 		return nil, err
 	}
-	return namesOnly(data, "openai", false)
+	return openaiList(data)
 }
 
 // anthropicModels asks /v1/models; every Claude model takes pictures and tools.
@@ -243,3 +249,52 @@ func namesOnly(data []byte, backendName string, capable bool) ([]ModelInfo, erro
 
 // cleanName makes a model name fit to print: what a server says is not trusted to be one clean line.
 func cleanName(s string) string { return textclean.Line(s, 120) }
+
+// openaiList reads the list of an OpenAI-compatible server: {"data":[{"id":"..."}]}. llama.cpp adds to it what it knows of
+// the model it has loaded: the context length it was started with (data[].meta.n_ctx) and, in a second list kept for
+// Ollama's clients (models[]), the capabilities of each model, which include "multimodal" when a projector is loaded. A
+// server that says neither (OpenAI's, vLLM's, LM Studio's plain list) leaves them unknown for the probe to find out.
+func openaiList(data []byte) ([]ModelInfo, error) {
+	var list struct {
+		Models []struct {
+			Name         string   `json:"name"`
+			Model        string   `json:"model"`
+			Capabilities []string `json:"capabilities"`
+		} `json:"models"`
+		Data []struct {
+			ID   string `json:"id"`
+			Meta *struct {
+				NCtx int `json:"n_ctx"`
+			} `json:"meta"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(data, &list); err != nil {
+		return nil, &httpx.Error{Kind: httpx.KindProtocol, Backend: "openai", Message: "the list of models is not JSON"}
+	}
+	capsOf := map[string][]string{}
+	for _, m := range list.Models {
+		if m.Capabilities != nil {
+			capsOf[m.Name], capsOf[m.Model] = m.Capabilities, m.Capabilities
+		}
+	}
+	var out []ModelInfo
+	for _, m := range list.Data {
+		if m.ID == "" {
+			continue
+		}
+		info := ModelInfo{Name: cleanName(m.ID)}
+		if m.Meta != nil && m.Meta.NCtx > 0 {
+			info.ContextLength = m.Meta.NCtx
+		}
+		if caps, ok := capsOf[m.ID]; ok {
+			info.VisionKnown = true
+			for _, c := range caps {
+				if c == "multimodal" || c == "vision" {
+					info.Vision = true
+				}
+			}
+		}
+		out = append(out, info)
+	}
+	return out, nil
+}

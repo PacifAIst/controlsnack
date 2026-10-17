@@ -106,18 +106,15 @@
                 "properties": {
                   "command": {
                     "description": "The command line.",
-                    "maxLength": 4000,
                     "minLength": 1,
                     "type": "string"
                   },
                   "cwd": {
                     "description": "The directory to run in; the home directory by default.",
-                    "maxLength": 1024,
                     "type": "string"
                   },
                   "stdin": {
                     "description": "Text given to the command on its standard input.",
-                    "maxLength": 65536,
                     "type": "string"
                   },
                   "timeout_s": {
@@ -252,7 +249,6 @@
                 "properties": {
                   "text": {
                     "description": "The text to type.",
-                    "maxLength": 4000,
                     "minLength": 1,
                     "type": "string"
                   }
@@ -370,7 +366,6 @@
                   },
                   "summary": {
                     "description": "What was done, or why it could not be.",
-                    "maxLength": 2000,
                     "type": "string"
                   }
                 },

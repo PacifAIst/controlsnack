@@ -20,6 +20,9 @@ func FuzzParse(f *testing.F) {
 		``, `plain words`, `{"actions":[` + key + `]}`, "```json\n{\"actions\":[" + key + "]}\n```", "prose " + key + " prose",
 		`<think>{"actions":[]}</think>{"actions":[` + key + `,]}`, `[` + key + `,` + key + `]`, `{"actions":[{"tool":"exec"}]}`,
 		`{"thought":"` + strings.Repeat("é", 700) + `","actions":[` + key + `]}`, `{"a":"\u0000"}`, `{{{{{{{`, "```\n```", `</think>x`,
+		// Tool calls written as words (calls.go): Python's form and Gemma's own, whole, cut short and mixed.
+		`exec(command='ls', timeout_s=3)`, `exec{command:<|"|>uname -r<|"|>,reason:<|"|>x<|"|>}`, "- click_element(id='a1')\nkey(keys='Return')\nexec{command:<|\"|>ls",
+		`exec(command="""a` + "\n" + `b""")`, `exec(command='it\'s', timeout_s=1e3)`, `read_screen_text(region=[1,2,[3],{'a':None}])`, `exec(((((((((`, `exec{<|"|><|"|><|"|>`,
 	} {
 		f.Add(text, "key", `{"keys":"Tab"}`, 3)
 		f.Add(text, "exec", `"{\"command\":\"ls\"}"`, 1)

@@ -161,7 +161,7 @@ func (c *Conversation) Begin(obs Observation, img *backend.Image) {
 		last.img = nil
 		last.summary = summarize(last.n, last.results)
 	}
-	if c.opts.Mode != backend.ModeNative && len(c.pending) > 0 {
+	if len(c.pending) > 0 {
 		obs.Results = c.pending
 	}
 	obs.Notes = append(append([]string(nil), c.notes...), obs.Notes...)
@@ -202,23 +202,26 @@ func (c *Conversation) Assistant(text string, calls []parse.ToolCall) error {
 // Results records what came of the actions of the last answer. A model that makes native calls gets a tool message for
 // each call, in the order of the calls, so there must be one result for each (also for the actions that were invalid,
 // not run or dropped: the APIs refuse a conversation where a call is left unanswered). For any other model they are shown
-// in the next observation.
+// in the next observation. The same goes for an answer in native mode that made no native call (its actions were written as JSON or as function calls in words): there is nothing for a tool message to answer.
 func (c *Conversation) Results(results []Result, lim Limits) error {
 	t := c.last()
 	if t == nil {
 		return errors.New("there is no turn to record results for")
 	}
 	t.results = append(t.results, results...)
-	if c.opts.Mode != backend.ModeNative {
-		c.pending = append(c.pending, results...)
-		return nil
-	}
 	var calls []parse.ToolCall
 	for i := len(t.msgs) - 1; i >= 0; i-- {
 		if t.msgs[i].Role == backend.RoleAssistant {
 			calls = t.msgs[i].Calls
 			break
 		}
+	}
+	if c.opts.Mode != backend.ModeNative || len(calls) == 0 {
+		// There are no native calls to answer: the mode is another one, or the answer gave its actions as JSON or as function
+		// calls written in words (a model whose tool-call format the server did not recognize). The results are shown in the
+		// next observation.
+		c.pending = append(c.pending, results...)
+		return nil
 	}
 	if len(calls) != len(results) {
 		return fmt.Errorf("the last answer made %d tool calls and %d results were given: every call is answered", len(calls), len(results))

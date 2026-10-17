@@ -349,3 +349,46 @@ func TestObjectNormalizesTheArgumentsOfACall(t *testing.T) {
 		}
 	}
 }
+
+func TestOutcomesAnswerEveryCall(t *testing.T) {
+	set, err := actions.NewSet(actions.ProfileFull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	call := func(id, name, args string) ToolCall { return ToolCall{ID: id, Name: name, Args: json.RawMessage(args)} }
+	calls := []ToolCall{
+		call("1", "exec", `{"command":"ls"}`),
+		call("2", "key", `{}`),                              // invalid: keys is required
+		call("3", "exec", `{"command":"pwd"}`),              // valid, but after a mistake
+		call("4", "done", `{"success":true,"summary":"x"}`), // beyond the limit of 3
+		call("5", "done", `{"success":true,"summary":"x"}`),
+	}
+	res := Parse(set, Reply{ToolCalls: calls}, 3)
+	got := Outcomes(calls, res)
+	want := []Disposition{DispValid, DispInvalid, DispNotRun, DispDropped, DispDropped}
+	if len(got) != len(want) {
+		t.Fatalf("%d outcomes for %d calls", len(got), len(calls))
+	}
+	for i, o := range got {
+		if o.Disposition != want[i] || o.Call.ID != calls[i].ID {
+			t.Errorf("call %d: %+v, want %v", i+1, o.Disposition, want[i])
+		}
+	}
+	if got[0].Item == nil || got[0].Item.Action.Tool != "exec" || got[0].Failure != nil {
+		t.Errorf("a valid call carries its item: %+v", got[0])
+	}
+	if got[1].Failure == nil || got[1].Failure.Err == nil || got[1].Item != nil {
+		t.Errorf("an invalid call carries its failure: %+v", got[1])
+	}
+	if got[2].Item != nil || got[2].Failure != nil {
+		t.Errorf("a call that is not run carries neither: %+v", got[2])
+	}
+
+	all := Parse(set, Reply{ToolCalls: calls[:1]}, 3)
+	if o := Outcomes(calls[:1], all); len(o) != 1 || o[0].Disposition != DispValid {
+		t.Errorf("outcomes = %+v", o)
+	}
+	if Outcomes(nil, Parse(set, Reply{Text: `{"actions":[{"tool":"done","args":{"success":true,"summary":"x"}}]}`}, 3)) != nil {
+		t.Error("an answer without native calls has nothing to answer")
+	}
+}

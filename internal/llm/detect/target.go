@@ -124,6 +124,8 @@ type Options struct {
 	Now func() time.Time
 	// DetectTimeout is how long a local server has to answer (500 ms when 0).
 	DetectTimeout time.Duration
+	// HomeDir is the user's home directory, where LM Studio leaves the port of its server (os.UserHomeDir when nil).
+	HomeDir func() (string, error)
 }
 
 // Detector finds the backend, lists its models and probes what a model can do.
@@ -133,8 +135,12 @@ type Detector struct {
 
 // New makes a Detector.
 func New(opts Options) *Detector {
+	if opts.HomeDir == nil {
+		opts.HomeDir = os.UserHomeDir
+	}
 	if opts.Candidates == nil {
-		opts.Candidates = DefaultCandidates()
+		home, _ := opts.HomeDir()
+		opts.Candidates = candidatesFor(home)
 	}
 	if opts.NewClient == nil {
 		opts.NewClient = httpx.New
@@ -242,14 +248,20 @@ func (d *Detector) detectLocal(ctx context.Context) (Candidate, error) {
 			continue
 		}
 		client := d.quick(c.Backend)
-		if _, err := client.Get(ctx, u.String()+c.Path, nil, d.opts.DetectTimeout); err == nil {
+		_, err = client.Get(ctx, u.String()+c.Path, nil, d.opts.DetectTimeout)
+		var he *httpx.Error
+		switch {
+		case err == nil:
 			return c, nil
-		} else if ctx.Err() != nil {
+		case errors.As(err, &he) && he.Kind == httpx.KindAuth:
+			// It answered, and wants a key: it is there. The next call says so in words, and where the key goes.
+			return c, nil
+		case ctx.Err() != nil:
 			return Candidate{}, ctx.Err()
 		}
 		tried = append(tried, fmt.Sprintf("%s at %s", c.Backend, u.Host))
 	}
-	return Candidate{}, errors.New("no local model server answered (" + strings.Join(tried, ", ") + "): start Ollama or LM Studio, or name a backend with --llm and --base-url")
+	return Candidate{}, &NoServerError{Tried: tried}
 }
 
 // Backend makes the client of a target.

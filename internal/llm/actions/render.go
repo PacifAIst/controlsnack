@@ -116,6 +116,7 @@ func (s *Set) Envelope(maxActions int, strict bool) (json.RawMessage, error) {
 			if err != nil {
 				return nil, err
 			}
+			dropLongBounds(args)
 			branches = append(branches, map[string]any{
 				"type":                 "object",
 				"additionalProperties": false,
@@ -130,4 +131,30 @@ func (s *Set) Envelope(maxActions int, strict bool) (json.RawMessage, error) {
 		list["items"] = map[string]any{"oneOf": branches}
 	}
 	return json.Marshal(doc)
+}
+
+// grammarMaxLength is the longest bound on a string that stays in the strict envelope. A server that builds a grammar from
+// the schema (llama.cpp, and Ollama, which uses it) turns a bound into that many repetitions and refuses more than about
+// two thousand ("number of repetitions exceeds sane defaults"), so a command of up to 4000 characters, or an input of up
+// to 65536, would make the whole schema unusable. The bound is not lost: Set.Parse checks the length of what the model
+// wrote against the tool's own schema, which keeps it.
+const grammarMaxLength = 1000
+
+// dropLongBounds removes the length bounds above grammarMaxLength from the properties of a tool's argument schema.
+func dropLongBounds(schema map[string]any) {
+	props, _ := schema["properties"].(map[string]any)
+	for _, v := range props {
+		p, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		if n, isNum := p["maxLength"].(float64); isNum && n > grammarMaxLength {
+			delete(p, "maxLength")
+		}
+		if items, ok := p["items"].(map[string]any); ok {
+			if n, isNum := items["maxLength"].(float64); isNum && n > grammarMaxLength {
+				delete(items, "maxLength")
+			}
+		}
+	}
 }

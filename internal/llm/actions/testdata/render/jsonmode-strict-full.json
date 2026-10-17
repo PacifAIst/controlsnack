@@ -138,7 +138,6 @@
                   },
                   "text": {
                     "description": "The new contents of the field.",
-                    "maxLength": 4000,
                     "type": "string"
                   }
                 },
@@ -203,18 +202,15 @@
                 "properties": {
                   "command": {
                     "description": "The command line.",
-                    "maxLength": 4000,
                     "minLength": 1,
                     "type": "string"
                   },
                   "cwd": {
                     "description": "The directory to run in; the home directory by default.",
-                    "maxLength": 1024,
                     "type": "string"
                   },
                   "stdin": {
                     "description": "Text given to the command on its standard input.",
-                    "maxLength": 65536,
                     "type": "string"
                   },
                   "timeout_s": {
@@ -285,12 +281,10 @@
                   },
                   "text": {
                     "description": "The text to type, for type; it replaces what the field holds.",
-                    "maxLength": 4000,
                     "type": "string"
                   },
                   "url": {
                     "description": "The address, for open and navigate.",
-                    "maxLength": 2048,
                     "type": "string"
                   }
                 },
@@ -466,7 +460,6 @@
                 "properties": {
                   "text": {
                     "description": "The text to type.",
-                    "maxLength": 4000,
                     "minLength": 1,
                     "type": "string"
                   }
@@ -624,7 +617,6 @@
                   },
                   "summary": {
                     "description": "What was done, or why it could not be.",
-                    "maxLength": 2000,
                     "type": "string"
                   }
                 },

@@ -38,7 +38,7 @@ const (
 	SourceNative Source = "native"
 	// SourceJSON: the text holds a JSON answer, as it is, in a fenced block, or as the first object in some prose.
 	SourceJSON Source = "json"
-	// SourceNone: neither.
+	// SourceNone: none of these.
 	SourceNone Source = "none"
 )
 
@@ -185,6 +185,9 @@ func fromText(set *actions.Set, text string, max int) Result {
 		}
 		evaluate(set, items, &res)
 		return res
+	}
+	if r, ok := fromCalls(set, text, max); ok {
+		return r
 	}
 	res.Thought = textclean.Block(text, maxThoughtRunes)
 	res.Failures = []Failure{{Err: actions.NewError(actions.CodeInvalidArgs, "", noAction(text))}}

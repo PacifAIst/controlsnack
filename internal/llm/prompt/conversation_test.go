@@ -624,3 +624,29 @@ func TestAPastTurnLetsGoOfItsPicture(t *testing.T) {
 		t.Errorf("pictures: %v %v", c.turns[0].img, c.turns[1].img)
 	}
 }
+
+// A model of native mode can still give its actions in words (JSON, or calls written as functions when the server did not
+// recognize its tool-call format). There is no native call to answer then, and the results go in the next observation.
+func TestResultsOfAnAnswerWithoutNativeCallsAreShownInTheNextObservation(t *testing.T) {
+	c := newConv(t, backend.ModeNative, 0, 0)
+	c.Begin(obs(1), testImage)
+	if err := c.Assistant(`click_element(id='a3')`, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Results([]Result{{Tool: "click_element", OK: true, Detail: "clicked a3"}}, Limits{}); err != nil {
+		t.Fatal(err)
+	}
+	c.Begin(obs(2), testImage)
+	req, _, err := c.Request(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range req.Messages {
+		if m.Role == backend.RoleTool {
+			t.Fatalf("a tool message with no call to answer: %s", dump(req.Messages))
+		}
+	}
+	if last := req.Messages[len(req.Messages)-1].Text; !strings.Contains(last, "LAST RESULTS\n1. click_element ok clicked a3") {
+		t.Errorf("the observation lacks the result:\n%s", last)
+	}
+}

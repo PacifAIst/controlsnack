@@ -7,6 +7,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -197,5 +199,42 @@ func TestPickVision(t *testing.T) {
 				t.Fatalf("pickVision = %v %v", m.Name, ok)
 			}
 		})
+	}
+}
+
+// llamacppList is what a real llama.cpp server answered to GET /v1/models, with a model loaded without a projector.
+func llamacppList(t *testing.T) []byte {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "testdata", "llm", "openai", "llamacpp-models.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func listServer(t *testing.T, body []byte) string {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL
+}
+
+func TestLlamaCppSaysTheContextItWasStartedWithAndWhetherItSees(t *testing.T) {
+	d := newDetector()
+	got := modelsOf(t, d, "llamacpp", listServer(t, llamacppList(t)))
+	if len(got) != 1 || got[0].Name != "gemma-4-e4b" || got[0].ContextLength != 8192 || !got[0].VisionKnown || got[0].Vision || got[0].ToolsKnown {
+		t.Fatalf("models = %+v", got)
+	}
+	withProjector := []byte(strings.Replace(string(llamacppList(t)), `"capabilities":["completion"]`, `"capabilities":["completion","multimodal"]`, 1))
+	got = modelsOf(t, d, "llamacpp", listServer(t, withProjector))
+	if len(got) != 1 || !got[0].Vision || !got[0].VisionKnown {
+		t.Fatalf("with a projector: %+v", got)
+	}
+	// OpenAI's own list says nothing of either.
+	plain := []byte(`{"object":"list","data":[{"id":"gpt-x","object":"model"},{"id":"","object":"model"}]}`)
+	got = modelsOf(t, d, "llamacpp", listServer(t, plain))
+	if len(got) != 1 || got[0].ContextLength != 0 || got[0].VisionKnown {
+		t.Fatalf("plain: %+v", got)
 	}
 }

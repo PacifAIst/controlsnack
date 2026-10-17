@@ -376,3 +376,74 @@ func golden(t *testing.T, name string, raw []byte) {
 		t.Errorf("%s differs from its golden file (run `go test ./internal/llm/actions -update` if the change is meant)", name)
 	}
 }
+
+// maxLengths collects every maxLength in a schema document.
+func maxLengths(v any, out *[]float64) {
+	switch x := v.(type) {
+	case map[string]any:
+		for k, y := range x {
+			if n, ok := y.(float64); ok && k == "maxLength" {
+				*out = append(*out, n)
+			}
+			maxLengths(y, out)
+		}
+	case []any:
+		for _, y := range x {
+			maxLengths(y, out)
+		}
+	}
+}
+
+// A server that builds a grammar from the schema (llama.cpp, Ollama) refuses a bound of thousands of characters: a real
+// llama.cpp said "number of repetitions exceeds sane defaults" to the first strict envelope. The strict one carries no long
+// bounds; the checks of length stay with the tools' own schemas.
+func TestTheStrictEnvelopeHasNoBoundThatAGrammarCannotHold(t *testing.T) {
+	for _, profile := range []string{ProfileFull, ProfileCompact} {
+		set, err := NewSet(profile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		strict, err := set.Envelope(3, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var doc any
+		if err := json.Unmarshal(strict, &doc); err != nil {
+			t.Fatal(err)
+		}
+		var bounds []float64
+		maxLengths(doc, &bounds)
+		if len(bounds) == 0 {
+			t.Errorf("%s: the short bounds (the thought, the reason, small arguments) are kept", profile)
+		}
+		for _, n := range bounds {
+			if n > grammarMaxLength {
+				t.Errorf("%s: a bound of %v characters in the strict envelope", profile, n)
+			}
+		}
+		// The tools' own checks still refuse a command that is too long.
+		if profile == ProfileFull {
+			long := `{"command":"` + strings.Repeat("x", 4001) + `"}`
+			if _, err := set.Parse("exec", json.RawMessage(long)); err == nil {
+				t.Error("a command over 4000 characters is accepted")
+			}
+		}
+	}
+	// The plain envelope and the tools' definitions are as they were.
+	set, _ := NewSet(ProfileFull)
+	raw, err := set.Render(FormatOpenAI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc any
+	_ = json.Unmarshal(raw, &doc)
+	var bounds []float64
+	maxLengths(doc, &bounds)
+	long := false
+	for _, n := range bounds {
+		long = long || n > grammarMaxLength
+	}
+	if !long {
+		t.Error("the definitions given to a model as tools keep their bounds")
+	}
+}
