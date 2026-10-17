@@ -68,6 +68,18 @@ func TestLMStudioIsFoundAtThePortItsOwnStatusFileNames(t *testing.T) {
 	write(filepath.Join(".cache", "lm-studio", ".internal", "http-server-last-status.json"), `{"port":`+u.Port()+`}`)
 
 	d := New(Options{HomeDir: func() (string, error) { return home, nil }, Getenv: func(string) string { return "" }, DetectTimeout: 2e9})
+	// The detector's candidates come from the home directory. They also include the usual ports, where a real Ollama or LM
+	// Studio may be running on the machine of whoever runs the test, so the search is then limited to the one the file names.
+	var named []Candidate
+	for _, c := range d.opts.Candidates {
+		if c.BaseURL == srv.URL+"/v1" {
+			named = append(named, c)
+		}
+	}
+	if len(named) != 1 || len(d.opts.Candidates) != 3 {
+		t.Fatalf("candidates = %+v", d.opts.Candidates)
+	}
+	d.opts.Candidates = named
 	target, _, err := d.Resolve(context.Background(), cfgOf("auto", "", ""))
 	if err != nil {
 		t.Fatal(err)
