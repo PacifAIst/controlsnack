@@ -41,6 +41,9 @@ func settings(t *testing.T) config.Config {
 	if v := os.Getenv("CS_LIVE_NUM_CTX"); v != "" {
 		fmt.Sscan(v, &c.LLM.NumCtx)
 	}
+	if v := os.Getenv("CS_LIVE_IMAGE_MAX"); v != "" {
+		fmt.Sscan(v, &c.LLM.ImageMax)
+	}
 	if v := os.Getenv("CS_LIVE_MARKS"); v != "" {
 		c.LLM.Marks = v
 	}
@@ -551,7 +554,7 @@ func (w *buttons) Do(a actions.Action) prompt.Result {
 	switch args := a.Args.(type) {
 	case *actions.ClickElementArgs:
 		switch {
-		case w.ids[args.ID] != "":
+		case w.ids[args.ID] != "" && !w.noTree:
 			w.click(w.ids[args.ID], "click_element "+args.ID)
 			return prompt.Result{OK: true, Detail: "clicked " + args.ID}
 		case strings.HasPrefix(args.ID, "o"):
@@ -561,7 +564,7 @@ func (w *buttons) Do(a actions.Action) prompt.Result {
 				return prompt.Result{OK: true, Detail: "clicked " + args.ID}
 			}
 		}
-		return prompt.Result{Code: actions.CodeNotFound, Detail: "no element " + args.ID + " in the last observation"}
+		return prompt.Result{Code: actions.CodeNotFound, Detail: "no element " + args.ID + " in the last observation" + prompt.Hint(actions.CodeNotFound)}
 	case *actions.MouseArgs:
 		for name, r := range w.rects {
 			if args.Op != "move" && image.Pt(args.X, args.Y).In(r) {

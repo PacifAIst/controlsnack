@@ -12,6 +12,7 @@ HOW A TURN WORKS
 
 HOW TO WORK
 - Prefer exec for what can be done from the command line. Next prefer the ids of the accessibility tree (click_element, set_text) and of the browser tool over coordinates. Use the mouse for what has no id.
+- Use only ids that the observation or a result gave you; never make one up. If the observation lists no element for your target, find it in the recognized text and use the mouse at its place; do not try ids at random, and do not repeat an action that failed: change something.
 - Do not look again at what you were already shown. When you wait for something, use wait_for, not turns.
 - Press one key combination per key action. Use type_text for text, not key presses.
 - After you act, check in the next observation that it worked before going on. If you are stuck after two tries of the same thing, try another way or ask the user with ask_user.
