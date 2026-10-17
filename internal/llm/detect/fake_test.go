@@ -31,6 +31,8 @@ type fakeModel struct {
 	JSONPrompt bool
 	// RejectImages makes the server refuse a request that has a picture; NativeAsText makes the model write its tool call
 	// as text, as one does that the server does not pass tools to.
+	// Points is how the model says where something is: "" or "pixels", "relative" (0 to 1000), "neither" or "words" (no position at all).
+	Points       string
 	RejectImages bool
 	NativeAsText bool
 	// FailWhen, when set, gives the HTTP status of a request it wants to fail (0 for one it lets through).
@@ -330,6 +332,17 @@ func (m fakeModel) answer(s seen) (answer, int, string) {
 	case s.ImageKind != "":
 		if m.RejectImages {
 			return answer{}, 400, `{"error":"this model does not accept images"}`
+		}
+		if strings.Contains(s.Prompt, ProbePointQuestion) {
+			switch m.Points {
+			case "relative":
+				return answer{text: `{"x":718,"y":350}`}, 0, ""
+			case "neither":
+				return answer{text: `{"x":10,"y":390}`}, 0, ""
+			case "words":
+				return answer{text: "It is somewhere in the picture."}, 0, ""
+			}
+			return answer{text: `{"x":458,"y":142}`}, 0, ""
 		}
 		if m.Sees[s.ImageKind] {
 			return answer{text: `{"color":"red"}`}, 0, ""

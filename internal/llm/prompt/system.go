@@ -50,6 +50,11 @@ type Params struct {
 	NetDomains []string
 	// Vision is false in text-only mode.
 	Vision bool
+	// Relative says the model points on a scale of 0 to Width across and 0 to Height down, whatever the picture's size in
+	// pixels (the Qwen-VL family does): Width and Height are then the top of that scale, 1000 by 1000.
+	Relative bool
+	// NoTree says the session cannot read the accessibility tree: there are no ids to click, and the prompt says to point instead.
+	NoTree bool
 	// Marks says the images carry numbered boxes over the elements of the accessibility tree.
 	Marks bool
 	// Mode is how the model names its actions; it decides how the prompt asks for the answer.
@@ -93,10 +98,11 @@ func System(p Params) (Rendered, error) {
 	data := struct {
 		Params
 		W, H        int
+		MidX, MidY  int
 		NativeTools bool
 		NetDomains  string
 		ToolDocs    string
-	}{Params: p, W: p.Width, H: p.Height, NativeTools: p.Mode == backend.ModeNative}
+	}{Params: p, W: p.Width, H: p.Height, MidX: p.Width / 2, MidY: p.Height / 2, NativeTools: p.Mode == backend.ModeNative}
 	data.NetDomains = joinDomains(p.NetDomains)
 	if !data.NativeTools {
 		docs, err := ToolDocs(p.Set)

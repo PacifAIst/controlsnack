@@ -61,7 +61,7 @@ func NewObserver(c Caller, cfg ObserverConfig) (*Observer, error) {
 	o := &Observer{c: c, cfg: cfg}
 	var err error
 	if cfg.Setup.Vision {
-		o.pipe, err = NewPipeline(c, Config{Guest: cfg.Guest, Format: cfg.Setup.ImageFormat, MaxLongEdge: cfg.Setup.ImageMax, Marks: cfg.Setup.Marks})
+		o.pipe, err = NewPipeline(c, Config{Guest: cfg.Guest, Format: cfg.Setup.ImageFormat, MaxLongEdge: cfg.Setup.ImageMax, Marks: cfg.Setup.Marks, CoordSpace: cfg.Setup.CoordSpace(prompt.Size{})})
 	} else {
 		o.text, err = Identity(cfg.Guest)
 	}

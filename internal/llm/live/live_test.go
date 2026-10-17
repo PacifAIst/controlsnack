@@ -114,6 +114,10 @@ func newHarness(t *testing.T, guest prompt.Size, task string) *harness {
 	if err != nil {
 		t.Fatal(err)
 	}
+	noTree := os.Getenv("CS_LIVE_NOTREE") != "" // a desktop whose accessibility tree cannot be read
+	if noTree {
+		set = set.WithoutTree()
+	}
 	fencer, err := untrusted.New()
 	if err != nil {
 		t.Fatal(err)
@@ -122,7 +126,8 @@ func newHarness(t *testing.T, guest prompt.Size, task string) *harness {
 	if setup.Vision {
 		imgW, imgH = scaled(guest, cfg.LLM.ImageMax)
 	}
-	sys, err := prompt.System(prompt.Params{Nonce: fencer.Nonce(), Width: imgW, Height: imgH, MaxActions: 3, Vision: setup.Vision, Marks: setup.Marks, Mode: setup.Mode, Set: set})
+	space := setup.CoordSpace(prompt.Size{W: imgW, H: imgH})
+	sys, err := prompt.System(prompt.Params{Nonce: fencer.Nonce(), Width: space.W, Height: space.H, Relative: setup.Relative(), NoTree: noTree, MaxActions: 3, Vision: setup.Vision, Marks: setup.Marks, Mode: setup.Mode, Set: set})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -354,6 +359,10 @@ func (w *terminal) Observe(h *harness) (prompt.Observation, *backend.Image) {
 		img = h.encode(canvas)
 		obs.Image = &prompt.ImageNote{W: iw, H: ih}
 	}
+	if h.setup.Relative() { // the model works in a space of 1000 by 1000, not in the picture's pixels
+		obs.Screen = h.setup.CoordSpace(obs.Screen)
+		mapper, _ = vision.NewMapper(h.guest, obs.Screen)
+	}
 	cur := mapper.Point(500, 400)
 	obs.Cursor = &cur
 	w.mapper = mapper
@@ -522,6 +531,10 @@ func (w *buttons) Observe(h *harness) (prompt.Observation, *backend.Image) {
 			h.t.Fatal(err)
 		}
 		img = &backend.Image{MIME: h.setup.ImageFormat.MIME(), Data: data}
+	}
+	if h.setup.Relative() {
+		obs.Screen = h.setup.CoordSpace(obs.Screen)
+		mapper, _ = vision.NewMapper(h.guest, obs.Screen)
 	}
 	w.mapper = mapper
 	cur := mapper.Point(100, 100)

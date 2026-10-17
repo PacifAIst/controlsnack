@@ -16,6 +16,7 @@ import (
 	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/httpx"
+	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/fakellm"
 )
 
@@ -128,4 +129,15 @@ func do(t testing.TB, method, url, body string) *http.Response {
 		t.Fatal(err)
 	}
 	return resp
+}
+
+// wantCoords is how the probe should find a profile to point: nothing for a model that does not see.
+func wantCoords(p fakellm.Profile) string {
+	switch {
+	case !p.Vision:
+		return ""
+	case p.Relative:
+		return detect.CoordsRelative
+	}
+	return detect.CoordsPixels
 }

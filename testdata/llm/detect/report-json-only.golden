@@ -6,4 +6,5 @@
 
 Context window   4096 tokens
 Screenshots      webp
+Coordinates      pixels of the picture
 Actions          a JSON answer asked for in the prompt

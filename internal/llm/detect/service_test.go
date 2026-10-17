@@ -205,7 +205,7 @@ func TestReportsAreAsWritten(t *testing.T) {
 	at := time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC)
 	for name, c := range map[string]Capabilities{
 		"capable": {
-			Vision: true, WebP: true, NativeTools: true, Structured: true, JSONPrompt: true, ContextLength: 32768, ProbedAt: at,
+			Vision: true, WebP: true, NativeTools: true, Structured: true, JSONPrompt: true, ContextLength: 32768, Coords: CoordsRelative, ProbedAt: at,
 			Checks: []Check{
 				{Name: CheckVision, OK: true, Detail: `answered {"color":"red"}`, Latency: 2300 * time.Millisecond},
 				{Name: CheckWebP, OK: true, Detail: `answered {"color":"red"}`, Latency: 900 * time.Millisecond},
@@ -235,7 +235,7 @@ func TestReportsAreAsWritten(t *testing.T) {
 			},
 		},
 		"json-only": {
-			Vision: true, WebP: true, JSONPrompt: true, ContextLength: 4096, ProbedAt: at,
+			Vision: true, WebP: true, JSONPrompt: true, ContextLength: 4096, Coords: CoordsPixels, ProbedAt: at,
 			Checks: []Check{
 				{Name: CheckVision, OK: true, Detail: `answered {"color":"red"}`, Latency: 4 * time.Second},
 				{Name: CheckWebP, OK: true, Detail: `answered {"color":"red"}`, Latency: 4 * time.Second},

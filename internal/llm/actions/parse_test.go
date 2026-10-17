@@ -310,3 +310,46 @@ func TestErrorsRepeatTheModelsWordsAsOneCleanLine(t *testing.T) {
 		}
 	}
 }
+
+func TestASetWithoutTheTools(t *testing.T) {
+	full, _ := NewSet(ProfileFull)
+	compact, _ := NewSet(ProfileCompact)
+
+	less := full.Without(ToolExec, "not a tool")
+	if less.Has(ToolExec) || !full.Has(ToolExec) || len(less.Tools()) != len(full.Tools())-1 || less.Profile() != ProfileFull {
+		t.Errorf("Without: %v", less.Names())
+	}
+	if _, err := less.Parse(ToolExec, json.RawMessage(`{"command":"ls"}`)); err == nil || !strings.Contains(err.Error(), "no tool") {
+		t.Errorf("a tool that was taken out is as unknown to the model as one that does not exist: %v", err)
+	}
+
+	// With the recognized text to give ids, clicking stays; the compact profile has no such tool.
+	f := full.WithoutTree()
+	for _, gone := range []string{ToolReadTree, ToolSetText} {
+		if f.Has(gone) {
+			t.Errorf("full without a tree still has %s", gone)
+		}
+	}
+	if !f.Has(ToolClickElement) || !f.Has(ToolReadScreenText) {
+		t.Errorf("full without a tree keeps %v", f.Names())
+	}
+	c := compact.WithoutTree()
+	if c.Has(ToolReadTree) || c.Has(ToolClickElement) || !c.Has(ToolMouse) || !c.Has(ToolDone) {
+		t.Errorf("compact without a tree: %v", c.Names())
+	}
+	if _, err := c.Envelope(3, true); err != nil {
+		t.Errorf("the reduced set still makes its schemas: %v", err)
+	}
+	raw, err := c.Render(FormatOpenAI)
+	var defs []struct {
+		Function struct{ Name string } `json:"function"`
+	}
+	if err != nil || json.Unmarshal(raw, &defs) != nil || len(defs) != len(c.Names()) {
+		t.Fatalf("the reduced set is rendered with its own tools: %v", err)
+	}
+	for _, d := range defs {
+		if d.Function.Name == ToolClickElement || d.Function.Name == ToolReadTree {
+			t.Errorf("the definition of %s is still offered", d.Function.Name)
+		}
+	}
+}

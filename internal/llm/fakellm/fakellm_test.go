@@ -273,14 +273,15 @@ func TestAJSONModeScriptIsReadByTheParser(t *testing.T) {
 
 func TestTheRealProbeFindsWhatTheProfileSays(t *testing.T) {
 	for name, p := range map[string]fakellm.Profile{
-		"everything":      fakellm.AllCapabilities(),
-		"no webp":         {Vision: true, Native: true, Structured: true, JSONPrompt: true},
-		"no vision":       {Native: true, Structured: true, JSONPrompt: true},
-		"no tools":        {Vision: true, WebP: true, Structured: true, JSONPrompt: true},
-		"no schema":       {Vision: true, WebP: true, Native: true, JSONPrompt: true},
-		"json only":       {Vision: true, WebP: true, JSONPrompt: true},
-		"nothing":         {},
-		"vision, no json": {Vision: true, WebP: true, Native: true, Structured: true},
+		"everything":          fakellm.AllCapabilities(),
+		"no webp":             {Vision: true, Native: true, Structured: true, JSONPrompt: true},
+		"no vision":           {Native: true, Structured: true, JSONPrompt: true},
+		"no tools":            {Vision: true, WebP: true, Structured: true, JSONPrompt: true},
+		"no schema":           {Vision: true, WebP: true, Native: true, JSONPrompt: true},
+		"json only":           {Vision: true, WebP: true, JSONPrompt: true},
+		"nothing":             {},
+		"vision, no json":     {Vision: true, WebP: true, Native: true, Structured: true},
+		"points on the scale": {Vision: true, WebP: true, Native: true, Structured: true, JSONPrompt: true, Relative: true},
 	} {
 		for _, kind := range []string{"lmstudio", "llamacpp"} { // one whose list says what the model can do, one whose list does not
 			t.Run(name+" through "+kind, func(t *testing.T) {
@@ -294,8 +295,14 @@ func TestTheRealProbeFindsWhatTheProfileSays(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if caps.Vision != p.Vision || caps.WebP != (p.Vision && p.WebP) || caps.NativeTools != p.Native || caps.Structured != p.Structured || caps.JSONPrompt != p.JSONPrompt {
+				if caps.Vision != p.Vision || caps.WebP != (p.Vision && p.WebP) || caps.NativeTools != p.Native || caps.Structured != p.Structured || caps.JSONPrompt != p.JSONPrompt || caps.Coords != wantCoords(p) {
 					t.Errorf("profile %+v was found as %+v", p, caps)
+				}
+				// Pixels is also what a model is left at when its answer is on neither scale: that the check passed says it was found.
+				for _, c := range caps.Checks {
+					if c.Name == detect.CheckPointing && c.OK != p.Vision {
+						t.Errorf("the pointing check of %+v: %+v", p, c)
+					}
 				}
 				if s.Remaining() != 1 || len(s.Requests()) != 0 || s.Probes() == 0 || len(s.Errors()) != 0 {
 					t.Errorf("the probe is not part of the script: remaining %d, requests %d, probes %d, errors %q", s.Remaining(), len(s.Requests()), s.Probes(), s.Errors())

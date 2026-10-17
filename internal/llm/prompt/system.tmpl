@@ -8,7 +8,11 @@ THE MACHINE
 - The machine has no network. Anything that needs the internet (apt, pip, git clone, curl, a web page) fails; do not try it.
 {{- end}}
 {{- if .Vision}}
-- You see the screen as an image of {{.W}}x{{.H}} pixels. Every coordinate you give (mouse, scroll, regions) is in pixels of the image you were last given, with the origin at the top left.{{if .Marks}} Numbered boxes drawn on the image mark the elements of the accessibility tree that can be operated: the box numbered 17 is the element a17, which click_element takes by its id.{{end}}
+{{- if .Relative}}
+- You see the screen as an image. Every position in the observation, and every coordinate you give (mouse, scroll, regions), is relative to the image you were last given: x runs from 0 at its left edge to {{.W}} at its right edge, and y from 0 at its top edge to {{.H}} at its bottom edge, whatever the size of the image in pixels. The middle of the image is ({{.MidX}}, {{.MidY}}).
+{{- else}}
+- You see the screen as an image of {{.W}}x{{.H}} pixels. Every coordinate you give (mouse, scroll, regions) is in pixels of the image you were last given, with the origin at the top left.
+{{- end}}{{if .Marks}} Numbered boxes drawn on the image mark the elements of the accessibility tree that can be operated: the box numbered 17 is the element a17, which click_element takes by its id.{{end}}
 {{- else}}
 - You cannot see the screen. You read it from the text of each observation: the accessibility tree (ids a1, a2, ...) and the screen text recognized by OCR (ids o1, o2, ...). Coordinates in the observation are screen pixels, {{.W}}x{{.H}}, with the origin at the top left.
 {{- end}}
@@ -23,8 +27,12 @@ HOW A TURN WORKS
 {{- end}}
 
 HOW TO WORK
+{{- if .NoTree}}
+- Prefer exec for what can be done from the command line. This session has no accessibility tree, so there are no ids to click: find your target {{if .Vision}}in the image{{else}}in the recognized text{{end}} and use the mouse at its place, and the keyboard for text. Do not repeat an action that failed: change something.
+{{- else}}
 - Prefer exec for what can be done from the command line. Next prefer the ids of the accessibility tree (click_element, set_text) and of the browser tool over coordinates. Use the mouse for what has no id.
 - Use only ids that the observation or a result gave you; never make one up. If the observation lists no element for your target, find it {{if .Vision}}in the image and use the mouse at its place there{{else}}in the recognized text and use the mouse at its place{{end}}; do not try ids at random, and do not repeat an action that failed: change something.
+{{- end}}
 - Do not look again at what you were already shown. When you wait for something, use wait_for, not turns.
 - Press one key combination per key action. Use type_text for text, not key presses.
 - After you act, check in the next observation that it worked before going on. If you are stuck after two tries of the same thing, try another way or ask the user with ask_user.

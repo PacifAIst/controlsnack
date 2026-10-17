@@ -13,6 +13,7 @@ import (
 	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
+	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
 )
 
 // Setup is how a session works with a model, decided once from what the probe found and what the user configured: whether
@@ -30,8 +31,24 @@ type Setup struct {
 	ImageFormat imaging.Format
 	ImageMax    int
 	Marks       bool
+	// Coords is how the model says where something is on a picture: detect.CoordsPixels or detect.CoordsRelative (0 to 1000
+	// across each axis). The Qwen-VL family points on the relative scale however it is asked.
+	Coords string
 	// Notices are things to tell the person watching, in the terminal and the viewer, before the first turn.
 	Notices []string
+}
+
+// Relative reports whether the model points on the scale of 0 to 1000.
+func (s Setup) Relative() bool { return s.Vision && s.Coords == detect.CoordsRelative }
+
+// CoordSpace is the size of the space the model's coordinates live in: the picture's own, or, for a model that points on the
+// relative scale, a square of 1000 by 1000 whatever the picture's size. The observation tells the model positions in that
+// space and a click it answers with is read in it.
+func (s Setup) CoordSpace(picture prompt.Size) prompt.Size {
+	if s.Relative() {
+		return prompt.Size{W: detect.RelativeScale, H: detect.RelativeScale}
+	}
+	return picture
 }
 
 // Badge is the word the viewer shows in its header.
@@ -56,6 +73,10 @@ func Plan(caps detect.Capabilities, local bool, c config.LLM) (Setup, error) {
 	s := Setup{Vision: caps.Vision, Mode: mode, Profile: profile}
 	if caps.Vision {
 		s.ImageFormat, s.ImageMax = caps.ImageFormat(), c.ImageMax
+		s.Coords = caps.Coords
+		if s.Coords == "" {
+			s.Coords = detect.CoordsPixels
+		}
 		s.Marks = MarksEnabled(c.Marks, local, true)
 		return s, nil
 	}

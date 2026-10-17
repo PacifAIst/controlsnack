@@ -80,3 +80,26 @@ func (s *Set) Parse(tool string, args json.RawMessage) (Action, error) {
 	}
 	return Parse(tool, args)
 }
+
+// Without returns the set minus the named tools. A session that cannot read the accessibility tree does not offer the tools
+// that work on its ids: a small model told about click_element and given no id to use will invent ids until it is stopped.
+// The profile name stays, since it says which tools the session started from.
+func (s *Set) Without(names ...string) *Set {
+	out := &Set{profile: s.profile}
+	for _, t := range s.tools {
+		if !slices.Contains(names, t.Name) {
+			out.tools = append(out.tools, t)
+		}
+	}
+	return out
+}
+
+// WithoutTree returns the set minus the tools that depend on the accessibility tree: reading it, setting the text of an
+// element and, unless the recognized text of the screen can be read (it gives ids of its own), clicking an element.
+func (s *Set) WithoutTree() *Set {
+	drop := []string{ToolReadTree, ToolSetText}
+	if !s.Has(ToolReadScreenText) {
+		drop = append(drop, ToolClickElement)
+	}
+	return s.Without(drop...)
+}

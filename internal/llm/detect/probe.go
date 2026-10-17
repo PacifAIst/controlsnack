@@ -22,7 +22,7 @@ import (
 
 // ProbeVersion is the version of the checks. A cached result of another version is not used: the checks changed, so
 // what they found may not hold.
-const ProbeVersion = 1
+const ProbeVersion = 2
 
 // The checks of a probe, in the order they run.
 const (
@@ -56,6 +56,9 @@ type Capabilities struct {
 	Digest string
 	// Vision is whether the model sees a screenshot; WebP whether it takes one as WebP (else JPEG is sent).
 	Vision, WebP bool
+	// Coords is how the model says where something is on a picture: CoordsPixels or CoordsRelative (0 to 1000 across each axis).
+	// It is only found out for a model that sees.
+	Coords string
 	// NativeTools, Structured and JSONPrompt are the ways the model can name its actions.
 	NativeTools, Structured, JSONPrompt bool
 	Checks                              []Check
@@ -194,6 +197,9 @@ type prober struct {
 
 func (p *prober) run(ctx context.Context, info ModelInfo, proto Protocol) error {
 	if err := p.vision(ctx, info); err != nil {
+		return err
+	}
+	if err := p.pointing(ctx); err != nil {
 		return err
 	}
 	if err := p.native(ctx); err != nil {

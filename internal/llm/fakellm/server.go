@@ -26,6 +26,8 @@ type Profile struct {
 	Vision, WebP bool
 	// Native, Structured and JSONPrompt are the ways it can name its actions.
 	Native, Structured, JSONPrompt bool
+	// Relative makes it point on the scale of 0 to 1000 across each axis (as the Qwen-VL family does) and not in pixels.
+	Relative bool
 }
 
 // AllCapabilities is a model that does everything.

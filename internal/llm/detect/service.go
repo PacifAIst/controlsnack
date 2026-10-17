@@ -143,6 +143,7 @@ func writeReport(w io.Writer, c Capabilities) {
 	}
 	if c.Vision {
 		fmt.Fprintf(w, "Screenshots      %s\n", c.ImageFormat())
+		fmt.Fprintf(w, "Coordinates      %s\n", coordsWords(c.Coords))
 	} else {
 		fmt.Fprintln(w, "Screenshots      none: the model does not see images, so a session runs in text-only mode (screen text instead of pictures)")
 	}
@@ -164,4 +165,11 @@ func modeWords(mode string) string {
 		return "a JSON answer held to the schema by the server"
 	}
 	return "a JSON answer asked for in the prompt"
+}
+
+func coordsWords(coords string) string {
+	if coords == CoordsRelative {
+		return fmt.Sprintf("relative, 0 to %d across each axis (the model's own scale; positions are converted both ways)", RelativeScale)
+	}
+	return "pixels of the picture"
 }

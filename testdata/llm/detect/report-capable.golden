@@ -6,4 +6,5 @@
 
 Context window   32768 tokens
 Screenshots      webp
+Coordinates      relative, 0 to 1000 across each axis (the model's own scale; positions are converted both ways)
 Actions          native tool calls

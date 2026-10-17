@@ -36,6 +36,9 @@ type Config struct {
 	MaxLongEdge int
 	// Marks draws numbered boxes over the elements of the accessibility tree whose generation is given to Capture.
 	Marks bool
+	// CoordSpace is the size of the space the model's coordinates live in, when it is not the picture's own (a model that points
+	// on the scale of 0 to 1000 has a square of 1000 by 1000). The zero value means the picture.
+	CoordSpace prompt.Size
 }
 
 // Shot is a picture for the model with what goes with it.
@@ -147,7 +150,11 @@ func (p *Pipeline) accept(res protocol.ScreenshotRes, blob []byte, marks bool) (
 	if err != nil {
 		return Shot{}, err
 	}
-	mapper, err := NewMapper(p.cfg.Guest, prompt.Size{W: res.W, H: res.H})
+	space := prompt.Size{W: res.W, H: res.H}
+	if p.cfg.CoordSpace != (prompt.Size{}) {
+		space = p.cfg.CoordSpace
+	}
+	mapper, err := NewMapper(p.cfg.Guest, space)
 	if err != nil {
 		return Shot{}, err
 	}

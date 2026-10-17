@@ -61,11 +61,14 @@ func TestProbeOfACapableOllamaModel(t *testing.T) {
 	if mode, ok := caps.Mode(); !ok || mode != backend.ModeNative || caps.ImageFormat() != imaging.WebP || !caps.Usable() {
 		t.Fatalf("mode = %v %v format = %v", mode, ok, caps.ImageFormat())
 	}
+	if caps.Coords != CoordsPixels {
+		t.Fatalf("coords = %q", caps.Coords)
+	}
 	if caps.Model != "qwen2.5vl:7b" || caps.Digest != "sha256:aaaa" || caps.ContextLength != 32768 || caps.Version != ProbeVersion || caps.ProbedAt.IsZero() || caps.Cached {
 		t.Fatalf("caps = %+v", caps)
 	}
 	want := []seen{
-		{ImageKind: "png"}, {ImageKind: "webp"}, {Tools: true}, {Format: "schema"}, {Format: "json"},
+		{ImageKind: "png"}, {ImageKind: "webp"}, {ImageKind: "png"} /* where is the square */, {Tools: true}, {Format: "schema"}, {Format: "json"},
 	}
 	got := srv.seenChats()
 	if len(got) != len(want) {
@@ -76,7 +79,7 @@ func TestProbeOfACapableOllamaModel(t *testing.T) {
 			t.Errorf("question %d = %+v, want %+v", i+1, got[i], w)
 		}
 	}
-	for _, name := range []string{CheckVision, CheckWebP, CheckNativeTools, CheckStructured, CheckJSON} {
+	for _, name := range []string{CheckVision, CheckWebP, CheckPointing, CheckNativeTools, CheckStructured, CheckJSON} {
 		if ch := checkOf(t, caps, name); !ch.OK || ch.Skipped || ch.Detail == "" {
 			t.Errorf("%s = %+v", name, ch)
 		}

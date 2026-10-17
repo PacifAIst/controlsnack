@@ -20,6 +20,14 @@ func (s *Server) probe(r *Request) (Reply, bool) {
 	}
 	m := r.Messages[0]
 	switch {
+	case strings.Contains(m.Text, detect.ProbePointQuestion):
+		if !s.profile.Vision {
+			return Reply{Status: http.StatusBadRequest, Body: errorBody("this model does not accept images")}, true
+		}
+		if s.profile.Relative {
+			return Reply{Text: `{"x":718,"y":350}`}, true // the middle of the square on the scale of 0 to 1000
+		}
+		return Reply{Text: `{"x":460,"y":140}`}, true // and in pixels
 	case strings.Contains(m.Text, detect.ProbeVisionQuestion):
 		if !s.profile.Vision {
 			return Reply{Status: http.StatusBadRequest, Body: errorBody("this model does not accept images")}, true
