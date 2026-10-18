@@ -74,7 +74,8 @@ type fakeLook struct {
 	n      int
 	errs   map[int]error // the look (from 1) that fails
 	vision bool
-	onLook func() // runs at each look, before it answers
+	onLook func()       // runs at each look, before it answers
+	reused map[int]bool // the look (from 1) whose picture is the last one again
 }
 
 func (f *fakeLook) Look(ctx context.Context) (vision.Seen, error) {
@@ -92,7 +93,7 @@ func (f *fakeLook) Look(ctx context.Context) (vision.Seen, error) {
 	m, _ := vision.Identity(prompt.Size{W: 1280, H: 720})
 	seen := vision.Seen{Mapper: m, Cursor: prompt.Point{X: 5, Y: 6}}
 	if f.vision {
-		seen.Shot = &vision.Shot{Image: backend.Image{MIME: backend.MIMEPNG, Data: []byte(fmt.Sprintf("png-%d", n))}, Note: prompt.ImageNote{W: 1280, H: 720}, Mapper: m, Hash: "h0"}
+		seen.Shot = &vision.Shot{Image: backend.Image{MIME: backend.MIMEPNG, Data: []byte(fmt.Sprintf("png-%d", n))}, Note: prompt.ImageNote{W: 1280, H: 720}, Mapper: m, Hash: "h0", Reused: f.reused[n]}
 	}
 	return seen, nil
 }

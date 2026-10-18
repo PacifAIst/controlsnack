@@ -15,6 +15,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
 	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
 )
 
@@ -118,7 +119,7 @@ func (a *FileAdmin) Show(_ context.Context, w io.Writer, ref string, raw bool) e
 	for i, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
 		rec, err := decodeStrict([]byte(line))
 		if err != nil {
-			fmt.Fprintf(w, "line %d: not a valid record: %v\n", i+1, err)
+			fmt.Fprintf(w, "line %d: not a valid record: %s\n", i+1, plain(err.Error()))
 			continue
 		}
 		fmt.Fprintln(w, summarize(rec))
@@ -126,25 +127,33 @@ func (a *FileAdmin) Show(_ context.Context, w io.Writer, ref string, raw bool) e
 	return nil
 }
 
+// plain makes text from a log fit for a terminal: what a record holds can come from the model or the guest (or from a file that is
+// not a log of ours at all), and a control sequence in it would act on the terminal of the person who reads it.
+func plain(s string) string { return textclean.Line(s, 400) }
+
 func summarize(r Record) string {
-	parts := []string{fmt.Sprintf("%4d", r.Seq), r.TS, fmt.Sprintf("%-9s", r.Kind)}
+	parts := []string{fmt.Sprintf("%4d", r.Seq), plain(r.TS), fmt.Sprintf("%-9s", plain(r.Kind))}
 	if r.Event != "" {
-		parts = append(parts, r.Event)
+		parts = append(parts, plain(r.Event))
 	}
 	if r.Actor != "" {
-		parts = append(parts, "["+r.Actor+"]")
+		parts = append(parts, "["+plain(r.Actor)+"]")
 	}
 	if r.Tool != "" {
-		parts = append(parts, r.Tool)
+		parts = append(parts, plain(r.Tool))
 	}
 	if r.Verdict != "" {
-		parts = append(parts, "-> "+r.Verdict)
+		parts = append(parts, "-> "+plain(r.Verdict))
 	}
 	if len(r.Rules) > 0 {
-		parts = append(parts, "("+strings.Join(r.Rules, ",")+")")
+		rules := make([]string, len(r.Rules))
+		for i, id := range r.Rules {
+			rules[i] = plain(id)
+		}
+		parts = append(parts, "("+strings.Join(rules, ",")+")")
 	}
 	if r.Reason != "" {
-		parts = append(parts, `"`+capText(r.Reason, 80)+`"`)
+		parts = append(parts, `"`+capText(plain(r.Reason), 80)+`"`)
 	}
 	return strings.Join(parts, " ")
 }

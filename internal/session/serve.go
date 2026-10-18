@@ -86,14 +86,18 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 
 	// What the person is told goes to the viewer and to the terminal; without a viewer the terminal is all there is.
 	term := &terminalSink{out: r.out, all: headless}
-	var all Sink = term
+	sinks := teeSink{term}
 	if vs != nil {
-		all = teeSink{vs.hub, term}
+		sinks = teeSink{vs.hub, term}
 	}
+	if l.keeper != nil {
+		sinks = append(sinks, l.keeper)
+	}
+	var all Sink = sinks
 	guest := prompt.Size{W: l.rep.Agent.Display.W, H: l.rep.Agent.Display.H}
 	sess, err := Assemble(Parts{Cfg: cfg, Profile: prof, Model: l.model, Agent: mach.Agent(), Monitor: mach.Monitor(), Guest: guest, User: l.rep.Agent.User,
 		Capabilities: l.rep.Agent.Capabilities, SlowBy: l.rep.Accel.TimeoutFactor(), Dir: l.sessionDir, Machine: l.sm, Viewer: all, Audit: tally,
-		Killed: killer.Killed, Fatal: fatal, Rules: l.rules})
+		Killed: killer.Killed, Fatal: fatal, Rules: l.rules, Keep: l.keeper})
 	if err != nil {
 		return err
 	}

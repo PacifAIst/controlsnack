@@ -125,7 +125,9 @@ type Loop struct {
 	Repairs    int
 	// Answered is told how long each call to the model took.
 	Answered func(time.Duration)
-	Now      func() time.Time
+	// Kept is given the picture the model is shown on each turn that has a new one (for --keep).
+	Kept func(turn int, img backend.Image)
+	Now  func() time.Time
 
 	onResume []func()
 	chatSeq  int
@@ -291,6 +293,9 @@ func (l *Loop) turn(ctx context.Context, task string) (Outcome, bool) {
 		}
 	}
 	l.Conv.Begin(obs, img)
+	if l.Kept != nil && img != nil && !seen.Shot.Reused {
+		l.Kept(n, *img)
+	}
 
 	res, calls, out, over := l.answer(ctx, n)
 	if over {

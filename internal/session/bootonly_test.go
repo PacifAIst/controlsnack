@@ -325,15 +325,36 @@ func TestQEMUCrash(t *testing.T) {
 	}
 }
 
-func TestKeepLeavesTheSessionFiles(t *testing.T) {
+func TestKeepKeepsTheScreenInADirectoryOfItsOwn(t *testing.T) {
 	rg := newRig(t)
 	cfg := bootOnlyConfig()
 	cfg.Session.Keep = true
 	cfg.Safety.Timeout = config.Duration(40 * time.Millisecond)
 	_ = rg.run(context.Background(), cfg)
-	matches, _ := filepath.Glob(filepath.Join(rg.dirs.State, "run", "s_*", "ready.png"))
-	if len(matches) != 1 {
-		t.Errorf("--keep keeps the screendump: %v", matches)
+	kept, _ := filepath.Glob(filepath.Join(rg.dirs.State, "kept", "s_*"))
+	if len(kept) != 1 {
+		t.Fatalf("one kept directory: %v", kept)
+	}
+	for _, name := range []string{"ready.png", transcriptName, shotsName} {
+		if _, err := os.Stat(filepath.Join(kept[0], name)); err != nil {
+			t.Errorf("--keep keeps %s: %v", name, err)
+		}
+	}
+	if !strings.Contains(rg.out.String(), "Kept in "+kept[0]+": the transcript and 0 pictures.") {
+		t.Errorf("the person is not told where:\n%s", rg.out.String())
+	}
+}
+
+func TestWithoutKeepNothingIsKept(t *testing.T) {
+	rg := newRig(t)
+	cfg := bootOnlyConfig()
+	cfg.Safety.Timeout = config.Duration(40 * time.Millisecond)
+	_ = rg.run(context.Background(), cfg)
+	if kept, _ := filepath.Glob(filepath.Join(rg.dirs.State, "kept", "*")); len(kept) != 0 {
+		t.Errorf("kept: %v", kept)
+	}
+	if strings.Contains(rg.out.String(), "Kept in") {
+		t.Errorf("the output speaks of kept files:\n%s", rg.out.String())
 	}
 }
 
@@ -585,18 +606,14 @@ func TestLeftoversOfAKilledSessionAreSwept(t *testing.T) {
 	}
 }
 
-func TestKeepRemovesOnlyTheMarker(t *testing.T) {
+func TestKeepStillRemovesTheSessionsOwnFiles(t *testing.T) {
 	rg := newRig(t)
 	cfg := bootOnlyConfig()
 	cfg.Session.Keep = true
 	cfg.Safety.Timeout = config.Duration(40 * time.Millisecond)
 	_ = rg.run(context.Background(), cfg)
-	dirs, _ := filepath.Glob(filepath.Join(rg.dirs.State, "run", "s_*"))
-	if len(dirs) != 1 {
-		t.Fatalf("%v", dirs)
-	}
-	if _, err := os.Stat(filepath.Join(dirs[0], runningMarker)); !os.IsNotExist(err) {
-		t.Error("a finished session's directory no longer says it is running")
+	if dirs, _ := filepath.Glob(filepath.Join(rg.dirs.State, "run", "s_*")); len(dirs) != 0 {
+		t.Errorf("the session's own files (the disk, the sockets) go even with --keep: %v", dirs)
 	}
 }
 

@@ -707,3 +707,64 @@ func TestToRawAndProblemString(t *testing.T) {
 		t.Error(got)
 	}
 }
+
+func TestShowNeverPutsAControlSequenceOfARecordOnTheTerminal(t *testing.T) {
+	const esc = "\x1b"
+	dir := t.TempDir()
+	l, err := Open(dir, "s_hostile1", Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A model can name a tool that does not exist, and a rule's reason can hold words of the guest's.
+	if _, err := l.Append(Record{Kind: KindAction, Event: "decision", Actor: "model" + esc + "[31m", Tool: esc + "]52;c;ZXZpbA==\x07rm", Verdict: "denied" + esc + "[2J",
+		Rules: []string{"DENY-X" + esc + "[H"}, Reason: "the command " + esc + "]0;owned\x07 was refused"}); err != nil {
+		t.Fatal(err)
+	}
+	_ = l.Close()
+	a := NewAdmin(func() (string, error) { return dir, nil })
+	var out bytes.Buffer
+	if err := a.Show(context.Background(), &out, "s_hostile1", false); err != nil {
+		t.Fatal(err)
+	}
+	for _, r := range out.String() {
+		if r < ' ' && r != '\n' {
+			t.Fatalf("a control character %q reaches the terminal:\n%q", r, out.String())
+		}
+	}
+	for _, want := range []string{"model[31m", "52;c;ZXZpbA==rm", "denied[2J", "DENY-X[H", "0;owned was refused"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("the readable text is gone: %q is not in\n%s", want, out.String())
+		}
+	}
+	// What is stored is unchanged, and it is escaped as JSON.
+	out.Reset()
+	if err := a.Show(context.Background(), &out, "s_hostile1", true); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out.String(), esc) || !strings.Contains(out.String(), `\u001b`) {
+		t.Errorf("the raw log: %q", out.String())
+	}
+	// A file that is not a log of ours can say what it likes in its mistakes.
+	forged := filepath.Join(dir, "forged.jsonl")
+	if err := os.WriteFile(forged, []byte("{\"\u001b[2Jfield\":1}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	if err := a.Show(context.Background(), &out, forged, false); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out.String(), esc) || !strings.Contains(out.String(), "not a valid record") {
+		t.Errorf("a forged line: %q", out.String())
+	}
+	// The time, the kind and the event are as much a file's to say as the rest.
+	if err := os.WriteFile(forged, []byte(`{"seq":1,"ts":"\u001b[2Jtime","kind":"\u001b[Hkind","event":"\u001b[3Jevent"}`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	if err := a.Show(context.Background(), &out, forged, false); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out.String(), esc) || !strings.Contains(out.String(), "[2Jtime") || !strings.Contains(out.String(), "[Hkind") || !strings.Contains(out.String(), "[3Jevent") {
+		t.Errorf("a forged record: %q", out.String())
+	}
+}

@@ -118,7 +118,7 @@ Windows Home is supported, and so is Pro. ControlSnack uses the Windows Hypervis
 | `--policy` | | A rule file merged over the built-in rules |
 | `--actions-per-sec`, `--actions-per-response`, `--actions-per-task`, `--max-turns` | 2, 3, 60, 100 | Limits; a task asks you to check in when it reaches the budgets |
 | `--timeout` | 1h | Session time |
-| `--keep`, `--keep-vm[=NAME]`, `--vm NAME` | | Keep the session directory (screenshots and the transcript: not yet saved, see TODO); keep the VM disk; resume a kept VM |
+| `--keep`, `--keep-vm[=NAME]`, `--vm NAME` | | Keep the transcript and the pictures the model was shown (in `kept/<session id>` under the state directory); keep the VM disk; resume a kept VM |
 | `--unsafe` | | Relax limits and confirmations (flag only, never a config key); see below |
 
 **Configuration.** Settings come, in this order of priority, from flags, the environment (`CONTROLSNACK_<SECTION>_<KEY>`, for example `CONTROLSNACK_VM_MEMORY_MIB`), the config file and the defaults. `controlsnack config path` says where the file is and `controlsnack config show` prints what is in force. An API key is read from the environment variable you name with `--api-key-env` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `CONTROLSNACK_LLM_API_KEY`); it is never written to the audit log, the viewer or the config output.
@@ -174,7 +174,7 @@ Each guarantee holds even with `--unsafe`, and each one has a test.
 
 ## 7. Security caveats
 
-- **The exec policy is a guardrail, not a boundary.** It stops the mistakes and the obvious attacks (wiping the root, a fork bomb, `curl | sh`, privilege escalation, firewall changes, and so on, see the `DENY-*` and `CONFIRM-*` rules in `internal/safety/policy/default.yaml`), and a command that cannot be understood is refused. The boundary is the VM: assume the guest can be wrecked.
+- **The exec policy is a guardrail, not a boundary.** It stops the mistakes and the obvious attacks (wiping the root, a fork bomb, `curl | sh`, privilege escalation, firewall changes, and so on, see the `DENY-*` and `CONFIRM-*` rules in `internal/safety/policy/default.yaml`), and a shell command that cannot be understood is refused. Code in another language run by an interpreter (`python3 -c ...`, `perl -e ...`) is not analyzed, so it can do anything the guest account can. The boundary is the VM: assume the guest can be wrecked.
 - **Visual prompt injection.** A page or a picture can show the model text that tries to steer it. The fence applies to text; a model can still be misled by what it sees. Watch the viewer, and keep `--step` on for anything that matters.
 - **A remote model receives your screen.** Screenshots, the accessibility tree, recognized text and command output go to whatever endpoint you set. Use a local model for anything private.
 - **`--allow-net` lets the model cause real-world effects** (posting, buying, sending) even though the VM is isolated. Use `--allow-domain` to narrow it, and the confirmation rules for network actions stay on.
@@ -233,7 +233,7 @@ What leaves your machine, and when:
 - **With `--allow-net`:** the guest's HTTP and HTTPS requests to the domains you allow.
 - **Nothing else.** No telemetry, no crash reports, no update checks, no accounts.
 
-Local files: the audit log (the model's actions with their arguments, redacted for secrets), the images, kept VMs if you asked for them (`--keep-vm`), and, with `--keep`, the session's working directory (screenshots and the transcript are not yet saved there). Delete them whenever you like.
+Local files: the audit log (the model's actions with their arguments, redacted for secrets), the images, kept VMs if you asked for them (`--keep-vm`), and, with `--keep`, the transcript and the pictures the model was shown (`kept/<session id>` under the state directory: nothing else of the session is left behind). Delete them whenever you like.
 
 ## 12. Troubleshooting
 

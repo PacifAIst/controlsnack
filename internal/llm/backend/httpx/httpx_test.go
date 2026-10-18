@@ -392,3 +392,93 @@ func TestKindNames(t *testing.T) {
 		t.Errorf("%v", e)
 	}
 }
+
+func TestARedirectWithinTheSameAddressIsFollowed(t *testing.T) {
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		if r.URL.Path == "/v1" {
+			http.Redirect(w, r, "/v1/", http.StatusTemporaryRedirect)
+			return
+		}
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+	c, _ := recording(New("test"))
+	out, err := c.Post(context.Background(), srv.URL+"/v1", nil, []byte(`{}`))
+	if err != nil || string(out) != `{"ok":true}` || hits.Load() != 2 {
+		t.Fatalf("%q %v after %d requests", out, err, hits.Load())
+	}
+}
+
+func TestARedirectToAnotherAddressIsNotFollowedAndTheKeyStaysHome(t *testing.T) {
+	var elsewhere atomic.Int32
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		elsewhere.Add(1)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer other.Close()
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		http.Redirect(w, r, other.URL+"/steal", http.StatusTemporaryRedirect)
+	}))
+	defer srv.Close()
+	c, slept := recording(New("test"))
+	_, err := c.Post(context.Background(), srv.URL+"/v1/messages", map[string]string{"x-api-key": "secret-key"}, []byte(`{}`))
+	e := asHTTPError(t, err)
+	otherHost := strings.TrimPrefix(other.URL, "http://")
+	if e.Kind != KindBadRequest || e.Status != http.StatusTemporaryRedirect || !strings.Contains(e.Message, otherHost) || !strings.Contains(e.Message, "not followed") {
+		t.Errorf("error %+v", e)
+	}
+	if elsewhere.Load() != 0 {
+		t.Errorf("the other server was called %d times", elsewhere.Load())
+	}
+	if calls.Load() != 1 || len(*slept) != 0 {
+		t.Errorf("a redirect is not retried: %d calls, waits %v", calls.Load(), *slept)
+	}
+	if strings.Contains(e.Message, "secret-key") {
+		t.Errorf("the message has the key: %q", e.Message)
+	}
+}
+
+func TestARedirectToPlainHTTPOnTheSameHostIsNotFollowed(t *testing.T) {
+	// A TLS server that sends the call to http:// on the same host:port is another scheme, so another address.
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://"+r.Host+"/downgraded", http.StatusFound)
+	}))
+	defer srv.Close()
+	c, _ := recording(New("test"))
+	c.HTTP = srv.Client()
+	c.HTTP.CheckRedirect = sameOrigin
+	_, err := c.Post(context.Background(), srv.URL+"/v1", map[string]string{"Authorization": "Bearer k"}, []byte(`{}`))
+	e := asHTTPError(t, err)
+	if e.Kind != KindBadRequest || !strings.Contains(e.Message, "redirected the call to http://") {
+		t.Errorf("error %+v", e)
+	}
+}
+
+func TestRedirectsWithinOneAddressStopAfterThree(t *testing.T) {
+	var hits atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		http.Redirect(w, r, "/again", http.StatusTemporaryRedirect)
+	}))
+	defer srv.Close()
+	c, _ := recording(New("test"))
+	_, err := c.Post(context.Background(), srv.URL+"/v1", nil, []byte(`{}`))
+	e := asHTTPError(t, err)
+	if e.Kind != KindBadRequest || hits.Load() != 4 {
+		t.Errorf("error %+v after %d requests", e, hits.Load())
+	}
+}
+
+func TestAnAnswerOfTheRedirectClassWithoutAPlaceToGoIsReportedToo(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusMultipleChoices) }))
+	defer srv.Close()
+	c, _ := recording(New("test"))
+	_, err := c.Get(context.Background(), srv.URL, nil, 0)
+	if e := asHTTPError(t, err); e.Kind != KindBadRequest || e.Status != http.StatusMultipleChoices || !strings.Contains(e.Message, "somewhere else") {
+		t.Errorf("error %+v", e)
+	}
+}

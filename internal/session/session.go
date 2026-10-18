@@ -50,6 +50,8 @@ type live struct {
 	teardown   func(context.Context) error
 	// keptVM is the name of the VM that stays when the session is over, if there is one.
 	keptVM string
+	// keeper saves the transcript and the pictures when the person asked for --keep.
+	keeper *Keeper
 }
 
 // session runs one session end to end (PLAN.md section 11): it takes the lock and opens the audit log, finds the model, boots the
@@ -240,12 +242,24 @@ func (r *runner) session(parent context.Context, cfg config.Config) (err error) 
 	if err := os.WriteFile(marker, nil, 0o600); err != nil {
 		return err
 	}
-	removeSession := func() {
-		if cfg.Session.Keep {
-			_ = os.Remove(marker)
-		} else {
-			_ = os.RemoveAll(sessionDir)
+	// What --keep keeps is the person's conversation and the pictures the model saw, in a directory of their own; everything else of
+	// the session (the disk, the sockets, the browser profile) goes at its end, as it always does.
+	var keeper *Keeper
+	if cfg.Session.Keep {
+		if keeper, err = NewKeeper(filepath.Join(dirs.State, "kept", id)); err != nil {
+			return err
 		}
+	}
+	removeSession := func() {
+		if keeper != nil {
+			// A session that only booted has the one picture of the screen when it was ready.
+			_ = os.Rename(filepath.Join(sessionDir, "ready.png"), filepath.Join(keeper.Dir(), "ready.png"))
+			if kerr := keeper.Close(); kerr != nil {
+				fmt.Fprintf(r.out, "Not everything that --keep was to keep could be saved: %v\n", kerr)
+			}
+			fmt.Fprintf(r.out, "Kept in %s: the transcript and %d pictures.\n", keeper.Dir(), keeper.Shots())
+		}
+		_ = os.RemoveAll(sessionDir)
 	}
 	defer removeSession()
 	po := vm.PrepareOptions{Install: inst, Base: im.Path, Name: vmName(id), Dir: sessionDir,
@@ -324,7 +338,7 @@ func (r *runner) session(parent context.Context, cfg config.Config) (err error) 
 	}
 
 	l := &live{cfg: cfg, id: id, token: token, dirs: dirs, ctx: ctx, killer: killer, log: log, rec: rec, end: end, sessionDir: sessionDir, mach: mach, rep: rep,
-		model: model, rules: rules, sm: sm, started: time.Now(), teardown: teardown}
+		model: model, rules: rules, sm: sm, started: time.Now(), teardown: teardown, keeper: keeper}
 	if kept != nil {
 		l.keptVM = kept.Name
 	}

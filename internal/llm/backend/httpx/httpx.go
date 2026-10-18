@@ -134,8 +134,22 @@ type Client struct {
 
 // New returns a client with the defaults of the plan.
 func New(name string) *Client {
-	return &Client{Name: name, HTTP: &http.Client{}, First: DefaultFirstTimeout, Timeout: DefaultTimeout, Backoff: DefaultBackoff,
+	return &Client{Name: name, HTTP: &http.Client{CheckRedirect: sameOrigin}, First: DefaultFirstTimeout, Timeout: DefaultTimeout, Backoff: DefaultBackoff,
 		MaxRetryAfter: DefaultMaxRetryAfter, MaxBody: DefaultMaxBody, Sleep: sleepContext}
+}
+
+// maxRedirects is how many redirects within one origin a call follows.
+const maxRedirects = 3
+
+// sameOrigin lets a call follow redirects only within the address it was made to (same scheme and host). A model server
+// answers where it is asked; a redirect elsewhere would take the key with it: Go drops the Authorization header when the host
+// changes but not x-api-key, and it sends both on to plain http on the same host.
+func sameOrigin(req *http.Request, via []*http.Request) error {
+	first := via[0]
+	if len(via) > maxRedirects || req.URL.Scheme != first.URL.Scheme || req.URL.Host != first.URL.Host {
+		return http.ErrUseLastResponse
+	}
+	return nil
 }
 
 func sleepContext(ctx context.Context, d time.Duration) error {
@@ -239,10 +253,23 @@ func (c *Client) attempt(ctx context.Context, method, rawURL string, headers map
 	if int64(len(data)) > limit {
 		return nil, &Error{Kind: KindProtocol, Backend: c.Name, Status: resp.StatusCode, Message: fmt.Sprintf("the answer is larger than %d bytes", limit)}
 	}
+	if resp.StatusCode/100 == 3 {
+		return nil, c.redirectError(resp)
+	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return nil, c.statusError(resp, data)
 	}
 	return data, nil
+}
+
+// redirectError is the answer to a redirect that sameOrigin did not follow: it says where the server wanted to send the call.
+func (c *Client) redirectError(resp *http.Response) *Error {
+	where := "somewhere else"
+	if loc, err := resp.Location(); err == nil && loc.Host != "" {
+		where = loc.Scheme + "://" + loc.Host
+	}
+	return &Error{Kind: KindBadRequest, Backend: c.Name, Status: resp.StatusCode,
+		Message: c.clean(fmt.Sprintf("the server redirected the call to %s, which is not followed (it would carry the key along); if that is the right address, use it as the base URL", where))}
 }
 
 // transportError says what a failure before or during the answer means. The context of the caller ending is not an error

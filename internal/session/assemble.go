@@ -59,6 +59,8 @@ type Parts struct {
 	Rules []byte
 	// Fencer fences the guest's words in what the model reads (a fresh one when nil).
 	Fencer *untrusted.Fencer
+	// Keep saves the pictures the model is shown (--keep); nil keeps nothing.
+	Keep *Keeper
 }
 
 // Session is everything a session is made of, joined.
@@ -238,6 +240,9 @@ func Assemble(p Parts) (*Session, error) {
 	}
 	s.Loop = &Loop{Machine: p.Machine, Limits: s.Limits, Look: observer, Conv: s.Conv, Model: p.Model.Backend, Set: set, Act: s.Dispatcher, View: exec.SetView,
 		Viewer: p.Viewer, Audit: p.Audit, Person: s.Console, Guard: s.Guards, Killed: p.Killed, Redactor: s.Redactor, Network: network, MaxActions: maxActions}
+	if p.Keep != nil {
+		s.Loop.Kept = p.Keep.Shot
+	}
 	s.Watchdog = &Watchdog{Machine: p.Machine, Limits: s.Limits}
 	return s, nil
 }

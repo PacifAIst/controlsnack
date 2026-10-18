@@ -1153,3 +1153,37 @@ existing entries are never rewritten. Add an entry *before* implementing any cho
 - Verified: 8 tests of the parser, the merge, the rendering and the comparison; about 25 mutations of `thirdparty.go` (the survivors were a read that did not need to be cached, which was removed, and four weak assertions, now tests); a negative control (a line added to the notice fails the check, and writing it again passes).
 - Not done: the CI workflow runs the gate on three systems, so the notice is also checked where the module cache is laid out differently; that has not been seen to run (no CI here).
 - Supersedes / superseded by: —
+
+## D-105 — The security review: what was checked, what was found, what is left (P8-T03)
+- Status: Accepted (2026-10-18) · Type: Interpretation (fills in PLAN §12 P8-T03 and §13.4)
+- Context: P8-T03 asks for a review against the invariants of §6.1 and the checklist of §13.4, with the findings fixed and recorded. Done by reading the code that enforces each item and by trying to break the ones that could be broken (the exec policy was probed with 60 evasions: quoting, wrappers, `$(...)`, `eval`, `busybox`, `find -delete`, `dd`, forks bombs, pipes to shells).
+- Checklist, with the evidence for each:
+  | Item | Result |
+  |---|---|
+  | Loopback-only listeners | holds: one helper opens them and the gate rejects any other listener or wildcard address; the control endpoint and the viewer bind `127.0.0.1` |
+  | Host, Origin, cookie, CSRF | holds: exact `Host`, cookie plus CSRF value plus `Origin` for the socket and the kill button (`internal/viewer` tests) |
+  | Single-use token and tripwire | holds: a second use of the login link ends the session |
+  | CSP and text-only rendering | holds: `default-src 'none'`, no inline script or style, `frame-ancestors 'none'`; the gate rejects `innerHTML` and its relatives; every guest-originated string in an observation is fenced (window title, tree, recognized text, results) |
+  | Argv invariants, no NIC | holds: forbidden-flag test over every builder; `-nic none`; the e2e scenarios show a guest with no way out |
+  | Egress tables | holds: non-public addresses refused whatever the lists say, every address a name resolves to judged |
+  | Image decode limits | holds: header read first, at most 4096 by 4096; the QMP screendump is read the same way |
+  | Frame and blob caps | holds: 1 MiB header, 8 MiB blob (agent protocol), 64 MiB agent, 4 MiB viewer frame, a read limit on the page's messages, 64 MiB on a model's answer |
+  | Secrets never logged | holds for a key the session knows (redacted by value in the log, the viewer and the terminal; masked in `config show`); see the residual below |
+  | File modes | holds: directories 0700 and files 0600 everywhere a session writes (read in every `MkdirAll`/`OpenFile`/`WriteFile` of the program); a config file that holds a key and is readable by others is warned about |
+  | Symlink-safe cleanup | holds: removal is `RemoveAll` (does not follow links) of a directory the session made; the sweep of leftovers runs only after the lock is held |
+  | PID verification before kill | holds: the fallback kill refuses a process that is not the recorded one |
+  | Dead-man switch | holds, end to end on a real VM (D-102) |
+  | Windows endpoint exposure documented | done in the README (sections 3 and 7) |
+- Findings, all fixed, each with tests and mutation checks:
+  1. **The model client followed redirects to any address.** Go drops `Authorization` when a redirect changes the host, but not `x-api-key` (Anthropic's header), and sends both to plain http on the same host. A server that answers with a redirect would get the key. Now a call follows redirects only within its own scheme and host (three at most); any other is not followed and is reported with where it pointed and what to do (`httpx.sameOrigin`).
+  2. **`--keep` kept the wrong things.** It only stopped the session directory from being deleted, so the VM disk, the sockets and the browser profile stayed for ever, with no command to clean them, and nothing that D-18 and the flag's help promise (the screenshots and the chat transcript) was saved. Now `--keep` writes `kept/<session id>` under the state directory: `transcript.jsonl` (the conversation, each action and how it went, the notices) and `shots/turn-NNNN.<ext>` (the picture shown on each turn that had a new one), owner-only, and the session directory is always removed. A failure to save is told to the person at the end and never stops the task (`internal/session/keep.go`).
+  3. **`audit show` could write a control sequence to the terminal.** The readable form printed the tool, actor, verdict, rules and reason of each record as they were; a tool name chosen by a model, or words of the guest in a reason, could carry an escape sequence (title, clipboard, cursor) that acts when the person reads the log. All of it, and the error for a line that is not a record, now goes through `textclean`; `--raw` stays as stored, which is JSON-escaped.
+  4. **The README said a command that cannot be understood is refused**, true of shell and not of code in another language run by an interpreter (`python3 -c`), which is not analyzed (a design limit, tested as such). The README says so.
+- Residual risks, accepted and written down:
+  - The login link is on the command line of the browser it opens, where another process of the same user can read it. The link works once, so a race to use it first ends the session at the second use (the tripwire).
+  - The Debian checksum list is read over HTTPS from `cloud.debian.org`, which publishes no signature for it (`upstream.go`). A compromised mirror chain would need the TLS session as well.
+  - On Windows the QEMU endpoints are TCP ports on the loopback; QEMU takes the first client, and the controller dials at once. A hostile process of the same user could win the race (the boot then fails) or listen first; that adversary is out of scope (README, section 5).
+  - A remote model's error text that echoes part of a key is not caught by the redactor, which knows the whole key.
+  - Code in other languages and anything the policy allows can do what the guest account can do. The VM is the boundary.
+- Verified: about 18 tests added or rewritten (redirects 5; the keeper, the loop hook and the run-level ones 11; audit show 1), about 50 mutations of the new code (survivors: an error message of `encoding/json` that is already quoted, which the cleaning backs up; permission bits, killed on Linux where the test runs); race detector clean on real Linux.
+- Supersedes / superseded by: —
