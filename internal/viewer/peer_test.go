@@ -216,7 +216,7 @@ func TestNewHubWantsEverythingItNeeds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h.opts.Rate != 10 || h.opts.Burst != 10 || h.opts.Queue != 256 || h.opts.History != 200 || h.opts.WriteTimeout != 10*time.Second || h.opts.PingEvery != 20*time.Second {
+	if h.opts.Rate != 10 || h.opts.Burst != 10 || h.opts.Queue != 256 || h.opts.History != 200 || h.opts.WriteTimeout != 10*time.Second || h.opts.PingEvery != 5*time.Second || h.opts.PingTimeout != 5*time.Second {
 		t.Errorf("defaults: %+v", h.opts)
 	}
 	if h.Connected() {

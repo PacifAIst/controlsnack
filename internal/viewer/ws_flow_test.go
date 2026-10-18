@@ -274,7 +274,7 @@ func TestAPageThatDoesNotReadCannotBlockTheSession(t *testing.T) {
 }
 
 func TestAPageThatStopsAnsweringPingsIsLetGo(t *testing.T) {
-	h := startHub(t, func(o *viewer.HubOptions) { o.PingEvery, o.WriteTimeout = 50*time.Millisecond, 200*time.Millisecond })
+	h := startHub(t, func(o *viewer.HubOptions) { o.PingEvery, o.PingTimeout = 50*time.Millisecond, 200*time.Millisecond })
 	c := h.dial(t, h.login())
 	_ = c // a client that does not read does not answer pings
 	<-h.connect

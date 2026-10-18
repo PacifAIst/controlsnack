@@ -47,9 +47,9 @@ type HubOptions struct {
 	History int
 	// WriteTimeout bounds each write to the page (default 10 s).
 	WriteTimeout time.Duration
-	// PingEvery is the time between pings that find a page that has vanished (default 20 s; the pong must come within
-	// WriteTimeout).
-	PingEvery time.Duration
+	// PingEvery is the time between pings that find a page that has vanished (default 5 s), and PingTimeout how long the pong
+	// may take (default 5 s): a window that closes is noticed at once, one that vanishes without closing in about ten seconds.
+	PingEvery, PingTimeout time.Duration
 	// Now is the clock (default time.Now).
 	Now func() time.Time
 }
@@ -117,7 +117,10 @@ func NewHub(o HubOptions) (*Hub, error) {
 		o.WriteTimeout = 10 * time.Second
 	}
 	if o.PingEvery <= 0 {
-		o.PingEvery = 20 * time.Second
+		o.PingEvery = 5 * time.Second
+	}
+	if o.PingTimeout <= 0 {
+		o.PingTimeout = 5 * time.Second
 	}
 	if o.Now == nil {
 		o.Now = time.Now

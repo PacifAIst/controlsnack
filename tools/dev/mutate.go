@@ -49,13 +49,30 @@ func replaceOnce(content, old, repl string) (string, error) {
 }
 
 var (
-	failedTest  = regexp.MustCompile(`(?m)^--- FAIL: (\S+)`)
-	buildFailed = regexp.MustCompile(`(?m)\[build failed\]|^# .*\n.*: (?:undefined|syntax error|cannot use|declared and not used|imported and not used)`)
+	failedTest = regexp.MustCompile(`(?m)^--- FAIL: (\S+)`)
+	// notRun matches what go test says when the code did not build or could not be set up (a syntax error in a test file is a
+	// "setup failed", not a "build failed"): no test ran, so nothing was caught.
+	notRun = regexp.MustCompile(`\[(?:build|setup) failed\]`)
+	// panicked matches a test binary that crashed or timed out: the tests did not pass.
+	panicked = regexp.MustCompile(`(?m)^panic: `)
 )
 
+// ErrBaseline is returned when the tests already fail without the change: whatever a mutation then "proves" is nothing.
+var ErrBaseline = errors.New("the tests already fail without the change")
+
+// goTest runs only the tests that can see the change.
+func goTest(runRe string, pkgs []string, timeout time.Duration) (string, error) {
+	args := append([]string{"test", "-count=1", "-failfast", "-timeout", timeout.String(), "-run", runRe}, pkgs...)
+	cmd := exec.CommandContext(devCtx, "go", args...)
+	cmd.Env = append(os.Environ(), "CS_FAST_FAIL=1") // the tests of the page wait only a few seconds for what is not going to happen
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
 // tryMutation applies the change to the file, runs the tests that can see it (only those: go test -run), and puts the file
-// back, whatever happens.
-func tryMutation(file, old, repl, runRe string, pkgs []string, timeout time.Duration) (res mutation, detail string, err error) {
+// back, whatever happens. With baseline set the same tests are run first, without the change, and a failure there is an error:
+// a package that does not build or a test that already fails would make every change look caught.
+func tryMutation(file, old, repl, runRe string, pkgs []string, timeout time.Duration, baseline bool) (res mutation, detail string, err error) {
 	orig, err := os.ReadFile(file) //nolint:gosec // our own working tree
 	if err != nil {
 		return 0, "", err
@@ -63,6 +80,11 @@ func tryMutation(file, old, repl, runRe string, pkgs []string, timeout time.Dura
 	changed, err := replaceOnce(string(orig), old, repl)
 	if err != nil {
 		return 0, "", err
+	}
+	if baseline {
+		if out, berr := goTest(runRe, pkgs, timeout); berr != nil {
+			return 0, "", fmt.Errorf("%w (%s)", ErrBaseline, firstLines(out, 4))
+		}
 	}
 	info, err := os.Stat(file)
 	if err != nil {
@@ -83,21 +105,21 @@ func tryMutation(file, old, repl, runRe string, pkgs []string, timeout time.Dura
 	if err := os.WriteFile(file, []byte(changed), info.Mode().Perm()); err != nil {
 		return 0, "", err
 	}
-	args := append([]string{"test", "-count=1", "-failfast", "-timeout", timeout.String(), "-run", runRe}, pkgs...)
-	cmd := exec.CommandContext(devCtx, "go", args...)
-	cmd.Env = append(os.Environ(), "CS_FAST_FAIL=1") // the tests of the page wait only a few seconds for what is not going to happen
-	out, runErr := cmd.CombinedOutput()
-	text := string(out)
+	text, runErr := goTest(runRe, pkgs, timeout)
 	switch {
 	case runErr == nil:
 		return mutSurvived, "", nil
-	case buildFailed.MatchString(text):
+	case notRun.MatchString(text):
 		return mutInvalid, firstLines(text, 4), nil
 	}
 	if m := failedTest.FindStringSubmatch(text); m != nil {
 		return mutKilled, m[1], nil
 	}
-	return mutKilled, firstLines(text, 2), nil // a panic or a timeout: the tests did not pass
+	if panicked.MatchString(text) {
+		return mutKilled, firstLines(text, 2), nil // a crash or a timeout: the tests did not pass
+	}
+	// A failure that is neither a failed test nor a crash is not something a test caught: do not count it.
+	return mutInvalid, "an unrecognized failure: " + firstLines(text, 4), nil
 }
 
 func firstLines(s string, n int) string {
@@ -116,6 +138,7 @@ func cmdMutate(args []string) error {
 	pkgs := fl.String("pkgs", "", "packages to test (default: the package of the file)")
 	esc := fl.Bool("esc", false, `read \n and \t in -old and -new as a line break and a tab`)
 	timeout := fl.Duration("timeout", 90*time.Second, "limit for the tests")
+	baseline := fl.Bool("baseline", true, "run the tests once without the change first, and stop if they fail (turn off only for a batch on tests known to pass)")
 	if err := fl.Parse(args); err != nil {
 		return err
 	}
@@ -134,7 +157,7 @@ func cmdMutate(args []string) error {
 	if label == "" {
 		label = *file
 	}
-	res, detail, err := tryMutation(*file, *old, *repl, *runRe, list, *timeout)
+	res, detail, err := tryMutation(*file, *old, *repl, *runRe, list, *timeout, *baseline)
 	if err != nil {
 		fmt.Printf("ERROR     %s: %v\n", label, err)
 		return err

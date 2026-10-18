@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -70,7 +71,7 @@ func TestAMutationIsKilledSurvivesOrIsInvalidAndTheFileIsAlwaysPutBack(t *testin
 		"a change that does not compile":  {"return a + b", "return a + ", mutInvalid, ""},
 		"a change with an undefined name": {"return a + b", "return a + nothing", mutInvalid, ""},
 	} {
-		res, detail, err := tryMutation("a.go", tc.old, tc.repl, "TestAdd", []string{"."}, time.Minute)
+		res, detail, err := tryMutation("a.go", tc.old, tc.repl, "TestAdd", []string{"."}, time.Minute, true)
 		if err != nil || res != tc.want || !strings.Contains(detail, tc.detail) {
 			t.Errorf("%s: result %d, detail %q, error %v; want %d with %q", name, res, detail, err, tc.want, tc.detail)
 		}
@@ -80,14 +81,14 @@ func TestAMutationIsKilledSurvivesOrIsInvalidAndTheFileIsAlwaysPutBack(t *testin
 		}
 	}
 	// A change that cannot be made leaves the file alone and says why.
-	if _, _, err := tryMutation("a.go", "no such text", "x", "TestAdd", []string{"."}, time.Minute); err == nil {
+	if _, _, err := tryMutation("a.go", "no such text", "x", "TestAdd", []string{"."}, time.Minute, true); err == nil {
 		t.Error("a change to nothing was accepted")
 	}
 	if now, _ := os.ReadFile(filepath.Join(dir, "a.go")); string(now) != string(orig) {
 		t.Error("the file changed")
 	}
 	// A test that is not there is not a pass: with nothing selected, the run says so and the change counts as unseen.
-	if res, _, err := tryMutation("a.go", "return a + b", "return a - b", "TestNoSuchTest", []string{"."}, time.Minute); err != nil || res != mutSurvived {
+	if res, _, err := tryMutation("a.go", "return a + b", "return a - b", "TestNoSuchTest", []string{"."}, time.Minute, true); err != nil || res != mutSurvived {
 		t.Errorf("no test selected: %d, %v", res, err)
 	}
 }
@@ -109,5 +110,39 @@ func TestTheMutateCommandSaysWhatHappened(t *testing.T) {
 	// -esc reads \n and \t, for text over several lines.
 	if err := cmdMutate([]string{"-esc", "-run", "TestAdd", "-file", "a.go", "-old", "// Add adds.\\nfunc Add(a, b int) int { return a + b }", "-new", "func Add(a, b int) int { return 0 }"}); err != nil {
 		t.Errorf("a killed mutation over two lines: %v", err)
+	}
+}
+
+func TestAMutationOfBrokenTestsIsRefusedNotCountedAsCaught(t *testing.T) {
+	dir := module(t)
+	// A test file with a syntax error: go test says "setup failed", and no test ran. Every change would look caught.
+	if err := os.WriteFile(filepath.Join(dir, "a_test.go"), []byte("package tiny\n\nfunc TestAdd(t *testing.T) {\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	orig, _ := os.ReadFile(filepath.Join(dir, "a.go"))
+	_, _, err := tryMutation("a.go", "return a + b", "return a - b", "TestAdd", []string{"."}, time.Minute, true)
+	if !errors.Is(err, ErrBaseline) {
+		t.Fatalf("with a baseline: %v", err)
+	}
+	if now, _ := os.ReadFile(filepath.Join(dir, "a.go")); string(now) != string(orig) {
+		t.Error("the file was changed although the baseline failed")
+	}
+	// Without the baseline the same situation is still not a kill.
+	res, detail, err := tryMutation("a.go", "return a + b", "return a - b", "TestAdd", []string{"."}, time.Minute, false)
+	if err != nil || res != mutInvalid {
+		t.Errorf("without a baseline: result %d (%s), error %v; want invalid", res, detail, err)
+	}
+}
+
+func TestATestThatAlreadyFailsIsNotAMutationCheck(t *testing.T) {
+	dir := module(t)
+	if err := os.WriteFile(filepath.Join(dir, "a_test.go"), []byte("package tiny\n\nimport \"testing\"\n\nfunc TestAdd(t *testing.T) {\n\tt.Fatal(\"already broken\")\n}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := tryMutation("a.go", "return a + b", "return a - b", "TestAdd", []string{"."}, time.Minute, true); !errors.Is(err, ErrBaseline) || !strings.Contains(err.Error(), "already broken") {
+		t.Errorf("%v", err)
+	}
+	if err := cmdMutate([]string{"-run", "TestAdd", "-file", "a.go", "-old", "return a + b", "-new", "return a - b"}); !errors.Is(err, ErrBaseline) {
+		t.Errorf("the command: %v", err)
 	}
 }

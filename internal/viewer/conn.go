@@ -180,7 +180,7 @@ func (p *peer) pingLoop() {
 		case <-p.ctx.Done():
 			return
 		case <-t.C:
-			ctx, cancel := context.WithTimeout(context.Background(), p.hub.opts.WriteTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), p.hub.opts.PingTimeout)
 			err := p.ws.Ping(ctx)
 			cancel()
 			if err != nil {
