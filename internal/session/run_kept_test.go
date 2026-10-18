@@ -16,6 +16,8 @@ import (
 	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
 	"github.com/PacifAIst/controlsnack-local/internal/platform"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack-local/internal/vm"
+	"github.com/PacifAIst/controlsnack-local/internal/vm/agentclient"
 	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
 	"github.com/PacifAIst/controlsnack-local/internal/vm/overlay"
 )
@@ -191,6 +193,9 @@ func TestAKillStillKeepsTheVm(t *testing.T) {
 	if vms, _, _ := f.library().List(); len(vms) != 1 {
 		t.Errorf("kept VMs %+v", vms)
 	}
+	if n := f.mach.shutdowns.Load(); n != 0 {
+		t.Errorf("a kill does not wait for the guest: the power button was pressed %d times", n)
+	}
 }
 
 // startsIn reads the start records of every session log in the directories.
@@ -214,4 +219,99 @@ func startsIn(t *testing.T, dirs platform.Dirs) []audit.Record {
 		}
 	}
 	return out
+}
+
+func TestTheGuestOfAKeptVmIsAskedToPowerOffBeforeQEMUIsEnded(t *testing.T) {
+	old := keptShutdown
+	keptShutdown = 3 * time.Second
+	defer func() { keptShutdown = old }()
+	f := newFullRig(t)
+	f.model.replies = []reply{calls(tc("c1", "done", `{"success":true,"summary":"ok"}`))}
+	cfg := headlessConfig("Make a file")
+	cfg.Session.KeepVM = "workbench"
+	if err := f.run(context.Background(), cfg); err != nil {
+		t.Fatalf("%v\n%s", err, f.out.String())
+	}
+	if n := f.mach.shutdowns.Load(); n != 1 {
+		t.Fatalf("the power button was pressed %d times", n)
+	}
+	if f.mach.shutdownAfterClose.Load() || !f.mach.closed.Load() {
+		t.Errorf("the guest is asked first and QEMU ended after (asked after close: %v, closed: %v)", f.mach.shutdownAfterClose.Load(), f.mach.closed.Load())
+	}
+	if given := time.Duration(f.mach.shutdownGiven.Load()); given < 2*time.Second || given > 3*time.Second {
+		t.Errorf("the guest was given %s", given)
+	}
+	if out := f.out.String(); strings.Contains(out, "did not power off") || !strings.Contains(out, "The guest of the kept VM workbench powered off in ") {
+		t.Errorf("a guest that powered off is not a warning, and the person hears that it did:\n%s", out)
+	}
+}
+
+func TestAVmThatIsNotKeptIsNotAskedToPowerOff(t *testing.T) {
+	f := newFullRig(t)
+	f.model.replies = []reply{calls(tc("c1", "done", `{"success":true,"summary":"ok"}`))}
+	if err := f.run(context.Background(), headlessConfig("Anything")); err != nil {
+		t.Fatal(err)
+	}
+	if n := f.mach.shutdowns.Load(); n != 0 || !f.mach.closed.Load() {
+		t.Errorf("%d presses of the power button; closed %v", n, f.mach.closed.Load())
+	}
+}
+
+func TestAGuestThatDoesNotPowerOffIsStoppedAndThePersonIsTold(t *testing.T) {
+	f := newFullRig(t)
+	f.mach.shutdownErr = context.DeadlineExceeded
+	f.model.replies = []reply{calls(tc("c1", "done", `{"success":true,"summary":"ok"}`))}
+	cfg := headlessConfig("Make a file")
+	cfg.Session.KeepVM = "workbench"
+	if err := f.run(context.Background(), cfg); err != nil {
+		t.Fatalf("a guest that does not power off is not a failure of the task: %v", err)
+	}
+	if !f.mach.closed.Load() {
+		t.Error("QEMU was not ended")
+	}
+	if out := f.out.String(); !strings.Contains(out, "WARNING: the guest of the kept VM workbench did not power off (context deadline exceeded)") || !strings.Contains(out, "power cut") || strings.Contains(out, "powered off in") {
+		t.Errorf("the person is told it failed, and not also that it worked:\n%s", out)
+	}
+	if vms, _, _ := f.library().List(); len(vms) != 1 {
+		t.Errorf("the VM is kept all the same: %+v", vms)
+	}
+}
+
+func TestAKeptGuestHasTwentySecondsToPowerOffAndWhatItSaysIsCleaned(t *testing.T) {
+	if keptShutdown != 20*time.Second {
+		t.Errorf("the guest of a kept VM is given %s", keptShutdown)
+	}
+	f := newFullRig(t)
+	f.mach.shutdownErr = errors.New("odd\x1b[2J news")
+	f.model.replies = []reply{calls(tc("c1", "done", `{"success":true,"summary":"ok"}`))}
+	cfg := headlessConfig("Make a file")
+	cfg.Session.KeepVM = "workbench"
+	if err := f.run(context.Background(), cfg); err != nil {
+		t.Fatal(err)
+	}
+	if out := f.out.String(); strings.Contains(out, "\x1b") || !strings.Contains(out, "odd[2J news") {
+		t.Errorf("the output:\n%q", out)
+	}
+}
+
+func TestTheAgentGoingDownWithTheGuestAtTheEndIsNotNews(t *testing.T) {
+	f := newFullRig(t)
+	var stateFn func(agentclient.State, error)
+	boot := f.r.deps.boot
+	f.r.deps.boot = func(ctx context.Context, o vm.BootOptions) (machine, error) {
+		stateFn = o.OnAgentState
+		return boot(ctx, o)
+	}
+	// As the guest powers off, the agent's connection ends.
+	f.mach.onShutdown = func() { stateFn(agentclient.StateDown, errors.New("EOF")) }
+	f.model.replies = []reply{calls(tc("c1", "done", `{"success":true,"summary":"ok"}`))}
+	cfg := headlessConfig("Make a file")
+	cfg.Session.KeepVM = "workbench"
+	if err := f.run(context.Background(), cfg); err != nil {
+		t.Fatal(err)
+	}
+	out := f.out.String()
+	if !strings.Contains(out, "powered off in") || strings.Contains(out, "agent: connection lost") || strings.Contains(out, "not answering") {
+		t.Errorf("the output:\n%s", out)
+	}
 }

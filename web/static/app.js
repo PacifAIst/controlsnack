@@ -99,6 +99,7 @@ function onMessage(m) {
       app.skewMs = Date.parse(m.now) - Date.now();
       clearPanels(); // what the host replays after this fills them again
       header.setHello(m);
+      $("step").checked = m.step === true; // the box shows what the host is doing, whichever page last changed it
       screen.setGuest(m.resolution.w, m.resolution.h);
       break;
     case "state":

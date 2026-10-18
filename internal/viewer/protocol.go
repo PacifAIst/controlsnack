@@ -84,6 +84,7 @@ type Hello struct {
 	Net        bool       `json:"net"`
 	Unsafe     bool       `json:"unsafe"`
 	RemoteLLM  bool       `json:"remote_llm"`
+	Step       bool       `json:"step"` // step mode is on: every action waits for the person
 	Accel      Accel      `json:"accel"`
 	Limits     Limits     `json:"limits"`
 	Resolution Resolution `json:"resolution"`

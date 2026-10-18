@@ -26,8 +26,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Install golangci-lint
@@ -54,7 +54,7 @@ jobs:
           go run ./cmd/controlsnack doctor --json | tee doctor-${{ runner.os }}.json
       - name: Keep the doctor report
         if: runner.os != 'Linux' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: doctor-${{ runner.os }}
           path: doctor-${{ runner.os }}.json
@@ -65,12 +65,20 @@ jobs:
     runs-on: ubuntu-latest
     needs: check
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Cross-build all release targets
         run: go run ./tools/dev cross -o dist/cross
+      # The release archives are what a person downloads: build them, check their checksums and run the Linux one.
+      - name: Release archives and smoke test
+        run: |
+          go run ./tools/dev release -o dist/release
+          (cd dist/release && sha256sum -c SHA256SUMS)
+          tar -xzf dist/release/controlsnack_*_linux_amd64.tar.gz -C dist/release
+          dist/release/controlsnack_*_linux_amd64/controlsnack --version
+          dist/release/controlsnack_*_linux_amd64/controlsnack version
       - name: Fuzz smoke (30 s per target)
         run: go run ./tools/dev fuzz -time 30s
       - name: Guest agent integration tests
@@ -85,8 +93,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.e2e
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Check for KVM
@@ -97,7 +105,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils
       - name: Cache the base image
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/controlsnack/images
           key: base-image-${{ hashFiles('guest/**') }}

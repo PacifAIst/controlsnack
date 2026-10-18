@@ -49,6 +49,7 @@ type Process interface {
 type QMP interface {
 	QueryStatus(ctx context.Context) (qmp.Status, error)
 	Quit(ctx context.Context) error
+	SystemPowerdown(ctx context.Context) error
 	Screendump(ctx context.Context, path, format string) error
 	InputSendEvent(ctx context.Context, events []qmp.InputEvent) error
 	WaitPortOpen(ctx context.Context, id string) error

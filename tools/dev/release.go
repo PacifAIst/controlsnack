@@ -18,7 +18,7 @@ import (
 )
 
 // releaseExtras are copied next to the binary when they exist.
-var releaseExtras = []string{"LICENSE", "README.md", "THIRD_PARTY_LICENSES.md"}
+var releaseExtras = []string{"LICENSE", "README.md", "TESTING.md", "THIRD_PARTY_LICENSES.md"}
 
 // cmdRelease builds the five host binaries (CGO_ENABLED=0, -trimpath, version stamped, agents embedded) and
 // packs them into archives with a SHA256SUMS file. Windows gets a .zip, everything else a .tar.gz.

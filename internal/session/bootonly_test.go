@@ -65,8 +65,15 @@ type fakeMachine struct {
 	agent   AgentLink
 	monitor Monitor
 	closed  atomic.Bool
-	netConn net.Conn
-	redial  func(context.Context) (net.Conn, error)
+	// shutdowns counts the presses of the power button; shutdownErr is what the guest answers (nil: it powers off).
+	shutdowns   atomic.Int32
+	shutdownErr error
+	// what the power button was pressed with: whether QEMU had been ended already, and how long the guest was given
+	shutdownAfterClose atomic.Bool
+	onShutdown         func() // what the guest does as it goes down (the agent's connection ends)
+	shutdownGiven      atomic.Int64
+	netConn            net.Conn
+	redial             func(context.Context) (net.Conn, error)
 }
 
 func (m *fakeMachine) Proc() vm.Process { return m.proc }
@@ -92,6 +99,21 @@ func (m *fakeMachine) Screendump(_ context.Context, path string) error {
 func (m *fakeMachine) StopAgent()       { m.agentStoped.Store(true) }
 func (m *fakeMachine) Agent() AgentLink { return m.agent }
 func (m *fakeMachine) Monitor() Monitor { return m.monitor }
+func (m *fakeMachine) Shutdown(ctx context.Context) error {
+	m.shutdowns.Add(1)
+	if m.onShutdown != nil {
+		m.onShutdown()
+	}
+	m.shutdownAfterClose.Store(m.closed.Load())
+	if dl, ok := ctx.Deadline(); ok {
+		m.shutdownGiven.Store(int64(time.Until(dl)))
+	}
+	if m.shutdownErr != nil {
+		return m.shutdownErr
+	}
+	m.proc.exit(0)
+	return nil
+}
 func (m *fakeMachine) Close(context.Context) error {
 	m.closed.Store(true)
 	m.closedAt.Store(time.Now().UnixNano())

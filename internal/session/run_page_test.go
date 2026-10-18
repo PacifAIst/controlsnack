@@ -214,3 +214,33 @@ func TestASessionNobodyUsesEndsByItself(t *testing.T) {
 		t.Error("the VM was not stopped in order")
 	}
 }
+
+func TestAPageIsToldWhetherStepModeIsOnWhenItConnects(t *testing.T) {
+	f := newFullRig(t)
+	cfg := config.Defaults()
+	cfg.Safety.Step = true
+	pg, done, cancel := f.startWithPage(t, cfg)
+	defer cancel()
+	if h := pg.waitFor("the hello", ofType("hello")); h["step"] != true {
+		t.Errorf("--step is on and the page is told %v", h["step"])
+	}
+	// Someone switches it off; a window that connects again is told so, and not what it started with.
+	pg.send(map[string]any{"type": "control", "op": "step_off"})
+	pg.waitFor("the notice that step mode is off", func(m map[string]any) bool {
+		return m["type"] == "notice" && strings.Contains(m["text"].(string), "Step mode is off")
+	})
+	again := pg.again()
+	if h := again.waitFor("the hello of the second connection", ofType("hello")); h["step"] != false {
+		t.Errorf("step mode was switched off and the page is told %v", h["step"])
+	}
+	again.send(map[string]any{"type": "control", "op": "step_on"})
+	again.waitFor("the notice that step mode is on", func(m map[string]any) bool {
+		return m["type"] == "notice" && strings.Contains(m["text"].(string), "Step mode is on")
+	})
+	third := again.again()
+	if h := third.waitFor("the hello of the third connection", ofType("hello")); h["step"] != true {
+		t.Errorf("step mode was switched on again and the page is told %v", h["step"])
+	}
+	cancel()
+	_ = f.waitEnd(t, done)
+}

@@ -62,7 +62,7 @@
     "hello": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "proto", "session", "backend", "model", "mode", "net", "unsafe", "remote_llm", "accel", "limits", "resolution", "csrf", "started_at", "now"],
+      "required": ["type", "proto", "session", "backend", "model", "mode", "net", "unsafe", "remote_llm", "step", "accel", "limits", "resolution", "csrf", "started_at", "now"],
       "properties": {
         "type": { "const": "hello" },
         "proto": { "type": "integer", "minimum": 1 },
@@ -73,6 +73,7 @@
         "net": { "type": "boolean" },
         "unsafe": { "type": "boolean" },
         "remote_llm": { "type": "boolean" },
+        "step": { "type": "boolean" },
         "accel": {
           "type": "object",
           "additionalProperties": false,

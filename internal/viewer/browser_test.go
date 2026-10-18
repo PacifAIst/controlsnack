@@ -675,3 +675,22 @@ func pollLimit() time.Duration {
 	}
 	return 15 * time.Second
 }
+
+func TestTheStepBoxShowsWhatTheHostIsDoing(t *testing.T) {
+	for _, on := range []bool{true, false} {
+		p := newPage(t)
+		h := startHubWith(t, func(o *viewer.Options) { o.Static = web.Static() }, func(o *viewer.HubOptions) {
+			o.Hello = func() viewer.Hello { h := sampleHello; h.Step = on; return h }
+		})
+		p.open(h.rig)
+		p.wait("the hello message", `document.getElementById('session').textContent === 's_1234abcd'`)
+		want := "false"
+		if on {
+			want = "true"
+		}
+		if got := p.str(`String(document.getElementById('step').checked)`); got != want {
+			t.Errorf("the host's step mode is %v and the box is %s", on, got)
+		}
+		p.clean()
+	}
+}

@@ -42,6 +42,8 @@ type machine interface {
 	// Agent is the connection to the agent, and Monitor QEMU's own channel.
 	Agent() AgentLink
 	Monitor() Monitor
+	// Shutdown presses the guest's power button and waits for it to power off; an error says it did not in time.
+	Shutdown(ctx context.Context) error
 	// Close ends the VM in order: the guest is asked to stop, and QEMU is ended if it does not.
 	Close(ctx context.Context) error
 	// NetPort is the connection to the network port and the way to make another; nil without --allow-net.

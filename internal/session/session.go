@@ -286,7 +286,8 @@ func (r *runner) session(parent context.Context, cfg config.Config) (err error) 
 		Events: events, Agent: agent, HostVersion: buildinfo.Get().Version, SessionID: id, Features: protocol.Features{Net: cfg.Net.Allow},
 		Progress: func(format string, args ...any) { fmt.Fprintf(r.out, "  "+format+"\n", args...) },
 		OnAgentState: func(s agentclient.State, aerr error) {
-			if killer.Killed() { // a connection that ends because the VM is being killed is not news
+			// A connection that ends because the VM is being killed, or because the guest is being powered off at the end, is not news.
+			if killer.Killed() || sm.State() == Ending || sm.State() == Ended {
 				return
 			}
 			r.agentState(s, aerr)

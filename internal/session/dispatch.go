@@ -421,6 +421,9 @@ func (d *Dispatcher) SetStep(on bool) {
 	}
 }
 
+// Stepping says whether step mode is on now: the profile's, or the person's word on it.
+func (d *Dispatcher) Stepping() bool { return d.profile().Step }
+
 // profile is the profile in force: the session's, with the person's word on step mode if they have given it.
 func (d *Dispatcher) profile() safety.Profile {
 	p := d.Profile

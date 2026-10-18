@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -36,6 +37,33 @@ type guestStub struct {
 	refuse  bool
 	pushes  atomic.Int32
 	serving atomic.Int32
+	// exec answers the agent's exec requests with a command's exit status, or an error; nil leaves the agent without exec.
+	exec func(command string) (int, error)
+
+	mu       sync.Mutex
+	commands []string
+}
+
+// asked is the commands the agent was asked to run.
+func (g *guestStub) asked() []string {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return append([]string(nil), g.commands...)
+}
+
+func (g *guestStub) handleExec(_ context.Context, f protocol.Frame) (any, []byte, error) {
+	var req protocol.ExecReq
+	if err := json.Unmarshal(f.Header.Body, &req); err != nil {
+		return nil, nil, err
+	}
+	g.mu.Lock()
+	g.commands = append(g.commands, req.Command)
+	g.mu.Unlock()
+	code, err := g.exec(req.Command)
+	if err != nil {
+		return nil, nil, err
+	}
+	return protocol.ExecRes{ExitCode: code}, nil, nil
 }
 
 func (g *guestStub) serve(conn net.Conn) {
@@ -60,11 +88,15 @@ func (g *guestStub) serve(conn net.Conn) {
 	_, _ = io.WriteString(conn, protocol.Reply{OK: true, SHA256: push.SHA256}.Line())
 	g.serving.Add(1)
 	defer g.serving.Add(-1)
+	cfg := server.Config{Version: "v0.1.0", SelfSHA256: push.SHA256, Arch: push.Arch, User: "cs", Nonce: push.Nonce,
+		Display: protocol.Display{W: 1280, H: 800}}
+	if g.exec != nil {
+		cfg.Handlers = map[string]server.Handler{protocol.TypeExec: g.handleExec}
+	}
 	_ = server.Serve(context.Background(), struct {
 		io.Reader
 		io.Writer
-	}{br, conn}, conn, server.Config{Version: "v0.1.0", SelfSHA256: push.SHA256, Arch: push.Arch, User: "cs", Nonce: push.Nonce,
-		Display: protocol.Display{W: 1280, H: 800}})
+	}{br, conn}, conn, cfg)
 }
 
 // bootRig is a launch rig whose agent port is served by a guestStub.
@@ -294,4 +326,169 @@ func TestBootNeedsItsParts(t *testing.T) {
 	if _, err := Boot(context.Background(), o); err == nil {
 		t.Error("accepted options without Prepare")
 	}
+}
+
+func TestShutdownAsksTheGuestThroughTheAgentAndWaitsForItToGo(t *testing.T) {
+	quickGrace(t)
+	b := newBootRig(t, map[string]scenario{"kvm": {}})
+	b.stub.exec = func(command string) (int, error) {
+		if strings.Contains(command, "poweroff") {
+			b.procs[0].exit(0) // the guest goes
+		}
+		return 0, nil
+	}
+	m, err := Boot(context.Background(), b.options("kvm"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := m.Shutdown(ctx); err != nil {
+		t.Fatalf("Shutdown: %v", err)
+	}
+	// The disk is written, then the system goes down without waiting for the job (the answer must come before the connection goes).
+	if cmds := b.stub.asked(); len(cmds) != 1 || !strings.HasPrefix(cmds[0], "sync;") || !strings.Contains(cmds[0], "systemctl --no-block poweroff") {
+		t.Errorf("the agent was asked %q", cmds)
+	}
+	if b.qmps[0].pressed.Load() {
+		t.Error("the button is for a guest that cannot be asked")
+	}
+	select {
+	case <-b.procs[0].Exited():
+	default:
+		t.Error("Shutdown returned before QEMU had exited")
+	}
+	if b.procs[0].killed.Load() {
+		t.Error("a guest that powers off by itself is not killed")
+	}
+	if m.Client.Up() {
+		t.Error("the agent connection is still there after the guest was asked to go")
+	}
+	if err := m.Close(context.Background()); err != nil {
+		t.Errorf("Close after Shutdown: %v", err)
+	}
+}
+
+func TestShutdownPressesThePowerButtonWhenTheAgentCannotBeAsked(t *testing.T) {
+	quickGrace(t)
+	for name, c := range map[string]struct {
+		exec      func(string) (int, error)
+		stopAgent bool
+	}{
+		"the agent is gone":         {nil, true},
+		"the agent has no exec":     {nil, false},
+		"the command fails":         {func(string) (int, error) { return 3, nil }, false},
+		"the command cannot be run": {func(string) (int, error) { return 0, errors.New("cannot start a shell") }, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			b := newBootRig(t, map[string]scenario{"kvm": {}})
+			b.stub.exec = c.exec
+			m, err := Boot(context.Background(), b.options("kvm"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if c.stopAgent {
+				m.StopAgent()
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := m.Shutdown(ctx); err != nil {
+				t.Fatalf("Shutdown: %v", err)
+			}
+			if !b.qmps[0].pressed.Load() {
+				t.Error("the power button was not pressed")
+			}
+			if err := m.Close(context.Background()); err != nil {
+				t.Errorf("Close: %v", err)
+			}
+		})
+	}
+}
+
+func TestShutdownGivesUpWhenTheGuestDoesNotGoAndSaysSo(t *testing.T) {
+	quickGrace(t)
+	b := newBootRig(t, map[string]scenario{"kvm": {}})
+	b.stub.exec = func(string) (int, error) { return 0, nil } // the agent is asked and the guest never goes
+	m, err := Boot(context.Background(), b.options("kvm"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	began := time.Now()
+	if err := m.Shutdown(ctx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("Shutdown: %v", err)
+	}
+	if took := time.Since(began); took < 250*time.Millisecond || took > 3*time.Second {
+		t.Errorf("it waited %s", took)
+	}
+	select {
+	case <-b.procs[0].Exited():
+		t.Error("QEMU was ended by Shutdown; ending it is Close's")
+	default:
+	}
+	if err := m.Close(context.Background()); err != nil {
+		t.Errorf("Close: %v", err)
+	}
+}
+
+func TestShutdownReportsAButtonThatCannotBePressed(t *testing.T) {
+	quickGrace(t)
+	b := newBootRig(t, map[string]scenario{"kvm": {}})
+	m, err := Boot(context.Background(), b.options("kvm"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.StopAgent()
+	b.qmps[0].powerdown = func() error { return errors.New("QMP: no such command") }
+	if err := m.Shutdown(context.Background()); err == nil || !strings.Contains(err.Error(), "no such command") {
+		t.Errorf("Shutdown: %v", err)
+	}
+	_ = m.Close(context.Background())
+}
+
+// quickGrace shortens how long Shutdown waits to see whether a guest is going down by itself.
+func quickGrace(t *testing.T) {
+	t.Helper()
+	old := shutdownGrace
+	shutdownGrace = 20 * time.Millisecond
+	t.Cleanup(func() { shutdownGrace = old })
+}
+
+func TestShutdownTakesAGuestThatWentDownTooFastToAnswerAsGone(t *testing.T) {
+	quickGrace(t)
+	b := newBootRig(t, map[string]scenario{"kvm": {}})
+	b.stub.exec = func(string) (int, error) {
+		b.procs[0].exit(0)                      // the guest is gone before it can say so
+		return 0, errors.New("connection lost") // and what it was going to say is lost
+	}
+	m, err := Boot(context.Background(), b.options("kvm"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Shutdown(context.Background()); err != nil {
+		t.Fatalf("Shutdown: %v", err)
+	}
+	if b.qmps[0].pressed.Load() {
+		t.Error("the button was pressed on a guest that was gone")
+	}
+	_ = m.Close(context.Background())
+}
+
+func TestShutdownTakesAMonitorThatWentWithTheGuestAsAGuestThatWent(t *testing.T) {
+	quickGrace(t)
+	b := newBootRig(t, map[string]scenario{"kvm": {}})
+	m, err := Boot(context.Background(), b.options("kvm"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.StopAgent()
+	b.qmps[0].powerdown = func() error {
+		b.procs[0].exit(0)
+		return errors.New("QMP connection lost: EOF")
+	}
+	if err := m.Shutdown(context.Background()); err != nil {
+		t.Fatalf("Shutdown: %v", err)
+	}
+	_ = m.Close(context.Background())
 }

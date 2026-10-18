@@ -1,6 +1,6 @@
 # PROGRESS
 ## Now
-*(The status block to read first when resuming. Updated 2026-10-18. Details: DECISIONS.md D-00 to D-107, TODO.md "Discovered", the log below.)*
+*(The status block to read first when resuming. Updated 2026-10-18. Details: DECISIONS.md D-00 to D-108, TODO.md "Discovered", the log below.)*
 
 **Where we are.** Phases 0 to 7 are done: `controlsnack run` runs a whole session on a real VM (D-102 has the e2e scenarios and what they found). Phases 0 to 6 are: repo and gate, protocol and safety, VM and boot-only `run`, the guest agent and the finished image, the whole LLM layer (`internal/llm`) tested against fakes, in the real guest and against **real models** (D-83, D-84), and the **viewer** (`internal/viewer`, `web/`): server and door (D-85), WebSocket hub that never blocks the session (D-86), frame pump with its budgets (D-87), the page tested in a real browser (D-88), approval dialog (D-89), rendering-safety checks in the gate (D-90), kill hotkeys (D-91), the window launcher with whole-tree kill and the dead-man switch (D-93); `go run ./tools/dev mutate` is the mutation-check command (D-92). The viewer's exit test runs it all against a fake session (`TestTheViewerAgainstAFakeSession`). **Phase 7** (session: `internal/session`, the `run` command, e2e scenarios) is done: the state machine (D-94), the executor and the dispatcher (D-95), the turn loop (D-96), the console (D-97), the guards, watchdog and dead-man (D-98), the agent-down fallback (D-99), the assembly (D-100), the runner that joins them to the VM, the viewer and the log (D-101), all mutation-checked, and the e2e scenarios on a real guest with a scripted model (D-102). **Phase 8** (docs, security review, performance, release) is in progress: the README is written (D-103). Phase 9 only if the user asks.
 
@@ -62,6 +62,12 @@
 | P8 | **in progress** (T01 to T03 done 2026-10-18) | README with the compatibility matrix and the numbers; third-party notices; security review; release binaries and a smoke test on each OS | D-103 |
 
 ## Log (newest first)
+### 2026-10-18 — finishing the functionality (step 1 of the plan): kept VMs, the step field, release and CI
+- Changed: `vm.Machine.Shutdown` (the guest powers itself off through the agent; the button only as a fallback), the runner calls it for kept VMs (`powerOff`), the agent-state notices stop once the session is ending; `viewer.Hello.step` (protocol, schema, page, session); `.github/workflows/ci.yml` (actions at their current majors: checkout 7, setup-go 7, cache 6, upload-artifact 7; a release-archives smoke step) and `tools/dev release` (TESTING.md in the archives).
+- Decisions: D-108.
+- Verified: the kept-VM scenario on the real guest (file written without `sync`, found by the next session; power-off in 4.5 s); `tools/dev release` builds the five archives and the Windows one unzips and runs `--version` and `doctor`; unit tests and about 25 mutations.
+- Found: the image's power manager answers the power button with a question, so the button never powered the guest off (it needs the agent's `systemctl`); the e2e helper `sessionID()` is empty once a session is over (the directory is gone), which would have made `pgrep` match too much: `endedSession()` reads the id from the summary.
+- Not done: aarch64 kept VM's UEFI variables, a click through QEMU's monitor on a real guest, `RestartAgent`.
 ### 2026-10-18 — P8-T07 — done (the guide is written; nobody has followed it yet)
 - Changed: **`TESTING.md`** (the user's steps for LM Studio's Qwen3-VL and OpenRouter's Qwen, with timers, safety checks and a table of what to send back), **`cmd/controlsnack/e2e_test.go`** (the program built and run as a process: refusals of the configuration, `llm models`/`probe`, `doctor --json`, a headless task with `audit verify`, `kill` from a second process), `session.go` (what the person typed is checked before what the machine has) · `run_test.go`.
 - Decisions: D-107.
@@ -459,7 +465,10 @@
 ## Metrics
 | Metric | Target | Measured | Date |
 |---|---|---|---|
-| Idle viewer bandwidth | < 50 KB/s | | |
+| Idle viewer bandwidth | < 50 KB/s | **1.0 to 1.2 KB/s** over 20 s (4 pictures), a real guest and a real page (`TestE2ESessionWhatTheViewerCostsInBandwidthWhenTheScreenIsStillAndWhenItMoves`) | 2026-10-18 |
+| Viewer bandwidth, a terminal printing 5 lines a second | record | **33 KB/s** (18 pictures in 20 s: with tcg the capture is the limit, not the budget) | 2026-10-18 |
+| Kept VM: guest powered off by its own system | record | **4.2 to 4.6 s** with tcg | 2026-10-18 |
+| Kill, the whole program as a process (`controlsnack kill` from a second terminal) | < 500 ms | **the VM stopped 14 ms after the kill; the session was gone after 38 ms** | 2026-10-18 |
 | 1080p WebP q70 frame | < 200 KB | **47.6 to 55.9 KB** for a terminal plus file manager scene (8 KB bare desktop); 50 ms to encode (D-57) | 2026-10-13 |
 | Kill → QEMU gone | < 500 ms | **14–17 ms with the real QEMU** (SIGTERM, `controlsnack kill`, `Machine.Kill`); 1.1 ms with a stand-in process | 2026-10-12 |
 | Boot → agent ready (accelerated) | < 45 s | not measured: no accelerator usable here (no `/dev/kvm` access in WSL, no Windows QEMU) | |

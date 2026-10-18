@@ -651,3 +651,21 @@ func TestPlansShowWhereAnActionWillAct(t *testing.T) {
 		t.Errorf("key plan %+v", p)
 	}
 }
+
+func TestSteppingIsTheProfilesUntilThePersonSaysOtherwise(t *testing.T) {
+	for _, profileStep := range []bool{false, true} {
+		d := &Dispatcher{}
+		d.Profile.Step = profileStep
+		if d.Stepping() != profileStep {
+			t.Errorf("profile step %v: Stepping is %v", profileStep, d.Stepping())
+		}
+		d.SetStep(true)
+		if !d.Stepping() {
+			t.Errorf("profile step %v: the person switched it on", profileStep)
+		}
+		d.SetStep(false)
+		if d.Stepping() {
+			t.Errorf("profile step %v: the person switched it off", profileStep)
+		}
+	}
+}

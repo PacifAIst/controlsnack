@@ -118,7 +118,7 @@ Windows Home is supported, and so is Pro. ControlSnack uses the Windows Hypervis
 | `--policy` | | A rule file merged over the built-in rules |
 | `--actions-per-sec`, `--actions-per-response`, `--actions-per-task`, `--max-turns` | 2, 3, 60, 100 | Limits; a task asks you to check in when it reaches the budgets |
 | `--timeout` | 1h | Session time |
-| `--keep`, `--keep-vm[=NAME]`, `--vm NAME` | | Keep the transcript and the pictures the model was shown (in `kept/<session id>` under the state directory); keep the VM disk; resume a kept VM |
+| `--keep`, `--keep-vm[=NAME]`, `--vm NAME` | | Keep the transcript and the pictures the model was shown (in `kept/<session id>` under the state directory); keep the VM disk (its guest is powered off cleanly when the session ends); resume a kept VM |
 | `--unsafe` | | Relax limits and confirmations (flag only, never a config key); see below |
 
 **Configuration.** Settings come, in this order of priority, from flags, the environment (`CONTROLSNACK_<SECTION>_<KEY>`, for example `CONTROLSNACK_VM_MEMORY_MIB`), the config file and the defaults. `controlsnack config path` says where the file is and `controlsnack config show` prints what is in force. An API key is read from the environment variable you name with `--api-key-env` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `CONTROLSNACK_LLM_API_KEY`); it is never written to the audit log, the viewer or the config output.
@@ -219,6 +219,8 @@ Measured on the author's machine: Windows 10, Intel Core i7-10870H, WSL2 (Ubuntu
 | Local model turn | 1.1 to 2.4 s | `qwen3-vl-4b-instruct`, RTX 3060, request of about 3.1k tokens |
 | Screenshot, 1280x800 | WebP 36 KB; 22 KB at a long edge of 1024; JPEG 50 KB; PNG 115 KB | three windows open |
 | Viewer frame, 1080p, WebP q70 | 48 to 56 KB | a terminal and a file manager; 50 ms to encode |
+| Viewer bandwidth | 1 KB/s with a still screen; 33 KB/s with a terminal printing five lines a second | the budget is 50 KB/s for a still screen; with tcg the guest's capture, not the budget, limits a moving one to about 1 picture a second |
+| Powering off a kept VM | 4.2 to 4.6 s | the guest's own system does it; the data written in the session is there in the next |
 | Accessibility tree | 79 nodes, 9.4 KB (file manager); 126 nodes, 14.6 KB (whole desktop) | |
 | Guest agent | 11.5 MB (amd64), 10.6 MB (arm64) | embedded in the program |
 

@@ -499,6 +499,18 @@ func TestE2ESessionAKillEndsTheVmInUnderHalfASecondWhateverTheModelIsDoing(t *te
 	}
 }
 
+var reEnded = regexp.MustCompile(`Session (s_[0-9a-f]+) ended`)
+
+// endedSession is the id of the last session that ended, from the summary the runner printed. (sessionID is for while one runs:
+// the session's directory is gone once it is over.)
+func (e *e2e) endedSession() string {
+	all := reEnded.FindAllStringSubmatch(e.out.String(), -1)
+	if len(all) == 0 {
+		return ""
+	}
+	return all[len(all)-1][1]
+}
+
 // sessionID is the id of the session that is running, read from the lock directory (the only session there is).
 func (e *e2e) sessionID() string {
 	entries, err := os.ReadDir(filepath.Join(e.dirs.State, "run"))
@@ -778,10 +790,102 @@ func TestE2ESessionARealModelDoesASmallTask(t *testing.T) {
 	}
 	recs := e.records()
 	t.Logf("%d records; actions: %v", len(recs), decisions(recs))
-	if name := vmName(e.sessionID()); qemuRunning(name) {
+	id := e.endedSession()
+	if id == "" {
+		t.Fatalf("no summary:\n%s", e.out.String())
+	}
+	if qemuRunning(vmName(id)) {
 		t.Error("QEMU is still running")
 	}
-	if !strings.Contains(e.out.String(), "Session "+e.sessionID()+" ended") {
-		t.Errorf("no summary:\n%s", e.out.String())
+}
+
+func TestE2ESessionAKeptVmGetsItsFilesWrittenWhenTheSessionEndsAndHasThemNextTime(t *testing.T) {
+	const name, text = "e2ekept", "kept-by-the-first-session"
+	var seen string
+	step := 0
+	e := newE2E(t, fakellm.Options{Then: func(r *fakellm.Request) fakellm.Reply {
+		defer func() { step++ }()
+		switch step {
+		case 0:
+			// No sync: what is in the guest's memory when the session ends is what the power-off has to save.
+			return saysTool("exec", map[string]any{"command": "echo " + text + " >> /home/cs/work/marker.txt", "timeout_s": 30})
+		case 1:
+			return saysDone(true, "wrote the file")
+		case 2:
+			return saysTool("exec", map[string]any{"command": "cat /home/cs/work/marker.txt", "timeout_s": 30})
+		default:
+			seen = strings.Join(toolResults(r), "\n")
+			return saysDone(true, "read the file")
+		}
+	}})
+	first := e.config("Write a file in the work folder")
+	first.Session.KeepVM = name
+	if err := e.run(first); err != nil {
+		t.Fatalf("the first session: %v", err)
 	}
+	if out := e.out.String(); !strings.Contains(out, "The guest of the kept VM "+name+" powered off in ") {
+		t.Errorf("the guest did not power off by itself:\n%s", out)
+	}
+	if qemuRunning(vmName(e.endedSession())) {
+		t.Error("QEMU is still running after the first session")
+	}
+	second := e.config("Read the file")
+	second.Session.VM = name
+	if err := e.run(second); err != nil {
+		t.Fatalf("the second session: %v", err)
+	}
+	if !strings.Contains(seen, text) {
+		t.Errorf("the second session found %q", seen)
+	}
+}
+
+func TestE2ESessionWhatTheViewerCostsInBandwidthWhenTheScreenIsStillAndWhenItMoves(t *testing.T) {
+	still, moving := make(chan struct{}), make(chan struct{})
+	step := 0
+	e := newE2E(t, fakellm.Options{Then: func(r *fakellm.Request) fakellm.Reply {
+		defer func() { step++ }()
+		switch step {
+		case 0:
+			<-still // the screen stays as it is while the test measures
+			return saysTool("exec", map[string]any{"command": "(setsid xfce4-terminal -e 'sh -c \"while true; do date; sleep 0.2; done\"' >/dev/null 2>&1 &); echo started", "timeout_s": 30})
+		case 1:
+			return saysTool("wait_for", map[string]any{"condition": "seconds", "value": "8", "timeout_s": 15})
+		case 2:
+			<-moving // a terminal prints a line five times a second while the test measures
+			return saysDone(true, "measured")
+		}
+		return saysDone(true, "measured")
+	}})
+	pg, done, cancel := e.withPage(e.config("Do nothing for a while"))
+	defer cancel()
+	pg.waitFor("the session to be running", func(m map[string]any) bool { return m["type"] == "state" && m["state"] == "running" })
+	measure := func(what string, d time.Duration) (kbps float64, frames int64) {
+		time.Sleep(3 * time.Second) // what the connecting page is sent first (the screen, the history) is not what is measured
+		b0, f0 := pg.bytes.Load(), pg.frames.Load()
+		time.Sleep(d)
+		b1, f1 := pg.bytes.Load(), pg.frames.Load()
+		kbps = float64(b1-b0) / 1024 / d.Seconds()
+		t.Logf("%s: %.1f KB/s over %s, %d pictures", what, kbps, d, f1-f0)
+		return kbps, f1 - f0
+	}
+	idle, _ := measure("a still screen", 20*time.Second)
+	close(still)
+	pg.waitWithin(2*time.Minute, "the wait that follows the terminal", func(m map[string]any) bool {
+		return m["type"] == "trace" && m["tool"] == "wait_for" && m["status"] == "done"
+	})
+	active, frames := measure("a terminal printing five lines a second", 20*time.Second)
+	close(moving)
+	cancel() // a session with a viewer stays open for the next task: end it
+	select {
+	case <-done:
+	case <-time.After(time.Minute):
+		t.Error("the session did not end")
+	}
+	if idle > 50 {
+		t.Errorf("a still screen costs %.1f KB/s; the budget is 50", idle)
+	}
+	if frames == 0 {
+		t.Errorf("a moving screen sent no pictures")
+	}
+	_ = active
 }

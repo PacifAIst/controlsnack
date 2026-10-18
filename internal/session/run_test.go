@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -296,6 +297,14 @@ type page struct {
 	conn *websocket.Conn
 	mu   sync.Mutex
 	msgs []map[string]any
+
+	// what the host has sent this page, and how much of it was pictures
+	bytes, frames atomic.Int64
+
+	// how it got in, to connect again with the same cookie
+	host   string
+	client *http.Client
+	cookie *http.Cookie
 }
 
 func openPage(t *testing.T, link string) *page {
@@ -323,21 +332,53 @@ func openPage(t *testing.T, link string) *page {
 	if cookie == nil {
 		t.Fatalf("no cookie from the login: %s", resp.Status)
 	}
+	return connectPage(t, u.Host, client, cookie)
+}
+
+// connectPage opens the socket of a page that has logged in.
+func connectPage(t *testing.T, host string, client *http.Client, cookie *http.Cookie) *page {
+	t.Helper()
+	p, err := dialPage(t, host, client, cookie)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func dialPage(t *testing.T, host string, client *http.Client, cookie *http.Cookie) (*page, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	c, wresp, err := websocket.Dial(ctx, "ws://"+u.Host+"/ws", &websocket.DialOptions{HTTPClient: client,
-		HTTPHeader: http.Header{"Origin": {"http://" + u.Host}, "Cookie": {cookie.String()}}, CompressionMode: websocket.CompressionDisabled})
+	c, wresp, err := websocket.Dial(ctx, "ws://"+host+"/ws", &websocket.DialOptions{HTTPClient: client,
+		HTTPHeader: http.Header{"Origin": {"http://" + host}, "Cookie": {cookie.String()}}, CompressionMode: websocket.CompressionDisabled})
 	if wresp != nil && wresp.Body != nil {
 		_ = wresp.Body.Close()
 	}
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 	c.SetReadLimit(8 << 20)
-	p := &page{t: t, conn: c}
+	p := &page{t: t, conn: c, host: host, client: client, cookie: cookie}
 	go p.read()
 	t.Cleanup(func() { _ = c.CloseNow() })
-	return p
+	return p, nil
+}
+
+// again is the same window connecting anew, as after a break in the connection: the host takes one page at a time, so this
+// closes the page it is called on and waits for the host to notice.
+func (p *page) again() *page {
+	p.t.Helper()
+	_ = p.conn.CloseNow()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		q, err := dialPage(p.t, p.host, p.client, p.cookie)
+		if err == nil {
+			return q
+		}
+		if time.Now().After(deadline) {
+			p.t.Fatalf("the host did not take the page back: %v", err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 }
 
 func (p *page) read() {
@@ -346,7 +387,9 @@ func (p *page) read() {
 		if err != nil {
 			return
 		}
+		p.bytes.Add(int64(len(data)))
 		if typ != websocket.MessageText {
+			p.frames.Add(1)
 			continue
 		}
 		var m map[string]any
@@ -371,7 +414,13 @@ func (p *page) send(v any) {
 // waitFor waits for a message that the predicate accepts, and returns it.
 func (p *page) waitFor(what string, pred func(map[string]any) bool) map[string]any {
 	p.t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	return p.waitWithin(10*time.Second, what, pred)
+}
+
+// waitWithin is waitFor with the time to wait given: a real guest is slow.
+func (p *page) waitWithin(d time.Duration, what string, pred func(map[string]any) bool) map[string]any {
+	p.t.Helper()
+	deadline := time.Now().Add(d)
 	for {
 		p.mu.Lock()
 		for _, m := range p.msgs {

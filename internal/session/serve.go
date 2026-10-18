@@ -33,7 +33,7 @@ type taskEnd struct {
 }
 
 // hello is what a page is told about the session when it connects.
-func (r *runner) hello(l *live, prof safety.Profile) func() viewer.Hello {
+func (r *runner) hello(l *live, prof safety.Profile, stepping func() bool) func() viewer.Hello {
 	mode := "vision"
 	if !l.model.Setup.Vision {
 		mode = "text_only"
@@ -45,7 +45,7 @@ func (r *runner) hello(l *live, prof safety.Profile) func() viewer.Hello {
 	return func() viewer.Hello {
 		return viewer.Hello{
 			Session: l.id, Backend: l.model.Target.Backend, Model: l.model.Target.Model, Mode: mode, Net: l.cfg.Net.Allow, Unsafe: l.cfg.Safety.Unsafe,
-			RemoteLLM: l.model.Target.Remote(), Accel: acc,
+			RemoteLLM: l.model.Target.Remote(), Step: stepping(), Accel: acc,
 			Limits: viewer.Limits{MaxTurns: prof.MaxTurns, MaxActions: prof.ActionsPerTask, TimeoutSec: int(prof.SessionTimeout.Seconds()),
 				ConfirmTimeoutSec: int(prof.ConfirmTimeout.Seconds()), IdleTimeoutSec: int(prof.IdleTimeout.Seconds())},
 			Resolution: viewer.Resolution{W: l.rep.Agent.Display.W, H: l.rep.Agent.Display.H},
@@ -70,10 +70,17 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 	fatal := func(err error) { killer.TriggerAsync(killswitch.SourceAudit, err.Error()) }
 	headless := cfg.Viewer.Mode == viewer.ModeNone
 
+	// A page that connects is told whether step mode is on. The dispatcher knows; it exists once the session is assembled, which is
+	// before the viewer is opened, so no page asks sooner.
+	var assembled atomic.Pointer[Session]
+	stepping := func() bool {
+		s := assembled.Load()
+		return s != nil && s.Dispatcher.Stepping()
+	}
 	var vs *viewerSide
 	if !headless {
 		var err error
-		vs, err = newViewerSide(viewerArgs{Killer: killer, Token: l.token, Hello: r.hello(l, prof), Audit: func(rc audit.Record) {
+		vs, err = newViewerSide(viewerArgs{Killer: killer, Token: l.token, Hello: r.hello(l, prof, stepping), Audit: func(rc audit.Record) {
 			if _, err := tally.Append(rc); err != nil {
 				fatal(err)
 			}
@@ -101,6 +108,7 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 	if err != nil {
 		return err
 	}
+	assembled.Store(sess)
 	setLink(sess.Link)
 	if r.deps.assembled != nil {
 		r.deps.assembled(sess)
@@ -396,6 +404,9 @@ func (r *runner) orderly(l *live, sess *Session, win *viewer.Window, dm *viewer.
 	if win != nil {
 		_ = win.Kill(ctx)
 	}
+	if l.keptVM != "" {
+		r.powerOff(l)
+	}
 	err := l.mach.Close(ctx)
 	_ = l.teardown(ctx)
 	_ = l.sm.To(Ended, why)
@@ -408,6 +419,22 @@ func (r *runner) orderly(l *live, sess *Session, win *viewer.Window, dm *viewer.
 		return fmt.Errorf("stopping the VM: %w", err)
 	}
 	return nil
+}
+
+// keptShutdown is how long a kept VM's guest has to power off before QEMU is ended.
+var keptShutdown = 20 * time.Second
+
+// powerOff presses the power button of a VM whose disk stays, so that the guest writes what it has in memory, and waits for it. If
+// the guest does not power off in time QEMU is ended all the same (the disk is then as after a power cut) and the person is told.
+func (r *runner) powerOff(l *live) {
+	ctx, cancel := context.WithTimeout(context.Background(), keptShutdown)
+	defer cancel()
+	began := time.Now()
+	if err := l.mach.Shutdown(ctx); err != nil {
+		fmt.Fprintf(r.out, "WARNING: the guest of the kept VM %s did not power off (%s), so it was stopped; its disk is as after a power cut, and the system checks it at the next start\n", l.keptVM, textclean.Line(err.Error(), 120))
+		return
+	}
+	fmt.Fprintf(r.out, "The guest of the kept VM %s powered off in %s.\n", l.keptVM, time.Since(began).Round(100*time.Millisecond))
 }
 
 // stoppedWords says why a headless task was stopped: it paused and there is nobody to resume it, or it was stopped some other way.

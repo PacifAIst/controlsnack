@@ -62,6 +62,9 @@ type fakeQMP struct {
 	once    sync.Once
 	closed  atomic.Bool
 	quitted atomic.Bool
+	// powerdown is what the power button does: by default the guest powers off (the process exits); set it to refuse or to ignore.
+	powerdown func() error
+	pressed   atomic.Bool
 	// portWait, when set, decides what WaitPortOpen does (default: the port is open at once).
 	portWait func(ctx context.Context) error
 }
@@ -81,7 +84,15 @@ func (q *fakeQMP) QueryStatus(ctx context.Context) (qmp.Status, error) {
 	}
 	return q.status(), nil
 }
-func (q *fakeQMP) Quit(context.Context) error                             { q.quitted.Store(true); return nil }
+func (q *fakeQMP) Quit(context.Context) error { q.quitted.Store(true); return nil }
+func (q *fakeQMP) SystemPowerdown(context.Context) error {
+	q.pressed.Store(true)
+	if q.powerdown != nil {
+		return q.powerdown()
+	}
+	q.proc.exit(0)
+	return nil
+}
 func (q *fakeQMP) Screendump(context.Context, string, string) error       { return nil }
 func (q *fakeQMP) InputSendEvent(context.Context, []qmp.InputEvent) error { return nil }
 func (q *fakeQMP) WaitPortOpen(ctx context.Context, _ string) error {

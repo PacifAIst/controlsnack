@@ -217,6 +217,65 @@ func (m *Machine) Close(ctx context.Context) error {
 	return err
 }
 
+// poweroffCommand is what the agent is asked to run to power the guest off: the file systems are written and the system goes down.
+// The agent runs in the desktop user's session, which the system lets power the machine off.
+const poweroffCommand = "sync; exec systemctl --no-block poweroff"
+
+// Shutdown powers the guest off and waits for QEMU to exit, until ctx ends. It is how a VM whose disk is kept is ended: the guest
+// writes what it has in memory before the power goes. The guest is asked through the agent, because the desktop's power manager
+// answers the power button with a question that nobody is there to answer; only when the agent cannot be reached is the button
+// pressed (QMP system_powerdown). An error means the guest did not power off in time; the caller goes on to Close, which ends QEMU.
+func (m *Machine) Shutdown(ctx context.Context) error {
+	asked, wasUp := false, m.Client.Up()
+	if wasUp {
+		actx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		var res protocol.ExecRes
+		_, err := m.Client.Call(actx, protocol.TypeExec, protocol.ExecReq{Command: poweroffCommand, TimeoutMS: 10000}, nil, &res)
+		cancel()
+		asked = err == nil && res.ExitCode == 0
+	}
+	// From here the agent goes down with the guest: nothing is left to supervise or to report.
+	m.stop()
+	if !asked {
+		if wasUp {
+			// An answer that never came may be a guest that went down too fast to send it.
+			if m.exitedWithin(ctx, shutdownGrace) {
+				return nil
+			}
+		}
+		if err := m.QMP.SystemPowerdown(ctx); err != nil {
+			if m.exitedWithin(ctx, shutdownGrace) {
+				return nil // the monitor went with the guest
+			}
+			return err
+		}
+	}
+	select {
+	case <-m.Process.Exited():
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// shutdownGrace is how long Shutdown lets a guest that may already be going down show it before it tries the power button, or
+// before it believes that the button could not be pressed.
+var shutdownGrace = 2 * time.Second
+
+// exitedWithin says whether QEMU has exited by the end of d (or of ctx).
+func (m *Machine) exitedWithin(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-m.Process.Exited():
+		return true
+	case <-t.C:
+		return false
+	case <-ctx.Done():
+		return false
+	}
+}
+
 // Kill ends the machine at once: the kill path (PLAN.md section 6.8).
 func (m *Machine) Kill() error {
 	var err error
