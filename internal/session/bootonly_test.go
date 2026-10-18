@@ -9,6 +9,7 @@ import (
 	"errors"
 	"image"
 	"image/png"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,17 +33,18 @@ import (
 )
 
 type fakeProc struct {
-	exited chan struct{}
-	once   sync.Once
-	code   int
-	killed atomic.Bool
+	exited  chan struct{}
+	once    sync.Once
+	code    int
+	killed  atomic.Bool
+	killErr error
 }
 
 func newProc() *fakeProc { return &fakeProc{exited: make(chan struct{})} }
 
 func (p *fakeProc) exit(code int) { p.once.Do(func() { p.code = code; close(p.exited) }) }
 func (p *fakeProc) Pid() int      { return 31337 }
-func (p *fakeProc) Kill() error   { p.killed.Store(true); p.exit(137); return nil }
+func (p *fakeProc) Kill() error   { p.killed.Store(true); p.exit(137); return p.killErr }
 func (p *fakeProc) Exited() <-chan struct{} {
 	return p.exited
 }
@@ -55,17 +57,26 @@ func (p *fakeProc) Stop(context.Context, func(context.Context) error, time.Durat
 
 type fakeMachine struct {
 	proc        *fakeProc
+	fallback    *vm.Fallback
+	closedAt    atomic.Int64
 	shotErr     error
 	agentStoped atomic.Bool
+	// for the full session
+	agent   AgentLink
+	monitor Monitor
+	closed  atomic.Bool
+	netConn net.Conn
+	redial  func(context.Context) (net.Conn, error)
 }
 
 func (m *fakeMachine) Proc() vm.Process { return m.proc }
 func (m *fakeMachine) Report() vm.BootReport {
 	return vm.BootReport{
-		Accel:   vm.AccelResult{Requested: "auto", Chosen: "tcg", Slow: true},
-		Agent:   protocol.HelloAck{AgentVersion: "v0.1.0", AgentSHA256: strings.Repeat("ab", 32), User: "cs", Display: protocol.Display{W: 1280, H: 800}},
+		Accel: vm.AccelResult{Requested: "auto", Chosen: "tcg", Slow: true},
+		Agent: protocol.HelloAck{AgentVersion: "v0.1.0", AgentSHA256: strings.Repeat("ab", 32), User: "cs", Display: protocol.Display{W: 1280, H: 800},
+			Capabilities: []string{protocol.CapScreenshot, protocol.CapInput, protocol.CapExec, protocol.CapA11y, protocol.CapOCR, protocol.CapFilePeek}},
 		Timings: vm.Timings{Launch: 12 * time.Millisecond, PortOpen: 40 * time.Second, Connected: 42 * time.Second},
-		QEMUPID: 31337,
+		QEMUPID: 31337, Fallback: m.fallback,
 	}
 }
 func (m *fakeMachine) Screendump(_ context.Context, path string) error {
@@ -78,7 +89,18 @@ func (m *fakeMachine) Screendump(_ context.Context, path string) error {
 	}
 	return os.WriteFile(path, buf.Bytes(), 0o600)
 }
-func (m *fakeMachine) StopAgent() { m.agentStoped.Store(true) }
+func (m *fakeMachine) StopAgent()       { m.agentStoped.Store(true) }
+func (m *fakeMachine) Agent() AgentLink { return m.agent }
+func (m *fakeMachine) Monitor() Monitor { return m.monitor }
+func (m *fakeMachine) Close(context.Context) error {
+	m.closed.Store(true)
+	m.closedAt.Store(time.Now().UnixNano())
+	m.proc.exit(0)
+	return nil
+}
+func (m *fakeMachine) NetPort() (net.Conn, func(context.Context) (net.Conn, error)) {
+	return m.netConn, m.redial
+}
 
 // rig is a runner with every outside connection faked and its directories in a temp dir.
 type rig struct {
@@ -139,7 +161,7 @@ func newRig(t *testing.T) *rig {
 			}
 			return rg.mach, nil
 		},
-		procs: platform.OSProcesses{}, pid: os.Getpid, random: nil,
+		procs: platform.OSProcesses{}, pid: os.Getpid, random: nil, library: testLibrary,
 	}}
 	rg.r.deps.random = &countingRand{}
 	return rg
@@ -193,25 +215,20 @@ func eventually(t *testing.T, what string, cond func() bool) {
 
 // --- the tests -------------------------------------------------------------------------------------------------------
 
-func TestRunDispatch(t *testing.T) {
+func TestRunRefusesTheCombinationsThatMakeNoSense(t *testing.T) {
 	rg := newRig(t)
-	for _, mut := range []func(*config.Config){
-		func(c *config.Config) { c.Session.NoLLM = false },
-		func(c *config.Config) { c.Viewer.Mode = "window" },
+	for name, mut := range map[string]func(*config.Config){
+		"a model with no viewer and no task":  func(c *config.Config) { c.Session.NoLLM = false },
+		"no model, but a viewer to look into": func(c *config.Config) { c.Viewer.Mode = "window" },
 	} {
 		cfg := bootOnlyConfig()
 		mut(&cfg)
-		if err := rg.run(context.Background(), cfg); exitcode.Of(err) != exitcode.NotImplemented {
-			t.Errorf("only --no-llm --viewer none is built so far: %v", err)
+		if err := rg.run(context.Background(), cfg); exitcode.Of(err) != exitcode.Usage {
+			t.Errorf("%s: %v", name, err)
 		}
 	}
 	if rg.boots() != 0 {
-		t.Error("nothing is booted for a combination that is not built")
-	}
-	cfg := bootOnlyConfig()
-	cfg.Session.KeepVM = "auto"
-	if err := rg.run(context.Background(), cfg); exitcode.Of(err) != exitcode.NotImplemented {
-		t.Errorf("kept VMs belong to the full session: %v", err)
+		t.Error("nothing is booted for a combination that makes no sense")
 	}
 }
 

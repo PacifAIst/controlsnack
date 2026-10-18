@@ -160,7 +160,7 @@ func (c *Console) Control(op string) {
 	case viewer.OpResume:
 		c.Machine.ToIf([]State{Paused}, Running, "resumed by the person")
 	case viewer.OpStop:
-		c.stop()
+		c.Stop()
 	case viewer.OpStepOn, viewer.OpStepOff:
 		if c.Step == nil {
 			return
@@ -178,9 +178,9 @@ func (c *Console) Control(op string) {
 	c.record("control", map[string]string{"op": op})
 }
 
-// stop ends the task that is running, if one is: its context is canceled, so that the model call, the action, the wait for an
+// Stop ends the task that is running, if one is: its context is canceled, so that the model call, the action, the wait for an
 // answer and the pause all end, and the questions that are open are canceled. The session is Ready again when the loop returns.
-func (c *Console) stop() {
+func (c *Console) Stop() {
 	c.mu.Lock()
 	cancel := c.cancel
 	c.mu.Unlock()

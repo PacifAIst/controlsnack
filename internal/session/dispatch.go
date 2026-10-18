@@ -93,6 +93,9 @@ type Dispatcher struct {
 	// Redactor masks what must not reach the viewer or the log (secrets the session knows).
 	Redactor *secret.Redactor
 	Now      func() time.Time
+	// Activity is told when an action is about to run (starting is true) and when it has run: the viewer looks at the screen more
+	// often meanwhile, and counts the action once.
+	Activity func(starting bool)
 
 	// step is the person's word on step mode, set while the session runs: 0 leaves it to the profile, 1 is on, 2 is off.
 	step atomic.Int32
@@ -350,8 +353,14 @@ func (d *Dispatcher) Run(ctx context.Context, in Input) Step {
 	d.send(trace)
 
 	began := d.now()
+	if d.Activity != nil {
+		d.Activity(true)
+	}
 	out := d.Exec.Do(ctx, ga)
 	ms := d.now().Sub(began).Milliseconds()
+	if d.Activity != nil {
+		d.Activity(false)
+	}
 	r := out.Result
 	if note != "" {
 		r.Detail += ". The user approved it and wrote: " + guestWords(note)

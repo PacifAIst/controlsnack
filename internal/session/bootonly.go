@@ -11,23 +11,25 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"net/http"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/buildinfo"
 	"github.com/PacifAIst/controlsnack-local/internal/config"
 	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
+	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/httpx"
+	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
 	"github.com/PacifAIst/controlsnack-local/internal/platform"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack-local/internal/viewer"
 	"github.com/PacifAIst/controlsnack-local/internal/vm"
 	"github.com/PacifAIst/controlsnack-local/internal/vm/agentbin"
 	"github.com/PacifAIst/controlsnack-local/internal/vm/agentclient"
 	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
+	"github.com/PacifAIst/controlsnack-local/internal/vm/overlay"
 	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
 )
 
@@ -37,6 +39,25 @@ type machine interface {
 	Report() vm.BootReport
 	Screendump(ctx context.Context, path string) error
 	StopAgent()
+	// Agent is the connection to the agent, and Monitor QEMU's own channel.
+	Agent() AgentLink
+	Monitor() Monitor
+	// Close ends the VM in order: the guest is asked to stop, and QEMU is ended if it does not.
+	Close(ctx context.Context) error
+	// NetPort is the connection to the network port and the way to make another; nil without --allow-net.
+	NetPort() (net.Conn, func(context.Context) (net.Conn, error))
+}
+
+// realMachine is a running *vm.Machine as the runner uses it.
+type realMachine struct{ *vm.Machine }
+
+func (m realMachine) Agent() AgentLink { return m.Client }
+func (m realMachine) Monitor() Monitor { return m.QMP }
+func (m realMachine) NetPort() (net.Conn, func(context.Context) (net.Conn, error)) {
+	if m.Net == nil {
+		return nil, nil
+	}
+	return m.Net, m.DialNet
 }
 
 // deps are the runner's connections to the machine it runs on.
@@ -46,9 +67,18 @@ type deps struct {
 	image    func(dirs platform.Dirs, spec, arch string) (image.Image, error)
 	agent    func(arch string) (agentbin.Agent, error)
 	boot     func(ctx context.Context, o vm.BootOptions) (machine, error)
-	procs    platform.ProcessInspector
-	pid      func() int
-	random   io.Reader
+	// launch opens the viewer window (viewer.Launch on the real machine).
+	launch func(viewer.LaunchOptions) (*viewer.Window, error)
+	// library is the directory of kept VMs.
+	library func(dirs platform.Dirs) overlay.Library
+	// afterFunc starts the dead-man switch's timers (time.AfterFunc when nil), and assembled hears of the session once it is joined.
+	afterFunc func(d time.Duration, f func()) (stop func() bool)
+	assembled func(*Session)
+	procs     platform.ProcessInspector
+	pid       func() int
+	random    io.Reader
+	// models makes what finds the model (the real one reads the cache of earlier probes and asks the servers).
+	models func(cfg config.Config, dirs platform.Dirs) ModelFinder
 }
 
 func realDeps() deps {
@@ -71,199 +101,33 @@ func realDeps() deps {
 			if err != nil {
 				return nil, err // not a typed nil inside the interface
 			}
-			return m, nil
+			return realMachine{m}, nil
 		},
-		procs:  platform.OSProcesses{},
-		pid:    os.Getpid,
-		random: rand.Reader,
+		launch:  viewer.Launch,
+		library: func(dirs platform.Dirs) overlay.Library { return overlay.Library{Dir: dirs.VMsDir()} },
+		procs:   platform.OSProcesses{},
+		pid:     os.Getpid,
+		random:  rand.Reader,
+		models: func(cfg config.Config, dirs platform.Dirs) ModelFinder {
+			return detect.New(detect.Options{CacheDir: dirs.Cache, NewClient: func(name string) *httpx.Client {
+				c := httpx.New(name)
+				if t := cfg.LLM.FirstTimeout.D(); t > 0 {
+					c.First = t
+				}
+				if t := cfg.LLM.Timeout.D(); t > 0 {
+					c.Timeout = t
+				}
+				return c
+			}})
+		},
 	}
 }
 
-// bootOnly is `run --no-llm --viewer none` (P3-T11): the whole VM side of a session without a model or a viewer. It
-// takes the session lock, writes the audit log, boots the VM, installs the agent, proves that the screen can be
-// read, and then waits until the user stops it (Ctrl+C or `controlsnack kill`), the session timeout passes, or the
-// guest shuts down. Whatever ends it goes through the kill switch.
-func (r *runner) bootOnly(parent context.Context, cfg config.Config) (err error) {
-	if cfg.Session.VM != "" || cfg.Session.KeepVM != "" {
-		return exitcode.Pending("P7-T06") // kept VMs belong to the full session
-	}
-	d := r.deps
-	dirs, err := d.dirs()
-	if err != nil {
-		return err
-	}
-	inst, err := d.discover(parent, cfg.VM.QemuDir)
-	if err != nil {
-		return exitcode.New(exitcode.Environment, err)
-	}
-	im, err := d.image(dirs, cfg.VM.Image, inst.Arch)
-	if err != nil {
-		return exitcode.New(exitcode.ImageMissing, fmt.Errorf("%w\nbuild one with: controlsnack image build", err))
-	}
-	agent, err := d.agent(inst.Arch)
-	if err != nil {
-		return err
-	}
-	w, h, err := vm.ParseResolution(cfg.VM.Resolution)
-	if err != nil {
-		return exitcode.Usagef("vm.resolution: %v", err)
-	}
-	id, err := newID(d.random, "s_", 4)
-	if err != nil {
-		return err
-	}
-
-	token, err := newID(d.random, "", 16)
-	if err != nil {
-		return err
-	}
-
-	// The kill switch exists before anything else does, so no kill source can arrive before it is ready.
-	ctx, cancel := context.WithCancel(parent)
-	defer cancel()
-	killer := killswitch.New(killswitch.Options{Cancel: cancel})
-
-	// `controlsnack kill` asks the session to die through a loopback endpoint (the viewer mounts the same handler
-	// later); without a viewer this tiny server is all there is. It serves nothing else.
-	ln, err := platform.ListenLoopback(ctx, 0)
-	if err != nil {
-		return err
-	}
-	mux := http.NewServeMux()
-	mux.Handle(killswitch.ControlKillPath, killswitch.ControlHandler(killer, token))
-	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	go func() { _ = srv.Serve(ln) }()
-	defer func() { _ = srv.Close() }()
-
-	// One session at a time (D-20).
-	started, _ := d.procs.StartTime(d.pid())
-	lock, reaped, err := killswitch.NewRegistry(dirs.SessionsDir(), d.procs).Acquire(killswitch.Entry{
-		SessionID: id, ControllerPID: d.pid(), ControllerStarted: started, KillToken: token,
-		ControlURL: "http://" + ln.Addr().String() + "/"})
-	if err != nil {
-		return err
-	}
-	defer func() { _ = lock.Release() }()
-	if reaped != nil {
-		fmt.Fprintf(r.out, "cleaned up the leftovers of session %s, which was no longer running\n", reaped.Entry.SessionID)
-	}
-	sweepRunDirs(filepath.Join(dirs.State, "run")) // we hold the lock: none of these can belong to a live session
-
-	log, err := audit.Open(dirs.AuditDir(), id, audit.Options{})
-	if err != nil {
-		return err
-	}
-	defer func() { _ = log.Close() }()
-	rec := func(rc audit.Record) error {
-		if _, aerr := log.Append(rc); aerr != nil {
-			return fmt.Errorf("the audit log can no longer be written, so the session stops: %w", aerr)
-		}
-		return nil
-	}
-	// Whatever way the session ends, its log ends with an `end` record: a log without one reads as a crash.
-	ended := false
-	end := func(data map[string]any) {
-		if ended {
-			return
-		}
-		ended = true
-		rc := audit.Record{Kind: audit.KindLifecycle, Event: audit.EventEnd, Actor: "system"}
-		if data != nil {
-			rc.Data = audit.ToRaw(data)
-		}
-		_ = rec(rc)
-	}
-	defer func() {
-		if err != nil {
-			end(map[string]any{"error": err.Error()})
-		} else {
-			end(nil)
-		}
-	}()
-	if err := rec(audit.Record{Kind: audit.KindLifecycle, Event: audit.EventStart, Actor: "system", Data: audit.ToRaw(map[string]any{
-		"mode": "boot-only", "version": buildinfo.Get().Version, "image": im.Manifest.ID, "arch": inst.Arch,
-		"accel": cfg.VM.Accel, "slow": cfg.VM.Slow, "memory_mib": cfg.VM.MemoryMiB, "cpus": cfg.VM.CPUs, "resolution": cfg.VM.Resolution,
-	})}); err != nil {
-		return err
-	}
-
-	sessionDir := filepath.Join(dirs.State, "run", id)
-	if err := platform.EnsureDir(sessionDir); err != nil {
-		return err
-	}
-	// The marker says "a session owns this directory": if the controller is killed hard, the next start sweeps it.
-	marker := filepath.Join(sessionDir, runningMarker)
-	if err := os.WriteFile(marker, nil, 0o600); err != nil {
-		return err
-	}
-	removeSession := func() {
-		if cfg.Session.Keep {
-			_ = os.Remove(marker)
-		} else {
-			_ = os.RemoveAll(sessionDir)
-		}
-	}
-	defer removeSession()
-	prepare, err := vm.NewPrepare(vm.PrepareOptions{Install: inst, Base: im.Path, Name: vmName(id), Dir: sessionDir,
-		CPUs: cfg.VM.CPUs, MemoryMiB: cfg.VM.MemoryMiB, Width: w, Height: h})
-	if err != nil {
-		return err
-	}
-
-	events := &vm.AuditEvents{Log: log, Forward: terminalEvents{out: r.out}}
-	fmt.Fprintf(r.out, "Starting a session (%s): image %s, %s\n", id, im.Manifest.ID, inst.Arch)
-	mach, err := d.boot(ctx, vm.BootOptions{
-		Prepare: prepare, Backend: r.backend,
-		Resolve: func(ctx context.Context) (vm.AccelResult, error) {
-			return vm.ResolveAccel(ctx, vm.NewHostProbe(qemu.OSHost{}, inst), cfg.VM.Accel, cfg.VM.Slow)
-		},
-		Events: events, Agent: agent, HostVersion: buildinfo.Get().Version, SessionID: id,
-		Progress: func(format string, args ...any) { fmt.Fprintf(r.out, "  "+format+"\n", args...) },
-		OnAgentState: func(s agentclient.State, aerr error) {
-			if !killer.Killed() { // a connection that ends because the VM is being killed is not news
-				r.agentState(s, aerr)
-			}
-		},
-	})
-	if aerr := events.Err(); aerr != nil {
-		if mach != nil {
-			_ = mach.Proc().Kill()
-		}
-		return fmt.Errorf("the audit log can no longer be written, so the session stops: %w", aerr)
-	}
-	if err != nil {
-		if parent.Err() != nil {
-			_ = rec(audit.Record{Kind: audit.KindLifecycle, Event: audit.EventKill, Actor: "system", Reason: "interrupted while booting",
-				Data: audit.ToRaw(map[string]any{"source": killswitch.SourceSignal})})
-			err = exitcode.New(exitcode.Killed, errors.New("interrupted while the VM was starting"))
-		}
-		_ = rec(audit.Record{Kind: audit.KindError, Actor: "system", Reason: err.Error()})
-		return err
-	}
-
-	killer.SetQEMU(mach.Proc())
-	if err := lock.UpdateQEMU(mach.Proc().Pid(), qemuStart(d.procs, mach.Proc().Pid())); err != nil {
-		killer.Trigger(killswitch.SourceInternal, "cannot record the VM in the session lock")
-		return err
-	}
-	var once sync.Once
-	teardown := func(context.Context) error {
-		once.Do(func() { mach.StopAgent(); removeSession() })
-		return nil
-	}
-	_ = killer.AddHook("agent and session files", teardown)
-
-	rep := mach.Report()
-	r.printReady(ctx, mach, rep, sessionDir)
-	if err := rec(audit.Record{Kind: audit.KindLifecycle, Event: "ready", Actor: "system", Data: audit.ToRaw(map[string]any{
-		"accel": rep.Accel.Chosen, "agent_version": rep.Agent.AgentVersion, "agent_sha256": rep.Agent.AgentSHA256,
-		"launch_ms": rep.Timings.Launch.Milliseconds(), "port_open_ms": rep.Timings.PortOpen.Milliseconds(),
-		"connected_ms": rep.Timings.Connected.Milliseconds(),
-	})}); err != nil {
-		killer.Trigger(killswitch.SourceAudit, err.Error())
-		return err
-	}
-
+// hold is the end of `run --no-llm --viewer none` (P3-T11): the VM side of a session with no model and no viewer. The machine is
+// up and the screen can be read; hold waits until the user stops it (Ctrl+C or `controlsnack kill`), the session timeout passes,
+// or the guest shuts down. Whatever ends it goes through the kill switch.
+func (r *runner) hold(l *live) error {
+	ctx, killer, mach, cfg, rec, end, teardown := l.ctx, l.killer, l.mach, l.cfg, l.rec, l.end, l.teardown
 	fmt.Fprintln(r.out, "Running. Press Ctrl+C to stop the VM, or run `controlsnack kill` from another terminal.")
 	var timeout <-chan time.Time
 	if t := cfg.Safety.Timeout.D(); t > 0 {

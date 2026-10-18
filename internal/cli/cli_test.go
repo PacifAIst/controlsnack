@@ -134,27 +134,6 @@ func TestUsageErrorsExitTwo(t *testing.T) {
 	}
 }
 
-func TestPlaceholdersExitSeventy(t *testing.T) {
-	// Every command that is not built yet must say so and exit 70 rather than pretend.
-	cmds := [][]string{
-		{"run", "--task", "x"},
-	}
-	for _, args := range cmds {
-		t.Run(strings.Join(args, " "), func(t *testing.T) {
-			r := runCLI(t, nil, "linux", Services{}, args...)
-			if r.code != exitcode.NotImplemented {
-				t.Fatalf("exit code %d, want 70\n%s", r.code, r.errOut)
-			}
-			if !strings.Contains(r.errOut, "not implemented yet (planned for P") {
-				t.Errorf("the message must name the task that delivers it: %q", r.errOut)
-			}
-			if strings.Contains(r.errOut, "--help") {
-				t.Errorf("exit 70 is not a usage error: %q", r.errOut)
-			}
-		})
-	}
-}
-
 // `controlsnack schema` prints the real schema in JSON mode: the response envelope and the arguments of every tool.
 func TestSchemaPrintsTheToolSchemas(t *testing.T) {
 	r := runCLI(t, nil, "linux", Services{}, "schema")

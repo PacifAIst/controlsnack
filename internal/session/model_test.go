@@ -22,6 +22,7 @@ type fakeFinder struct {
 	probeErr   error
 	backendErr error
 	noBackend  bool
+	backend    backend.Backend
 	forced     []bool
 }
 
@@ -40,6 +41,9 @@ func (f *fakeFinder) Backend(detect.Target) (backend.Backend, error) {
 	}
 	if f.noBackend {
 		return nil, nil
+	}
+	if f.backend != nil {
+		return f.backend, nil
 	}
 	return &scriptedModel{}, nil
 }

@@ -123,7 +123,9 @@ type Loop struct {
 	// (parse.MaxRepairs when 0).
 	MaxActions int
 	Repairs    int
-	Now        func() time.Time
+	// Answered is told how long each call to the model took.
+	Answered func(time.Duration)
+	Now      func() time.Time
 
 	onResume []func()
 	chatSeq  int
@@ -335,6 +337,9 @@ func (l *Loop) answer(ctx context.Context, n int) (parse.Result, []parse.ToolCal
 			}
 			out := l.modelFailed(err)
 			return parse.Result{}, nil, out, out.End != ""
+		}
+		if l.Answered != nil {
+			l.Answered(l.now().Sub(began))
 		}
 		if aerr := l.auditAnswer(n, resp, l.now().Sub(began)); aerr != nil {
 			return parse.Result{}, nil, Outcome{End: EndAudit, Err: aerr}, true

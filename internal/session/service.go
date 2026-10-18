@@ -10,6 +10,7 @@ import (
 
 	"github.com/PacifAIst/controlsnack-local/internal/config"
 	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
+	"github.com/PacifAIst/controlsnack-local/internal/viewer"
 	"github.com/PacifAIst/controlsnack-local/internal/vm"
 )
 
@@ -24,15 +25,14 @@ type runner struct {
 	backend vm.Backend
 }
 
-// NewRunner returns the runner. Until P7-T06 wires the model loop and the viewer it runs the VM side only
-// (`--no-llm --viewer none`, P3-T11) and answers every other combination with exit code 70.
+// NewRunner returns the runner.
 func NewRunner() Runner {
 	return &runner{out: os.Stdout, deps: realDeps(), backend: vm.RealBackend()}
 }
 
 func (r *runner) Run(ctx context.Context, cfg config.Config) error {
-	if cfg.Session.NoLLM && cfg.Viewer.Mode == "none" {
-		return r.bootOnly(ctx, cfg)
+	if cfg.Session.NoLLM && cfg.Viewer.Mode != viewer.ModeNone {
+		return exitcode.Usagef("--no-llm holds the VM without a model for testing, and needs --viewer none")
 	}
-	return exitcode.Pending("P7-T06")
+	return r.session(ctx, cfg)
 }
