@@ -63,6 +63,13 @@ func stepRepo() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	err = walkWeb(func(path string, content []byte) error {
+		problems = append(problems, checkWebFile(path, content)...)
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
 	if len(problems) > 0 {
 		return "", fmt.Errorf("repository checks failed:\n  %s", strings.Join(problems, "\n  "))
 	}
