@@ -40,9 +40,16 @@ func NewGuards(repeats, failures int) *Guards {
 
 // Action is told what an action came to. The action is a repeat when it has the same tool and arguments as the one before and
 // the screen is as it was: the hash the agent gave after an input, or, for what gives none, a fingerprint of what the model saw
-// and of what came back.
+// and of what came back. Waiting is not a repeat: time is what a wait is for, and it can be what the screen needs (an editor
+// that registers with the accessibility service a while after its window is up); waits are bounded by the budgets, and a wait
+// forgets the repeats before it, because the world has had time to change.
 func (g *Guards) Action(a actions.Action, s Step, screen string) string {
-	looping := g.loop.Observe(limits.ActionKey(a.Tool, a.Args), stateOf(s, screen))
+	looping := false
+	if a.Tool == actions.ToolWaitFor {
+		g.loop.Reset()
+	} else {
+		looping = g.loop.Observe(limits.ActionKey(a.Tool, a.Args), stateOf(s, screen))
+	}
 	tripped := g.breaker.Record(s.Result.OK)
 	switch {
 	case looping:

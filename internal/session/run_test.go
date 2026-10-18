@@ -100,7 +100,7 @@ func TestAHeadlessTaskRunsFromTheBootToTheEndAndTheLogVerifies(t *testing.T) {
 	}
 	out := f.out.String()
 	for _, want := range []string{"Model: qwen (VISION)", "Running the task: Print the kernel version", "Task finished in 2 turns: the kernel is 6.1.0-cs",
-		"ended (task done)", "2 turns, 2 actions (2 allowed)", "Accelerator: tcg", "Audit log:"} {
+		"ended (task done)", "2 turns, 2 actions (2 allowed)", "Accelerator: tcg", "Audit log:", "  turn 1, exec ", "  turn 2, done "} {
 		if !strings.Contains(out, want) {
 			t.Errorf("the output lacks %q:\n%s", want, out)
 		}

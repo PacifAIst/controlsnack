@@ -23,7 +23,8 @@ type Element struct {
 func (e Element) Center() (x, y int) { return e.Bounds[0] + e.Bounds[2]/2, e.Bounds[1] + e.Bounds[3]/2 }
 
 var (
-	reNode = regexp.MustCompile(`(?m)^([aw][0-9]+) (\S+) ("(?:[^"\\]|\\.)*") \[(-?[0-9]+),(-?[0-9]+),(-?[0-9]+),(-?[0-9]+)\]`)
+	// The name is left out of the line of an element that has none (the text area of an editor).
+	reNode = regexp.MustCompile(`(?m)^([aw][0-9]+) (\S+)(?: ("(?:[^"\\]|\\.)*"))? \[(-?[0-9]+),(-?[0-9]+),(-?[0-9]+),(-?[0-9]+)\]`)
 	reLine = regexp.MustCompile(`(?m)^(o[0-9]+) ("(?:[^"\\]|\\.)*") \[(-?[0-9]+),(-?[0-9]+),(-?[0-9]+),(-?[0-9]+)\]`)
 )
 
@@ -39,9 +40,12 @@ func bounds(g []string) [4]int {
 func Elements(observation string) []Element {
 	var out []Element
 	for _, g := range reNode.FindAllStringSubmatch(observation, -1) {
-		name, err := strconv.Unquote(g[3])
-		if err != nil {
-			continue
+		name := ""
+		if g[3] != "" {
+			var err error
+			if name, err = strconv.Unquote(g[3]); err != nil {
+				continue
+			}
 		}
 		out = append(out, Element{ID: g[1], Role: g[2], Name: name, Bounds: bounds(g[4:8])})
 	}

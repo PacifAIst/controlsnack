@@ -112,6 +112,10 @@ func TestStopFromThePageEndsTheTaskAndLeavesTheSessionReady(t *testing.T) {
 	pg.waitFor("the second task", func(m map[string]any) bool {
 		return m["type"] == "notice" && strings.Contains(m["text"].(string), "Task finished in 1 turns: second")
 	})
+	// The terminal carries the notices; the words and the actions are for the page.
+	if out := f.out.String(); !strings.Contains(out, "NOTE: Task finished in 1 turns: second") || strings.Contains(out, "you: ") || strings.Contains(out, "model: ") || strings.Contains(out, "  turn ") {
+		t.Errorf("the terminal with a viewer:\n%s", out)
+	}
 	cancel()
 	if err := f.waitEnd(t, done); exitcode.Of(err) != exitcode.Killed {
 		t.Errorf("error %v", err)

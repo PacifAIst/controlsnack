@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
@@ -70,7 +71,6 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 	headless := cfg.Viewer.Mode == viewer.ModeNone
 
 	var vs *viewerSide
-	var sink Sink
 	if !headless {
 		var err error
 		vs, err = newViewerSide(viewerArgs{Killer: killer, Token: l.token, Hello: r.hello(l, prof), Audit: func(rc audit.Record) {
@@ -81,12 +81,18 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 		if err != nil {
 			return err
 		}
-		sink = vs.hub
+
 	}
 
+	// What the person is told goes to the viewer and to the terminal; without a viewer the terminal is all there is.
+	term := &terminalSink{out: r.out, all: headless}
+	var all Sink = term
+	if vs != nil {
+		all = teeSink{vs.hub, term}
+	}
 	guest := prompt.Size{W: l.rep.Agent.Display.W, H: l.rep.Agent.Display.H}
 	sess, err := Assemble(Parts{Cfg: cfg, Profile: prof, Model: l.model, Agent: mach.Agent(), Monitor: mach.Monitor(), Guest: guest, User: l.rep.Agent.User,
-		Capabilities: l.rep.Agent.Capabilities, SlowBy: l.rep.Accel.TimeoutFactor(), Dir: l.sessionDir, Machine: l.sm, Viewer: sink, Audit: tally,
+		Capabilities: l.rep.Agent.Capabilities, SlowBy: l.rep.Accel.TimeoutFactor(), Dir: l.sessionDir, Machine: l.sm, Viewer: all, Audit: tally,
 		Killed: killer.Killed, Fatal: fatal, Rules: l.rules})
 	if err != nil {
 		return err
@@ -103,6 +109,17 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 		return err
 	}
 	sess.Console.Attach()
+	// With no viewer nobody can resume a task that pauses (a model that cannot be understood, a screen that cannot be read):
+	// it is stopped, and says why.
+	var pausedWhy atomic.Value
+	if headless {
+		sess.Machine.OnChange(func(c Change) {
+			if c.To == Paused {
+				pausedWhy.Store(c.Reason)
+				go sess.Console.Stop()
+			}
+		})
+	}
 
 	// The session is ready for a task.
 	if err := l.sm.To(Handshake, "the agent answered"); err != nil {
@@ -226,7 +243,7 @@ loop:
 			startTask(text)
 		case te := <-ended:
 			running = false
-			r.report(sink, te)
+			r.report(all, te)
 			switch te.out.End {
 			case EndDone, EndStopped, EndFailed:
 				if headless {
@@ -238,7 +255,7 @@ loop:
 					case te.out.End == EndFailed:
 						cause = exitcode.New(exitcode.Failure, te.out.Err)
 					default:
-						cause = exitcode.New(exitcode.Failure, errors.New("the task was stopped"))
+						cause = exitcode.New(exitcode.Failure, errors.New(stoppedWords(pausedWhy.Load())))
 					}
 					break loop
 				}
@@ -303,7 +320,6 @@ func (r *runner) report(sink Sink, te taskEnd) {
 	default:
 		return
 	}
-	fmt.Fprintln(r.out, text)
 	if sink != nil {
 		sink.Send(viewer.Notice{Level: level, Text: text})
 	}
@@ -388,4 +404,12 @@ func (r *runner) orderly(l *live, sess *Session, win *viewer.Window, dm *viewer.
 		return fmt.Errorf("stopping the VM: %w", err)
 	}
 	return nil
+}
+
+// stoppedWords says why a headless task was stopped: it paused and there is nobody to resume it, or it was stopped some other way.
+func stoppedWords(pausedWhy any) string {
+	if why, _ := pausedWhy.(string); why != "" {
+		return fmt.Sprintf("the task paused (%s) and nobody is there to resume it", why)
+	}
+	return "the task was stopped"
 }

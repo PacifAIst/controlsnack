@@ -568,3 +568,26 @@ func TestWhatTheModelSawIsFingerprintedByThePictureOrByTheTextOfTheScreen(t *tes
 		t.Error("with a picture the key is the picture's hash")
 	}
 }
+
+func TestWaitingIsNotRepeatingAndForgetsTheRepeatsBeforeIt(t *testing.T) {
+	g := NewGuards(3, 5)
+	wait := act(&actions.WaitForArgs{Condition: "seconds", Value: "10", TimeoutS: 15})
+	for i := 0; i < 10; i++ {
+		if why := g.Action(wait, hashed(true, "h"), "s"); why != "" {
+			t.Fatalf("wait %d: %q", i+1, why)
+		}
+	}
+	click := act(&actions.MouseArgs{Op: "click", X: 5, Y: 6})
+	g.Action(click, hashed(true, "h"), "s")
+	g.Action(click, hashed(true, "h"), "s")
+	g.Action(wait, hashed(true, "h"), "s")
+	if why := g.Action(click, hashed(true, "h"), "s"); why != "" {
+		t.Errorf("the third click after a wait: %q", why)
+	}
+	// But a wait that fails is still a failure.
+	g = NewGuards(3, 2)
+	g.Action(wait, hashed(false, ""), "s")
+	if why := g.Action(wait, hashed(false, ""), "s"); !strings.Contains(why, "2 actions or answers") {
+		t.Errorf("two failed waits: %q", why)
+	}
+}

@@ -348,6 +348,7 @@ func observation(t testing.TB) string {
 			{ID: "a2", Role: "menu", Name: `The "File" menu`, Bounds: prompt.Rect{5, 56, 37, 27}},
 			{ID: "a9", Role: "push button", Name: "日本語 OK", Bounds: prompt.Rect{600, 500, 80, 30}},
 			{ID: "w3", Role: "link", Name: "docs", Bounds: prompt.Rect{10, 10, 20, 20}},
+			{ID: "a12", Role: "text", States: []string{"focused", "editable"}, Bounds: prompt.Rect{6, 86, 638, 447}},
 		}},
 		OCR: &prompt.OCRBlock{Generation: "g1", Lines: []prompt.OCRLine{{ID: "o1", Text: "Applications", Bounds: prompt.Rect{21, 8, 73, 13}}, {ID: "o14", Text: "TEXT ONLY MARKER 4711", Bounds: prompt.Rect{6, 87, 209, 12}}}},
 	}
@@ -361,7 +362,7 @@ func observation(t testing.TB) string {
 func TestFindingElementsInAnObservation(t *testing.T) {
 	text := observation(t)
 	els := fakellm.Elements(text)
-	if len(els) != 4 || els[0].ID != "a1" || els[1].Name != `The "File" menu` || els[3].ID != "w3" {
+	if len(els) != 5 || els[0].ID != "a1" || els[1].Name != `The "File" menu` || els[3].ID != "w3" || els[4].ID != "a12" || els[4].Role != "text" || els[4].Name != "" || els[4].Bounds != [4]int{6, 86, 638, 447} {
 		t.Fatalf("elements = %+v", els)
 	}
 	e, ok := fakellm.Find(text, "push_button", "ok")
