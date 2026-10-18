@@ -25,6 +25,7 @@ import (
 	"github.com/PacifAIst/controlsnack-local/internal/platform"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
 	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
 )
 
 // fullRig is a runner whose VM, model and viewer window are fakes: the guest is a small desktop, the model follows a script.
@@ -497,5 +498,26 @@ func TestTheDeadmanPausesTheTaskWhenThePageGoesAndEndsTheSessionAfterAMinute(t *
 	}
 	if k := recordsOf(f.auditRecords(), "lifecycle", "kill"); len(k) != 1 || !strings.Contains(string(k[0].Data), "deadman") {
 		t.Errorf("kill %+v", k)
+	}
+}
+
+func TestWhatThePersonTypedIsCheckedBeforeWhatTheMachineHas(t *testing.T) {
+	// No QEMU, and a policy file that is not there: the second is the mistake to fix first, and it is the cheaper one.
+	f := newFullRig(t)
+	f.r.deps.discover = func(context.Context, string) (qemu.Install, error) {
+		return qemu.Install{}, errors.New("QEMU is not installed")
+	}
+	cfg := headlessConfig("Anything")
+	cfg.Safety.Policy = f.dirs.Config + "/nope.yaml"
+	if err := f.run(context.Background(), cfg); exitcode.Of(err) != exitcode.Usage {
+		t.Errorf("a missing policy file: %v", err)
+	}
+	cfg = headlessConfig("Anything")
+	cfg.VM.Resolution = "huge"
+	if err := f.run(context.Background(), cfg); exitcode.Of(err) != exitcode.Usage {
+		t.Errorf("a resolution that is not one: %v", err)
+	}
+	if err := f.run(context.Background(), headlessConfig("Anything")); exitcode.Of(err) != exitcode.Environment {
+		t.Errorf("with nothing wrong in what was typed, no QEMU is the environment's: %v", err)
 	}
 }

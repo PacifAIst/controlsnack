@@ -66,6 +66,17 @@ func (r *runner) session(parent context.Context, cfg config.Config) (err error) 
 	if err != nil {
 		return err
 	}
+	// What the person typed is checked before what the machine has: a mistake of theirs is the cheaper thing to fix.
+	w, h, err := vm.ParseResolution(cfg.VM.Resolution)
+	if err != nil {
+		return exitcode.Usagef("vm.resolution: %v", err)
+	}
+	var rules []byte
+	if cfg.Safety.Policy != "" {
+		if rules, err = os.ReadFile(cfg.Safety.Policy); err != nil {
+			return exitcode.Usagef("safety.policy: %v", err)
+		}
+	}
 	inst, err := d.discover(parent, cfg.VM.QemuDir)
 	if err != nil {
 		return exitcode.New(exitcode.Environment, err)
@@ -77,16 +88,6 @@ func (r *runner) session(parent context.Context, cfg config.Config) (err error) 
 	agent, err := d.agent(inst.Arch)
 	if err != nil {
 		return err
-	}
-	w, h, err := vm.ParseResolution(cfg.VM.Resolution)
-	if err != nil {
-		return exitcode.Usagef("vm.resolution: %v", err)
-	}
-	var rules []byte
-	if cfg.Safety.Policy != "" {
-		if rules, err = os.ReadFile(cfg.Safety.Policy); err != nil {
-			return exitcode.Usagef("safety.policy: %v", err)
-		}
 	}
 	// The model is found before anything is started: a minute and a half of boot is a long time to learn there is none.
 	var model Model

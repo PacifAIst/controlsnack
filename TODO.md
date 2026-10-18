@@ -98,7 +98,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] P8-T04 Performance pass (boot-to-ready per accelerator, always incl. tcg)
 - [ ] P8-T05 Release (`tools/dev release`; CI smoke: --version and `doctor --json` exits 0 with a verdict)
 - [ ] P8-T06 Final tracking cleanup
-- [ ] P8-T07 Tester's guide (`TESTING.md`): numbered steps for the user to test the local Qwen 3 vision model (LM Studio) and the API-based Qwen (OpenRouter) end to end, with a stopwatch for each stage, what to record, and how to report (user's plan, D-106)
+- [x] (2026-10-18, D-107) P8-T07 Tester's guide (`TESTING.md`): numbered steps for the user to test the local Qwen 3 vision model (LM Studio) and the API-based Qwen (OpenRouter) end to end, with a stopwatch for each stage, what to record, and how to report (user's plan, D-106)
 - [ ] P8-T08 Web site `www.controlsnack.com` (only after the user's tests pass): slogan "ControlSnack: Computer Use with any multimodal AI"; easy steps; a testing section with a timer and forms; static files in `site/`, hosted on Cloudflare Pages (free); no tracking (D-106)
 - [ ] P8-T09 Upload to https://github.com/PacifAIst/controlsnack — **DEFERRED: do not add a remote, push or create anything on GitHub until the user says so.** Decide the module path first (D-106), run the full gate, tag the release
 
