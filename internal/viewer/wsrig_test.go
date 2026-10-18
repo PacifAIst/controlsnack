@@ -211,7 +211,7 @@ func closed(t *testing.T, c *websocket.Conn) websocket.StatusCode {
 // until polls a condition for up to five seconds.
 func until(t *testing.T, what string, cond func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
+	deadline := time.Now().Add(min(5*time.Second, pollLimit()))
 	for !cond() {
 		if time.Now().After(deadline) {
 			t.Fatalf("timed out waiting for %s", what)

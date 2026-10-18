@@ -12,6 +12,7 @@
 //	go run ./tools/dev fuzz       run every Fuzz target for a short time
 //	go run ./tools/dev e2e        run the end-to-end tests (-tags e2e)
 //	go run ./tools/dev release    build release archives and SHA256SUMS into dist/release
+//	go run ./tools/dev mutate     change one thing on purpose and see whether a test notices (restores the file)
 package main
 
 import (
@@ -66,6 +67,7 @@ func commands() []command {
 		{"fuzz", "run every Fuzz target for a short time", cmdFuzz},
 		{"e2e", "run the end-to-end tests (-tags e2e)", cmdE2E},
 		{"release", "build release archives and SHA256SUMS", cmdRelease},
+		{"mutate", "one mutation check: -run TESTS -file F -old TEXT -new TEXT", cmdMutate},
 	}
 }
 

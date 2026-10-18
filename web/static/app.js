@@ -5,6 +5,7 @@
 import { Confirmations } from "./confirm.js";
 import { Connection, GAVE_UP } from "./connection.js";
 import { Header } from "./header.js";
+import { KillHotkeys } from "./hotkeys.js";
 import { Audit, Chat, Notices, Trace } from "./panels.js";
 import { chat, confirm, control, isFinal } from "./protocol.js";
 import { Screen } from "./screen.js";
@@ -232,3 +233,14 @@ $("kill").addEventListener("click", () => kill("button"));
 refresh();
 fetchCSRF(); // so that the kill button works even if the socket never comes up
 conn.start();
+
+// ---- the keys ----------------------------------------------------------------------------------------------------
+
+const hotkeys = new KillHotkeys({
+  kill: (src) => kill(src),
+  hint: (text) => {
+    $("hotkey-hint").textContent = text;
+    $("hotkey-hint").hidden = text === "";
+  },
+});
+window.addEventListener("keydown", (ev) => hotkeys.onKeyDown(ev));

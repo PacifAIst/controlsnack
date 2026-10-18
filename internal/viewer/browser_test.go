@@ -177,7 +177,7 @@ func (p *page) strs(expr string) []string {
 // wait polls an expression until it is true.
 func (p *page) wait(what, expr string) {
 	p.t.Helper()
-	if _, err := chromedp.Run(p.ctx, chromedp.Poll[bool](expr, chromedp.WithPollingTimeout(15*time.Second), chromedp.WithPollingInterval(25*time.Millisecond))); err != nil {
+	if _, err := chromedp.Run(p.ctx, chromedp.Poll[bool](expr, chromedp.WithPollingTimeout(pollLimit()), chromedp.WithPollingInterval(25*time.Millisecond))); err != nil {
 		p.t.Fatalf("waiting for %s: %v\n(%s)", what, err, expr)
 	}
 }
@@ -665,4 +665,13 @@ func TestTheBadgesOfDifferentSessions(t *testing.T) {
 			p.clean()
 		})
 	}
+}
+
+// pollLimit is how long the page tests wait for something to happen. CS_FAST_FAIL=1 makes it short, for running the tests many
+// times against deliberately broken code, where a wait that is going to fail should fail soon.
+func pollLimit() time.Duration {
+	if os.Getenv("CS_FAST_FAIL") != "" {
+		return 4 * time.Second
+	}
+	return 15 * time.Second
 }

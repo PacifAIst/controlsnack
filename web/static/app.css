@@ -364,3 +364,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-reject { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 .btn-approve { background: var(--panel-2); }
 .btn-approve[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+
+.hotkey-hint {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-weight: 600;
+  white-space: nowrap;
+}
