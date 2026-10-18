@@ -1,6 +1,6 @@
 # PROGRESS
 ## Now
-*(The status block to read first when resuming. Updated 2026-10-17. Details: DECISIONS.md D-00 to D-93, TODO.md "Discovered", the log below.)*
+*(The status block to read first when resuming. Updated 2026-10-17. Details: DECISIONS.md D-00 to D-94, TODO.md "Discovered", the log below.)*
 
 **Where we are.** Phases 0 to 6 are done: repo and gate, protocol and safety, VM and boot-only `run`, the guest agent and the finished image, the whole LLM layer (`internal/llm`) tested against fakes, in the real guest and against **real models** (D-83, D-84), and the **viewer** (`internal/viewer`, `web/`): server and door (D-85), WebSocket hub that never blocks the session (D-86), frame pump with its budgets (D-87), the page tested in a real browser (D-88), approval dialog (D-89), rendering-safety checks in the gate (D-90), kill hotkeys (D-91), the window launcher with whole-tree kill and the dead-man switch (D-93); `go run ./tools/dev mutate` is the mutation-check command (D-92). The viewer's exit test runs it all against a fake session (`TestTheViewerAgainstAFakeSession`). Not started: **Phase 7** (session: `internal/session`, the `run` command, e2e scenarios), **Phase 8** (docs, security review, performance, release). Phase 9 only if the user asks.
 
@@ -56,10 +56,15 @@
 | P4 | **done** 2026-10-14 | smoke list passes in the real VM (Windows 10 host, WSL2 Ubuntu 24.04, QEMU 8.2.2, accelerator **tcg**, x86_64): `TestE2EImageSmoke` and one e2e test for each request, the net bridge included (`TestE2ENetBridge`) · payload sizes below | WebP encoder: deepteams (D-57); EWMH/RandR (D-58); input (D-59, amended D-68); exec (D-60); accessibility (D-61, amended D-69); marks (D-62); OCR (D-63); browser (D-64); wait_for (D-65); guest proxy (D-66); host net bridge (D-67); the finished image (D-70) |
 | P5 | **done** 2026-10-17 (T01 to T11 on 2026-10-14; real models 2026-10-17) | the whole LLM layer against fakes and the real guest, and `llm probe` plus two live scenarios against three real models: OpenRouter `qwen/qwen3.8-omni-flash`, llama.cpp with Gemma 4 E4B (text-only), LM Studio with Qwen3-VL-4B | D-72 to D-84 |
 | P6 | **done** 2026-10-18 (T01 2026-10-17, T02 to T08 2026-10-18) | viewer against a fake session source: live frames, chat echo, a confirmation round-trip and Kill: `TestTheViewerAgainstAFakeSession`, in a real browser | D-85 to D-93 |
-| P7 | not started | | |
+| P7 | **in progress** (T01 done 2026-10-18) | e2e green on the dev machine's OS; `audit verify` passes on every e2e log | D-94 |
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-18 — P7-T01 — done
+- Changed: **`internal/session/state.go`** (`State`, `Machine`, `CanMove`, `TransitionError`, `WaitRunning`, `Wait`) and its tests.
+- Decisions: D-94 (the state machine and the plan for how the rest of the session is built).
+- Verified: all 100 pairs against a separate copy of the diagram, the shape the plan describes, the names against the viewer's, observers in order, 3,200 racing moves, the gates; race detector clean on real Linux; 16 of 16 mutations caught with `go run ./tools/dev mutate` (one of mine did not build and was redone, reported INVALID as it should be).
+- Not done: T02 to T07.
 ### 2026-10-18 — P6-T08 — done (Phase 6 done)
 - Changed: **`internal/viewer`**: `launcher.go` (`Launch`, `Finder`, `Window`), `proc_windows.go` (a job object), `proc_unix.go` (a process group), `deadman.go` (`Deadman`, `KillOnExpiry`); the hub's ping is every 5 s with `PingTimeout` 5 s · tests `launcher_test.go`, `proc_test.go` (a helper process), `alive_*_test.go`, `deadman_test.go`, `browser_exit_test.go` (the Phase 6 exit) · **`tools/dev/mutate.go`**: a baseline run, `[setup failed]` and unrecognized failures are not kills.
 - Decisions: D-93 (and the amendment to D-92 inside it).

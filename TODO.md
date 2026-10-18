@@ -83,7 +83,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [x] (2026-10-18) P6 exit — the viewer against a fake session source in a real browser: live frames through the real pump, chat echo, a confirmation rejected and one approved, pause and resume, Kill (`TestTheViewerAgainstAFakeSession`, D-93)
 
 ## Phase 7 — Integration: internal/session, run
-- [ ] P7-T01 State machine (§3.4)
+- [x] (2026-10-18) P7-T01 State machine (§3.4) with transition tests — `internal/session/state.go`: ten states, the diagram as a table (checked pair by pair), `To` and `ToIf`, observers that hear every move in the order it was made, `WaitRunning` (the turn loop's gate) and `Wait`; race detector clean; 16 of 16 mutations caught (D-94)
 - [ ] P7-T02 Turn loop + batching rules (§11)
 - [ ] P7-T03 Chat, ask_user, Stop, Pause, Step mode
 - [ ] P7-T04 Budgets, loop detection, circuit breaker, dead-man switch
