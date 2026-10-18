@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://controlsnack.com/schema/v1/viewer-ws.json",
+  "title": "ControlSnack viewer WebSocket messages",
+  "description": "The text messages of the viewer's one WebSocket (PLAN.md section 5.4). server_message is what the host sends to the page, client_message what the page sends to the host; the two share a type name (chat) and are told apart by direction. The host also sends one kind of binary message, a frame: byte 0x01, a big-endian uint32 sequence number, a big-endian uint16 width, a big-endian uint16 height, then the WebP bytes. Every string that comes from the machine or the model is shown by the page with textContent, never as markup.",
+  "$defs": {
+    "short": { "type": "string", "maxLength": 200 },
+    "line": { "type": "string", "maxLength": 2000 },
+    "text": { "type": "string", "maxLength": 20000 },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,64}$" },
+    "time": { "type": "string", "format": "date-time", "maxLength": 40 },
+    "count": { "type": "integer", "minimum": 0 },
+    "state_name": {
+      "enum": ["booting", "handshake", "ready", "running", "awaiting_confirm", "awaiting_user", "paused", "ending", "ended", "killed"]
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "w": { "type": "integer", "minimum": 0 },
+        "h": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "explanation"],
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "explanation": { "$ref": "#/$defs/line" }
+      }
+    },
+    "server_message": {
+      "oneOf": [
+        { "$ref": "#/$defs/hello" },
+        { "$ref": "#/$defs/state" },
+        { "$ref": "#/$defs/cursor" },
+        { "$ref": "#/$defs/plan" },
+        { "$ref": "#/$defs/trace" },
+        { "$ref": "#/$defs/server_chat" },
+        { "$ref": "#/$defs/confirm_request" },
+        { "$ref": "#/$defs/confirm_resolved" },
+        { "$ref": "#/$defs/audit" },
+        { "$ref": "#/$defs/stats" },
+        { "$ref": "#/$defs/notice" },
+        { "$ref": "#/$defs/ended" },
+        { "$ref": "#/$defs/pong" }
+      ]
+    },
+    "client_message": {
+      "oneOf": [
+        { "$ref": "#/$defs/client_chat" },
+        { "$ref": "#/$defs/confirm" },
+        { "$ref": "#/$defs/control" },
+        { "$ref": "#/$defs/ping" }
+      ]
+    },
+    "hello": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "proto", "session", "backend", "model", "mode", "net", "unsafe", "remote_llm", "accel", "limits", "resolution", "csrf"],
+      "properties": {
+        "type": { "const": "hello" },
+        "proto": { "type": "integer", "minimum": 1 },
+        "session": { "type": "string", "maxLength": 64 },
+        "backend": { "$ref": "#/$defs/short" },
+        "model": { "$ref": "#/$defs/short" },
+        "mode": { "enum": ["vision", "text_only"] },
+        "net": { "type": "boolean" },
+        "unsafe": { "type": "boolean" },
+        "remote_llm": { "type": "boolean" },
+        "accel": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requested", "used"],
+          "properties": {
+            "requested": { "type": "string", "maxLength": 16 },
+            "used": { "type": "string", "maxLength": 16 },
+            "fallback_reason": { "$ref": "#/$defs/line" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_turns", "max_actions", "timeout_s", "confirm_timeout_s", "idle_timeout_s"],
+          "properties": {
+            "max_turns": { "$ref": "#/$defs/count" },
+            "max_actions": { "$ref": "#/$defs/count" },
+            "timeout_s": { "$ref": "#/$defs/count" },
+            "confirm_timeout_s": { "$ref": "#/$defs/count" },
+            "idle_timeout_s": { "$ref": "#/$defs/count" }
+          }
+        },
+        "resolution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["w", "h"],
+          "properties": {
+            "w": { "type": "integer", "minimum": 1, "maximum": 16384 },
+            "h": { "type": "integer", "minimum": 1, "maximum": 16384 }
+          }
+        },
+        "csrf": { "type": "string", "minLength": 16, "maxLength": 128 }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "state", "reason"],
+      "properties": {
+        "type": { "const": "state" },
+        "state": { "$ref": "#/$defs/state_name" },
+        "reason": { "$ref": "#/$defs/line" }
+      }
+    },
+    "cursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "x", "y"],
+      "properties": {
+        "type": { "const": "cursor" },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "action_id", "tool"],
+      "properties": {
+        "type": { "const": "plan" },
+        "action_id": { "$ref": "#/$defs/id" },
+        "tool": { "type": "string", "maxLength": 64 },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" },
+        "bounds": { "$ref": "#/$defs/bounds" }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "action_id", "turn", "tool", "args", "reason", "verdict", "rules", "status", "duration_ms", "summary"],
+      "properties": {
+        "type": { "const": "trace" },
+        "action_id": { "$ref": "#/$defs/id" },
+        "turn": { "$ref": "#/$defs/count" },
+        "tool": { "type": "string", "maxLength": 64 },
+        "args": { "description": "The arguments with secrets already redacted by the host." },
+        "reason": { "$ref": "#/$defs/line" },
+        "verdict": { "enum": ["allow", "confirm", "deny"] },
+        "rules": { "type": "array", "maxItems": 32, "items": { "type": "string", "maxLength": 64 } },
+        "status": { "type": "string", "maxLength": 32 },
+        "duration_ms": { "$ref": "#/$defs/count" },
+        "summary": { "$ref": "#/$defs/line" }
+      }
+    },
+    "server_chat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "role", "text", "ts"],
+      "properties": {
+        "type": { "const": "chat" },
+        "id": { "$ref": "#/$defs/id" },
+        "role": { "enum": ["user", "assistant", "system"] },
+        "text": { "$ref": "#/$defs/text" },
+        "ts": { "$ref": "#/$defs/time" }
+      }
+    },
+    "confirm_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "action_id", "tool", "args", "rules", "reason", "expires_at"],
+      "properties": {
+        "type": { "const": "confirm_request" },
+        "id": { "$ref": "#/$defs/id" },
+        "action_id": { "$ref": "#/$defs/id" },
+        "tool": { "type": "string", "maxLength": 64 },
+        "args": { "description": "The arguments with secrets already redacted by the host." },
+        "rules": { "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/rule" } },
+        "reason": { "$ref": "#/$defs/line" },
+        "expires_at": { "$ref": "#/$defs/time" }
+      }
+    },
+    "confirm_resolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "outcome"],
+      "properties": {
+        "type": { "const": "confirm_resolved" },
+        "id": { "$ref": "#/$defs/id" },
+        "outcome": { "enum": ["approved", "rejected", "expired", "canceled"] }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "line"],
+      "properties": {
+        "type": { "const": "audit" },
+        "line": { "type": "string", "maxLength": 4000 }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kbps", "fps", "frame_bytes", "llm_ms", "actions"],
+      "properties": {
+        "type": { "const": "stats" },
+        "kbps": { "type": "number", "minimum": 0 },
+        "fps": { "type": "number", "minimum": 0 },
+        "frame_bytes": { "$ref": "#/$defs/count" },
+        "llm_ms": { "$ref": "#/$defs/count" },
+        "actions": { "$ref": "#/$defs/count" }
+      }
+    },
+    "notice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "level", "text"],
+      "properties": {
+        "type": { "const": "notice" },
+        "level": { "enum": ["info", "warn", "error"] },
+        "text": { "$ref": "#/$defs/text" }
+      }
+    },
+    "ended": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "reason", "summary"],
+      "properties": {
+        "type": { "const": "ended" },
+        "reason": { "$ref": "#/$defs/line" },
+        "summary": { "$ref": "#/$defs/text" }
+      }
+    },
+    "pong": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "t"],
+      "properties": {
+        "type": { "const": "pong" },
+        "t": { "type": "number" }
+      }
+    },
+    "client_chat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "text"],
+      "properties": {
+        "type": { "const": "chat" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 32000, "description": "At most 8000 characters; the host counts characters, not bytes, and refuses control characters other than line breaks and tabs." }
+      }
+    },
+    "confirm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "approve"],
+      "properties": {
+        "type": { "const": "confirm" },
+        "id": { "$ref": "#/$defs/id" },
+        "approve": { "type": "boolean" },
+        "note": { "type": "string", "maxLength": 2000, "description": "At most 500 characters." }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "op"],
+      "properties": {
+        "type": { "const": "control" },
+        "op": { "enum": ["pause", "resume", "stop", "kill", "step_on", "step_off"] },
+        "src": { "enum": ["button", "hotkey"], "description": "Only with kill: what the person pressed." }
+      }
+    },
+    "ping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "t"],
+      "properties": {
+        "type": { "const": "ping" },
+        "t": { "type": "number" }
+      }
+    }
+  }
+}

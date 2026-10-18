@@ -25,3 +25,9 @@ var Observation []byte
 //
 //go:embed tools/*.json
 var Tools embed.FS
+
+// ViewerWS is the JSON Schema of the viewer's WebSocket messages (schema/viewer-ws.schema.json): the definitions
+// server_message and client_message.
+//
+//go:embed viewer-ws.schema.json
+var ViewerWS []byte

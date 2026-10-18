@@ -12,6 +12,7 @@ tool (
 require (
 	github.com/chromedp/cdproto v0.157.8
 	github.com/chromedp/chromedp v0.21.0
+	github.com/coder/websocket v1.8.15
 	github.com/deepteams/webp v1.2.8
 	github.com/diskfs/go-diskfs v1.9.4
 	github.com/go-viper/mapstructure/v2 v2.5.0
