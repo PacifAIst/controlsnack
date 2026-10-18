@@ -67,7 +67,7 @@ $img = "\\wsl$\Ubuntu\home\quansloth\.cache\controlsnack\images"
 .\dist\controlsnack.exe llm probe --llm lmstudio --model qwen3-vl-4b-instruct
 ```
 
-Should list the model and then a table with `vision ok`, `native_tools ok`, `pointing ... relative` (this model points on a scale of 0 to 1000, which the program handles), and a context length. Write down: the table.
+Use the model name exactly as `llm models` prints it: if it is not `qwen3-vl-4b-instruct`, put the printed name in this and every later command that says `--model qwen3-vl-4b-instruct`. It should list the model and then a table with `vision ok`, `native_tools ok`, `pointing ... relative` (this model points on a scale of 0 to 1000, which the program handles), and a context length. Write down: the table.
 
 ## Part B. The local Qwen (LM Studio)
 
