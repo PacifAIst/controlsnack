@@ -75,6 +75,7 @@ type Hub struct {
 	mu      sync.Mutex
 	cur     *peer
 	state   []byte
+	agent   []byte
 	ended   []byte
 	cursor  []byte
 	frame   []byte
@@ -176,6 +177,8 @@ func (h *Hub) Send(m Message) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	switch v := m.(type) {
+	case Agent:
+		h.agent = b
 	case State:
 		h.state = b
 	case Ended:
@@ -229,6 +232,7 @@ func (h *Hub) snapshot() (texts [][]byte, frame []byte) {
 		}
 	}
 	add(h.state)
+	add(h.agent)
 	texts = append(texts, h.audit.items...)
 	texts = append(texts, h.hist.items...)
 	for _, id := range h.order {

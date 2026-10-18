@@ -27,6 +27,7 @@ const (
 	PathAuth  = "/auth"
 	PathWS    = "/ws"
 	PathKill  = "/api/kill"
+	PathCSRF  = "/api/csrf"
 	PathIndex = "/"
 )
 
@@ -200,6 +201,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.handleAuth(w, r)
 	case PathWS:
 		s.handleWS(w, r)
+	case PathCSRF:
+		s.handleCSRF(w, r)
 	case PathKill:
 		s.handleKill(w, r)
 	default:

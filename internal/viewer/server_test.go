@@ -68,7 +68,7 @@ func TestTheHostHeaderMustBeTheViewersAddress(t *testing.T) {
 	c := r.login()
 	_, port, _ := net.SplitHostPort(r.s.Addr())
 	for _, host := range []string{"localhost:" + port, "127.0.0.1", "127.0.0.1:1", "evil.example:" + port, "127.0.0.1:" + port + ".", "[::1]:" + port, "0.0.0.0:" + port, "127.0.0.2:" + port} {
-		for _, p := range []string{"/", "/app.js", "/auth?t=x", "/ws", "/api/kill", "/control/kill", "/nothing"} {
+		for _, p := range []string{"/", "/app.js", "/auth?t=x", "/ws", "/api/kill", "/api/csrf", "/control/kill", "/nothing"} {
 			resp, _ := r.do(req{path: p, host: host, cookie: c, method: http.MethodPost})
 			if resp.StatusCode != http.StatusForbidden {
 				t.Errorf("Host %q on %s: %s", host, p, resp.Status)
@@ -91,7 +91,7 @@ func TestEveryAnswerCarriesTheSecurityHeaders(t *testing.T) {
 		"; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 	for _, q := range []req{
 		{path: "/", cookie: c}, {path: "/"}, {path: "/app.js", cookie: c}, {path: "/nothing", cookie: c}, {path: "/auth"}, {path: "/auth?t=zzz"},
-		{path: "/ws"}, {path: "/api/kill"}, {method: http.MethodPost, path: "/api/kill"}, {method: http.MethodPost, path: "/"},
+		{path: "/ws"}, {path: "/api/kill"}, {path: "/api/csrf"}, {method: http.MethodPost, path: "/api/kill"}, {method: http.MethodPost, path: "/"},
 		{method: http.MethodPost, path: "/control/kill"}, {path: "/", host: "evil.example"}, {method: http.MethodDelete, path: "/auth"},
 	} {
 		resp, _ := r.do(q)

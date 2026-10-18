@@ -21,6 +21,8 @@ func messages() []viewer.Message {
 	x, y := 640, 400
 	return []viewer.Message{
 		viewer.State{State: viewer.StateRunning, Reason: "task started"},
+		viewer.Agent{Online: false, Detail: "the agent stopped answering; working through QEMU"},
+		viewer.Agent{Online: true},
 		viewer.Cursor{X: 10, Y: 20},
 		viewer.Plan{ActionID: "a1", Tool: "mouse", X: &x, Y: &y},
 		viewer.Plan{ActionID: "a2", Tool: "click_element", Bounds: &viewer.Bounds{X: 1, Y: 2, W: 30, H: 40}},

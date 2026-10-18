@@ -88,6 +88,7 @@ type Hello struct {
 	Limits     Limits     `json:"limits"`
 	Resolution Resolution `json:"resolution"`
 	CSRF       string     `json:"csrf"`
+	StartedAt  string     `json:"started_at"` // RFC 3339: when the session began, for the page's timer
 }
 
 // State is a change of the session's state.
@@ -320,3 +321,13 @@ func (c ConfirmRequest) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(plain(c))
 }
+
+// Agent says whether the guest agent is answering. When it is not, the session works through the fallback (the screen
+// through QEMU, keys through QMP) and the page says so over the picture.
+type Agent struct {
+	Online bool   `json:"online"`
+	Detail string `json:"detail"`
+}
+
+// MessageType implements Message.
+func (Agent) MessageType() string { return "agent" }

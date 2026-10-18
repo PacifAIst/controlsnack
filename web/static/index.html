@@ -4,10 +4,73 @@
 <meta charset="utf-8">
 <title>ControlSnack</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/app.css">
+<script type="module" src="/app.js"></script>
 </head>
 <body>
-<main id="app"><p id="status">Connecting to the session...</p></main>
-<script src="/app.js"></script>
+<header class="top" id="top">
+  <div class="top-id">
+    <span class="brand">ControlSnack</span>
+    <span class="session" id="session" title="Session">starting…</span>
+    <span class="backend" id="backend"></span>
+  </div>
+  <div class="badges" id="badges" aria-label="Session facts"></div>
+  <div class="top-figures">
+    <span class="chip state" id="state" data-state="booting">Connecting</span>
+    <span class="figure" id="timer" title="Time since the session began, and its limit">0:00</span>
+    <span class="figure" id="counters" title="Model turns and actions used, against their limits"></span>
+    <span class="figure" id="traffic" title="Data sent to this window, pictures a second, and the model's last answer time"></span>
+  </div>
+  <button type="button" class="approvals" id="approvals" hidden></button>
+  <button type="button" class="kill" id="kill" title="Ends the session now and destroys the virtual machine. Also: Ctrl+Shift+Esc, or Esc three times quickly.">Kill</button>
+</header>
+
+<main class="main">
+  <section class="screen-pane" aria-label="The virtual machine's screen">
+    <div class="screen-wrap" id="screen-wrap">
+      <canvas id="screen" width="1280" height="800" aria-label="Screen of the virtual machine"></canvas>
+      <div class="overlay" id="overlay" role="status" hidden>
+        <strong class="overlay-title" id="overlay-title"></strong>
+        <span class="overlay-detail" id="overlay-detail"></span>
+      </div>
+      <div class="banner" id="banner" role="status" hidden>
+        <strong id="banner-title"></strong>
+        <span id="banner-detail"></span>
+      </div>
+    </div>
+    <div class="notices" id="notices" role="log" aria-live="polite" aria-label="Notices"></div>
+  </section>
+
+  <aside class="side" aria-label="Conversation, actions and controls">
+    <section class="controls" aria-label="Controls">
+      <button type="button" id="pause">Pause</button>
+      <button type="button" id="stop">Stop task</button>
+      <label class="step"><input type="checkbox" id="step"> Step mode</label>
+    </section>
+
+    <section class="panel chat" aria-labelledby="chat-h">
+      <h2 id="chat-h">Chat</h2>
+      <div class="scroller" id="chat-log" role="log" aria-live="polite"></div>
+      <form class="compose" id="compose">
+        <textarea id="chat-input" rows="2" maxlength="8000" placeholder="Tell the model what to do. Enter sends, Shift+Enter starts a new line." aria-label="Message to the model"></textarea>
+        <button type="submit" id="send">Send</button>
+      </form>
+    </section>
+
+    <section class="panel trace" aria-labelledby="trace-h">
+      <h2 id="trace-h">Actions</h2>
+      <div class="scroller" id="trace-log"></div>
+    </section>
+
+    <section class="panel audit" aria-labelledby="audit-h">
+      <h2 id="audit-h">Audit log</h2>
+      <div class="scroller mono" id="audit-log"></div>
+    </section>
+  </aside>
+</main>
+
+<div id="modal-root"></div>
 </body>
 </html>

@@ -172,3 +172,22 @@ func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(data) //nolint:gosec // the bytes are a file of our own embedded front-end; the request only picks one of them
 	}
 }
+
+// handleCSRF gives the page the CSRF value for the kill button when the socket has not (yet) told it in the hello message,
+// so that the button works from the first moment the page is open. Only the logged-in window can ask, and no other site can
+// read the answer: no CORS header is ever sent, and the cookie is SameSite=Strict.
+func (s *Server) handleCSRF(w http.ResponseWriter, r *http.Request) {
+	if !allow(w, r, http.MethodGet) {
+		return
+	}
+	if _, ok := s.auth.valid(r); !ok {
+		s.refuse(w, http.StatusUnauthorized, "cookie", "the CSRF value without the viewer's cookie")
+		return
+	}
+	if !s.fromThisPage(r, false) {
+		s.refuse(w, http.StatusForbidden, "origin", "the CSRF value for another origin")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"csrf": s.csrf})
+}

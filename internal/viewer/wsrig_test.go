@@ -56,6 +56,7 @@ var sampleHello = viewer.Hello{
 	Accel:      viewer.Accel{Requested: "auto", Used: "tcg", FallbackReason: "WHPX is not available"},
 	Limits:     viewer.Limits{MaxTurns: 100, MaxActions: 60, TimeoutSec: 3600, ConfirmTimeoutSec: 60, IdleTimeoutSec: 600},
 	Resolution: viewer.Resolution{W: 1280, H: 800},
+	StartedAt:  "2026-10-18T10:00:00.000Z",
 }
 
 // hubRig is a viewer server whose socket is a real hub.
@@ -69,13 +70,25 @@ type hubRig struct {
 
 func startHub(t *testing.T, mod ...func(*viewer.HubOptions)) *hubRig {
 	t.Helper()
+	return startHubWith(t, nil, mod...)
+}
+
+// startHubWith is startHub with a change to the server's options too (the front-end it serves, for instance).
+func startHubWith(t *testing.T, serverMod func(*viewer.Options), mod ...func(*viewer.HubOptions)) *hubRig {
+	t.Helper()
 	h := &hubRig{in: &inbox{}, connect: make(chan struct{}, 16), gone: make(chan struct{}, 16)}
+	signal := func(c chan struct{}) {
+		select {
+		case c <- struct{}{}:
+		default:
+		}
+	}
 	var r *rig
 	r = start(t, func(o *viewer.Options) {
 		ho := viewer.HubOptions{
 			CSRF: func() string { return r.s.CSRF() }, Hello: func() viewer.Hello { return sampleHello }, Inbound: h.in, Killer: o.Killer,
-			OnConnect:    func() { h.connect <- struct{}{} },
-			OnDisconnect: func() { h.gone <- struct{}{} },
+			OnConnect:    func() { signal(h.connect) },
+			OnDisconnect: func() { signal(h.gone) },
 			Now:          o.Now,
 		}
 		for _, m := range mod {
@@ -87,6 +100,9 @@ func startHub(t *testing.T, mod ...func(*viewer.HubOptions)) *hubRig {
 		}
 		h.hub = hub
 		o.WebSocket = hub
+		if serverMod != nil {
+			serverMod(o)
+		}
 	})
 	h.rig = r
 	return h

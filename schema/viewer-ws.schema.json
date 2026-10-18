@@ -37,6 +37,7 @@
       "oneOf": [
         { "$ref": "#/$defs/hello" },
         { "$ref": "#/$defs/state" },
+        { "$ref": "#/$defs/agent" },
         { "$ref": "#/$defs/cursor" },
         { "$ref": "#/$defs/plan" },
         { "$ref": "#/$defs/trace" },
@@ -61,7 +62,7 @@
     "hello": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "proto", "session", "backend", "model", "mode", "net", "unsafe", "remote_llm", "accel", "limits", "resolution", "csrf"],
+      "required": ["type", "proto", "session", "backend", "model", "mode", "net", "unsafe", "remote_llm", "accel", "limits", "resolution", "csrf", "started_at"],
       "properties": {
         "type": { "const": "hello" },
         "proto": { "type": "integer", "minimum": 1 },
@@ -103,7 +104,8 @@
             "h": { "type": "integer", "minimum": 1, "maximum": 16384 }
           }
         },
-        "csrf": { "type": "string", "minLength": 16, "maxLength": 128 }
+        "csrf": { "type": "string", "minLength": 16, "maxLength": 128 },
+        "started_at": { "$ref": "#/$defs/time" }
       }
     },
     "state": {
@@ -114,6 +116,16 @@
         "type": { "const": "state" },
         "state": { "$ref": "#/$defs/state_name" },
         "reason": { "$ref": "#/$defs/line" }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "online", "detail"],
+      "properties": {
+        "type": { "const": "agent" },
+        "online": { "type": "boolean" },
+        "detail": { "$ref": "#/$defs/line" }
       }
     },
     "cursor": {
