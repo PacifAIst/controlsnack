@@ -62,7 +62,7 @@
     "hello": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "proto", "session", "backend", "model", "mode", "net", "unsafe", "remote_llm", "accel", "limits", "resolution", "csrf", "started_at"],
+      "required": ["type", "proto", "session", "backend", "model", "mode", "net", "unsafe", "remote_llm", "accel", "limits", "resolution", "csrf", "started_at", "now"],
       "properties": {
         "type": { "const": "hello" },
         "proto": { "type": "integer", "minimum": 1 },
@@ -105,7 +105,8 @@
           }
         },
         "csrf": { "type": "string", "minLength": 16, "maxLength": 128 },
-        "started_at": { "$ref": "#/$defs/time" }
+        "started_at": { "$ref": "#/$defs/time" },
+        "now": { "$ref": "#/$defs/time" }
       }
     },
     "state": {

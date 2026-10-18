@@ -2,10 +2,11 @@
 // Everything the host sends is put on the page with textContent; no markup is built from it (see panels.js).
 "use strict";
 
+import { Confirmations } from "./confirm.js";
 import { Connection, GAVE_UP } from "./connection.js";
 import { Header } from "./header.js";
 import { Audit, Chat, Notices, Trace } from "./panels.js";
-import { chat, control, isFinal } from "./protocol.js";
+import { chat, confirm, control, isFinal } from "./protocol.js";
 import { Screen } from "./screen.js";
 
 const $ = (id) => document.getElementById(id);
@@ -16,6 +17,14 @@ const chatPanel = new Chat($("chat-log"));
 const trace = new Trace($("trace-log"));
 const audit = new Audit($("audit-log"));
 const notices = new Notices($("notices"));
+const confirmations = new Confirmations({
+  root: $("modal-root"),
+  main: $("main"),
+  killButton: $("kill"),
+  answer: (id, approve, note) => conn.send(confirm(id, approve, note)),
+  notice: (level, text) => notices.add({ level, text }),
+  skew: () => app.skewMs,
+});
 
 const app = {
   csrf: "",
@@ -29,6 +38,7 @@ const app = {
   agentDetail: "",
   killRequested: false,
   planAction: "",
+  skewMs: 0, // how far the host's clock is ahead of this page's
 };
 
 // ---- what is shown over the screen --------------------------------------------------------------------------------
@@ -73,6 +83,7 @@ function clearPanels() {
   trace.clear();
   audit.clear();
   notices.clear();
+  confirmations.clear();
   screen.setPlan(null);
   header.setCounts(0, 0);
 }
@@ -84,6 +95,7 @@ function onMessage(m) {
       app.connected = true;
       app.everConnected = true;
       app.gaveUp = "";
+      app.skewMs = Date.parse(m.now) - Date.now();
       clearPanels(); // what the host replays after this fills them again
       header.setHello(m);
       screen.setGuest(m.resolution.w, m.resolution.h);
@@ -92,6 +104,7 @@ function onMessage(m) {
       app.state = m.state;
       app.stateReason = m.reason;
       header.setState(m);
+      if (isFinal(m.state)) confirmations.clear();
       break;
     case "agent":
       app.agentOnline = m.online;
@@ -129,8 +142,11 @@ function onMessage(m) {
       conn.end();
       break;
     case "confirm_request":
+      confirmations.add(m);
+      break;
     case "confirm_resolved":
-      break; // the approval dialog is P6-T05
+      confirmations.resolve(m.id, m.outcome);
+      break;
     default:
       break; // a message of a kind this page does not know
   }
@@ -145,6 +161,7 @@ const conn = new Connection(`ws://${location.host}/ws`, {
   },
   onClose({ gaveUp }) {
     app.connected = false;
+    confirmations.clear(); // the host replays what is still open when the page is back
     header.setConnected(false, app.everConnected);
     if (gaveUp) app.gaveUp = GAVE_UP[gaveUp] ?? "";
     refresh();

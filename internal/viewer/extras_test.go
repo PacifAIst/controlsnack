@@ -46,6 +46,9 @@ func TestAPageThatConnectsLaterIsToldWhetherTheAgentIsThere(t *testing.T) {
 	h.hub.Send(viewer.Agent{Online: false, Detail: "the agent stopped answering"}) // only the last one is kept
 	c := h.dial(t, h.login())
 	hello := readJSON(t, c)
+	if hello["now"] != "2026-10-17T12:00:00.000Z" { // the host's clock, here the pretend one
+		t.Errorf("now %v", hello["now"])
+	}
 	if hello["started_at"] != sampleHello.StartedAt {
 		t.Errorf("started_at %v", hello["started_at"])
 	}

@@ -23,11 +23,10 @@
     <span class="figure" id="counters" title="Model turns and actions used, against their limits"></span>
     <span class="figure" id="traffic" title="Data sent to this window, pictures a second, and the model's last answer time"></span>
   </div>
-  <button type="button" class="approvals" id="approvals" hidden></button>
   <button type="button" class="kill" id="kill" title="Ends the session now and destroys the virtual machine. Also: Ctrl+Shift+Esc, or Esc three times quickly.">Kill</button>
 </header>
 
-<main class="main">
+<main class="main" id="main">
   <section class="screen-pane" aria-label="The virtual machine's screen">
     <div class="screen-wrap" id="screen-wrap">
       <canvas id="screen" width="1280" height="800" aria-label="Screen of the virtual machine"></canvas>
@@ -71,6 +70,6 @@
   </aside>
 </main>
 
-<div id="modal-root"></div>
+<div id="modal-root" hidden></div>
 </body>
 </html>

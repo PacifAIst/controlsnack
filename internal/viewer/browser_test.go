@@ -124,13 +124,13 @@ func (p *page) ignoring(texts ...string) {
 
 func (p *page) log(s string) {
 	p.mu.Lock()
+	defer p.mu.Unlock()
 	for _, k := range p.skip {
 		if strings.Contains(s, k) {
 			return
 		}
 	}
 	p.logs = append(p.logs, s)
-	p.mu.Unlock()
 }
 
 func (p *page) logged() []string {

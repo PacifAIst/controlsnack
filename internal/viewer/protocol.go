@@ -89,6 +89,7 @@ type Hello struct {
 	Resolution Resolution `json:"resolution"`
 	CSRF       string     `json:"csrf"`
 	StartedAt  string     `json:"started_at"` // RFC 3339: when the session began, for the page's timer
+	Now        string     `json:"now"`        // RFC 3339: the host's clock when the page connected, so the page can correct its own for countdowns
 }
 
 // State is a change of the session's state.

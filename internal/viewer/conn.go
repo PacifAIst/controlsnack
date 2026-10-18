@@ -270,6 +270,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ws.SetReadLimit(MaxClientBytes)
 	hello := h.opts.Hello()
 	hello.Proto, hello.CSRF = ProtoVersion, h.opts.CSRF()
+	hello.Now = h.opts.Now().UTC().Format("2006-01-02T15:04:05.000Z07:00")
 	hb, err := Encode(hello)
 	if err != nil {
 		_ = ws.Close(websocket.StatusInternalError, "no hello")
