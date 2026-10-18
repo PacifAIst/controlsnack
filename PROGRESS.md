@@ -1,6 +1,6 @@
 # PROGRESS
 ## Now
-*(The status block to read first when resuming. Updated 2026-10-18. Details: DECISIONS.md D-00 to D-99, TODO.md "Discovered", the log below.)*
+*(The status block to read first when resuming. Updated 2026-10-18. Details: DECISIONS.md D-00 to D-100, TODO.md "Discovered", the log below.)*
 
 **Where we are.** Phases 0 to 6 are done: repo and gate, protocol and safety, VM and boot-only `run`, the guest agent and the finished image, the whole LLM layer (`internal/llm`) tested against fakes, in the real guest and against **real models** (D-83, D-84), and the **viewer** (`internal/viewer`, `web/`): server and door (D-85), WebSocket hub that never blocks the session (D-86), frame pump with its budgets (D-87), the page tested in a real browser (D-88), approval dialog (D-89), rendering-safety checks in the gate (D-90), kill hotkeys (D-91), the window launcher with whole-tree kill and the dead-man switch (D-93); `go run ./tools/dev mutate` is the mutation-check command (D-92). The viewer's exit test runs it all against a fake session (`TestTheViewerAgainstAFakeSession`). **Phase 7** (session: `internal/session`, the `run` command, e2e scenarios) is in progress: the state machine (D-94), the executor and the dispatcher (D-95), the turn loop (D-96), the console (D-97) , the guards, watchdog and dead-man (D-98) and the agent-down fallback (D-99) exist and are mutation-checked. Not started: **Phase 8** (docs, security review, performance, release). Phase 9 only if the user asks.
 
@@ -60,6 +60,12 @@
 | P8 | not started | | |
 
 ## Log (newest first)
+### 2026-10-18 — P7-T06 (part 1: the model and the assembly) — done; the runner remains
+- Changed: **`internal/session/model.go`** (`ResolveModel`: find, probe and plan the model before the VM boots) and **`assemble.go`** (`Parts`, `Assemble`, `Session`, the script reader over `file_peek`, `pictureSize`) · tests `model_test.go`, `assemble_test.go`, `assemble_more_test.go`, `assemble_cwd_test.go`.
+- Decisions: D-100.
+- Verified: 22 tests; 24 mutations of the two files caught after the weak assertions were fixed; a whole task runs through the assembled session with a fake guest, a scripted model and a fake monitor (including the agent going away in the middle).
+- Found: a fake that ignores its context hid a script read with no time limit (the mutation of the default timeout survived until the fake respected the context); a heredoc with quotes failed again (tests of more than a few lines go in with the Write tool).
+- Not done: the runner (VM, viewer, lock, tasks, net bridge, summary, `--vm`/`--keep-vm`), T07.
 ### 2026-10-18 — P7-T05 — done (the fallback is not yet run against a real guest)
 - Changed: **`internal/session/fallback.go`** (`Fallback`: the agent's `screenshot`, `screen_info` and `input` through QEMU's monitor; `Link`: the agent or the fallback for every call, and the person told once per change) and **`qemukeys.go`** (keysyms to QEMU key codes on a US keyboard) · `loop.go` (`modelAdvice`: what the person can do about each way the model can fail; `words`) · tests `fallback_test.go`, additions to `loop_more_test.go`.
 - Decisions: D-99.
