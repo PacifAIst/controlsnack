@@ -177,7 +177,7 @@ func TestTheRulesAreNamedOnceEachToThePersonAndToTheModel(t *testing.T) {
 
 func TestAnErrorFromTheRulesOfNoToolIsNotInventedWhenNothingIsKnown(t *testing.T) {
 	// A refusal with no rule to name still says it is refused (the profile can refuse on its own account).
-	if got := refusedWords(nil); got != "Refused by the safety rules." {
+	if got := refusedWords(nil); got != "Refused by the safety rules" {
 		t.Errorf("%q", got)
 	}
 }

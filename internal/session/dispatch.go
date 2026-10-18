@@ -224,9 +224,9 @@ func refusedWords(hits []policy.RuleHit) string {
 		parts = append(parts, fmt.Sprintf("%s (%s)", h.ID, h.Explanation))
 	}
 	if len(parts) == 0 {
-		return "Refused by the safety rules."
+		return "Refused by the safety rules"
 	}
-	return "Refused by the safety rules: " + strings.Join(parts, "; ") + ". Do not try to get around this: do it another way, or ask the user."
+	return "Refused by the safety rules: " + strings.Join(parts, "; ")
 }
 
 // Run carries out one action under the rules.
@@ -235,6 +235,10 @@ func (d *Dispatcher) Run(ctx context.Context, in Input) Step {
 	res := prompt.Result{CallID: in.CallID, Tool: tool, Action: prompt.Describe(in.Action)}
 	done := func(r prompt.Result, stop Stop) Step {
 		r.CallID, r.Tool, r.Action = res.CallID, tool, res.Action
+		if !r.OK {
+			// What to do instead is the same sentence wherever the failure came from.
+			r.Detail = strings.TrimRight(r.Detail, " .") + prompt.Hint(r.Code)
+		}
 		return Step{Result: r, Stop: stop}
 	}
 
@@ -271,7 +275,7 @@ func (d *Dispatcher) Run(ctx context.Context, in Input) Step {
 		if aerr := d.record(rec); aerr != nil {
 			step.Stop, step.Err = StopAudit, aerr
 		}
-		trace.Status, trace.DurationMS, trace.Summary = status, ms, step.Result.Detail
+		trace.Status, trace.DurationMS, trace.Summary = status, ms, r.Detail
 		d.send(trace)
 		return step
 	}
@@ -289,20 +293,20 @@ func (d *Dispatcher) Run(ctx context.Context, in Input) Step {
 		d.Machine.ToIf([]State{AwaitingConfirm}, Running, "answered")
 		note = cres.Note
 		if !cres.Approved() {
-			code, detail, stop := actions.CodeUserRejected, "The user rejected this action. Do not repeat it: do it another way, or ask the user.", StopBatch
+			code, detail, stop := actions.CodeUserRejected, "The user rejected this action", StopBatch
 			word, status := "rejected", "rejected"
 			switch cres.Outcome {
 			case confirm.Timeout:
-				code, detail, word, status = actions.CodeConfirmTimeout, "Nobody answered in time, so the action was not approved.", "confirm_timeout", "expired"
+				code, detail, word, status = actions.CodeConfirmTimeout, "Nobody answered in time, so the action was not approved", "confirm_timeout", "expired"
 			case confirm.NoViewer:
-				detail, word, status = "Nobody is watching, so the action could not be approved.", "no_viewer", "rejected"
+				detail, word, status = "Nobody is watching, so the action could not be approved", "no_viewer", "rejected"
 			case confirm.Failed:
-				detail, word, status = "The request could not be shown to the user, so the action was not approved.", "confirm_failed", "rejected"
+				detail, word, status = "The request could not be shown to the user, so the action was not approved", "confirm_failed", "rejected"
 			case confirm.Canceled:
-				code, detail, stop, word, status = actions.CodeInternal, "The request was canceled.", StopCanceled, "canceled", "canceled"
+				code, detail, stop, word, status = actions.CodeInternal, "The request was canceled", StopCanceled, "canceled", "canceled"
 			}
 			if cres.Note != "" {
-				detail += " The user wrote: " + guestWords(cres.Note)
+				detail += ". The user wrote: " + guestWords(cres.Note)
 			}
 			return finish(word, prompt.Result{Code: code, Detail: detail}, stop, status, 0)
 		}
@@ -316,9 +320,9 @@ func (d *Dispatcher) Run(ctx context.Context, in Input) Step {
 			var be *limits.BudgetError
 			switch {
 			case errors.Is(err, limits.ErrRateLimited):
-				return finish("rate_limited", prompt.Result{Code: actions.CodeRateLimited, Detail: "Too many actions too quickly. Wait, and do fewer things at once."}, StopBatch, "failed", 0)
+				return finish("rate_limited", prompt.Result{Code: actions.CodeRateLimited, Detail: "Too many actions too quickly"}, StopBatch, "failed", 0)
 			case errors.Is(err, limits.ErrSessionTimeout):
-				return finish("session_timeout", prompt.Result{Code: actions.CodeBudgetExhausted, Detail: "The session's time is up."}, StopTimeout, "failed", 0)
+				return finish("session_timeout", prompt.Result{Code: actions.CodeBudgetExhausted, Detail: "The session's time is up"}, StopTimeout, "failed", 0)
 			case errors.As(err, &be):
 				// The allowance of one response is spent by that response alone: the next one has its own. The task's is not.
 				stop := StopBudget
@@ -346,7 +350,7 @@ func (d *Dispatcher) Run(ctx context.Context, in Input) Step {
 	ms := d.now().Sub(began).Milliseconds()
 	r := out.Result
 	if note != "" {
-		r.Detail += " The user approved it and wrote: " + guestWords(note)
+		r.Detail += ". The user approved it and wrote: " + guestWords(note)
 	}
 	status := "done"
 	if !r.OK {

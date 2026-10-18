@@ -250,7 +250,7 @@ func TestAnAllowedActionIsOnRecordBeforeItRunsAndAfter(t *testing.T) {
 func TestADeniedActionIsNeverRunNeverChargedAndAlwaysRecorded(t *testing.T) {
 	r := newDgrid(t)
 	step := r.run(&actions.ExecArgs{Command: "rm -rf /", TimeoutS: 60}, "clean up")
-	if step.Stop != StopBatch || step.Result.OK || step.Result.Code != actions.CodePolicyDenied || !strings.Contains(step.Result.Detail, "Refused by the safety rules") || !strings.Contains(step.Result.Detail, "Do not try to get around this") {
+	if step.Stop != StopBatch || step.Result.OK || step.Result.Code != actions.CodePolicyDenied || !strings.Contains(step.Result.Detail, "Refused by the safety rules") || !strings.Contains(step.Result.Detail, "do not try to get around them") {
 		t.Fatalf("step %+v", step)
 	}
 	if r.agent.count() != 0 {
@@ -317,7 +317,7 @@ func TestAnActionThePersonDoesNotApproveIsNotRun(t *testing.T) {
 		stop    Stop
 		detail  string
 	}{
-		"rejected":  {func(r *dgrid) { r.asker.answer, r.asker.approve, r.asker.note = true, false, "not now" }, actions.CodeUserRejected, "rejected", "rejected", StopBatch, "The user rejected this action. Do not repeat it"},
+		"rejected":  {func(r *dgrid) { r.asker.answer, r.asker.approve, r.asker.note = true, false, "not now" }, actions.CodeUserRejected, "rejected", "rejected", StopBatch, "The user rejected this action. The user wrote: not now. The user said no. Do not repeat it"},
 		"no viewer": {func(r *dgrid) { r.d.Broker.SetPresenter(nil) }, actions.CodeUserRejected, "no_viewer", "rejected", StopBatch, "Nobody is watching"},
 	} {
 		r := newDgrid(t)

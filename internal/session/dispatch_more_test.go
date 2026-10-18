@@ -85,3 +85,21 @@ func TestThePlanOfATextEntryShowsTheFieldItWillFill(t *testing.T) {
 		t.Errorf("plan %+v", p)
 	}
 }
+
+func TestTheAdviceIsForTheModelAndNotForTheViewerAndSentencesAreNotDoubled(t *testing.T) {
+	g := newDgrid(t)
+	step := g.run(&actions.ExecArgs{Command: "rm -rf /", TimeoutS: 60}, "")
+	tr := g.view.traces()
+	if len(tr) != 1 || !strings.HasPrefix(tr[0].Summary, "Refused by the safety rules: ") || strings.Contains(tr[0].Summary, "do not try to get around") {
+		t.Errorf("the viewer is told %q", tr[0].Summary)
+	}
+	if !strings.Contains(step.Result.Detail, "do not try to get around") {
+		t.Errorf("the model is told %q", step.Result.Detail)
+	}
+	g = newDgrid(t)
+	g.asker.answer, g.asker.approve, g.asker.note = true, false, "not now."
+	step = g.run(&actions.ExecArgs{Command: "rm -r ~/work/old", TimeoutS: 60}, "")
+	if strings.Contains(step.Result.Detail, "..") || !strings.Contains(step.Result.Detail, "The user wrote: not now. The user said no.") {
+		t.Errorf("detail %q", step.Result.Detail)
+	}
+}
