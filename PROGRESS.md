@@ -1,6 +1,6 @@
 # PROGRESS
 ## Now
-*(The status block to read first when resuming. Updated 2026-10-18. Details: DECISIONS.md D-00 to D-108, TODO.md "Discovered", the log below.)*
+*(The status block to read first when resuming. Updated 2026-10-18. Details: DECISIONS.md D-00 to D-109, TODO.md "Discovered", the log below.)*
 
 **Where we are.** Phases 0 to 7 are done: `controlsnack run` runs a whole session on a real VM (D-102 has the e2e scenarios and what they found). Phases 0 to 6 are: repo and gate, protocol and safety, VM and boot-only `run`, the guest agent and the finished image, the whole LLM layer (`internal/llm`) tested against fakes, in the real guest and against **real models** (D-83, D-84), and the **viewer** (`internal/viewer`, `web/`): server and door (D-85), WebSocket hub that never blocks the session (D-86), frame pump with its budgets (D-87), the page tested in a real browser (D-88), approval dialog (D-89), rendering-safety checks in the gate (D-90), kill hotkeys (D-91), the window launcher with whole-tree kill and the dead-man switch (D-93); `go run ./tools/dev mutate` is the mutation-check command (D-92). The viewer's exit test runs it all against a fake session (`TestTheViewerAgainstAFakeSession`). **Phase 7** (session: `internal/session`, the `run` command, e2e scenarios) is done: the state machine (D-94), the executor and the dispatcher (D-95), the turn loop (D-96), the console (D-97), the guards, watchdog and dead-man (D-98), the agent-down fallback (D-99), the assembly (D-100), the runner that joins them to the VM, the viewer and the log (D-101), all mutation-checked, and the e2e scenarios on a real guest with a scripted model (D-102). **Phase 8** (docs, security review, performance, release) is in progress: the README is written (D-103). Phase 9 only if the user asks.
 
@@ -62,6 +62,12 @@
 | P8 | **in progress** (T01 to T03 done 2026-10-18) | README with the compatibility matrix and the numbers; third-party notices; security review; release binaries and a smoke test on each OS | D-103 |
 
 ## Log (newest first)
+### 2026-10-18 — P8-T08 (draft) — the site is written and tested; not published
+- Changed: **`site/`** (index, style, app, 404, favicon, `_headers`, robots), **`internal/sitecheck`** (the site's tests), **`docs/DEPLOY-SITE.md`** (Cloudflare Pages: Direct Upload now, Git later; the domain; what to change before the first publish).
+- Decisions: D-109.
+- Verified: static checks; a real browser with the policy of `_headers` (no console error; tabs, timer, laps, report, persistence, Clear; phone width; 404); 11 mutations of the script.
+- Found by the first browser run: the report did not follow the stage times; the page was wider than a phone (grid items that did not shrink).
+- Not done: publishing (the user's tests first), the real GitHub and download links (P8-T09).
 ### 2026-10-18 — finishing the functionality (step 1 of the plan): kept VMs, the step field, release and CI
 - Changed: `vm.Machine.Shutdown` (the guest powers itself off through the agent; the button only as a fallback), the runner calls it for kept VMs (`powerOff`), the agent-state notices stop once the session is ending; `viewer.Hello.step` (protocol, schema, page, session); `.github/workflows/ci.yml` (actions at their current majors: checkout 7, setup-go 7, cache 6, upload-artifact 7; a release-archives smoke step) and `tools/dev release` (TESTING.md in the archives).
 - Decisions: D-108.

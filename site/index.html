@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ControlSnack: Computer Use with any multimodal AI</title>
+<meta name="description" content="ControlSnack gives a vision model a throwaway Linux desktop in a sandbox on your own computer. Local, open source, with a kill switch. Works with LM Studio, Ollama, llama.cpp, OpenRouter and Anthropic.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="#top" aria-label="ControlSnack, top of the page">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect class="logo-bg" x="2" y="2" width="28" height="28" rx="8"/><path class="logo-mark" d="M9 21l5-5-5-5M16 22h7"/></svg>
+      <span>ControlSnack</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#steps">Easy steps</a>
+      <a href="#models">Models</a>
+      <a href="#safety">Safety</a>
+      <a href="#test" class="pill">Test it</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Open source · AGPL-3.0 · runs on your own machine</p>
+      <h1>ControlSnack: Computer Use with any multimodal AI</h1>
+      <p class="lead">Give a vision model a throwaway Linux desktop inside a sandbox on your computer. Watch it click, type and run commands. Stop it with one button, in milliseconds.</p>
+      <p class="cta">
+        <a class="btn primary" href="#steps">Get started in 5 steps</a>
+        <a class="btn" href="#test">Test it with a timer</a>
+      </p>
+      <p class="status" role="note"><strong>Pre-release.</strong> Built and tested on Linux in a real VM; the first runs on Windows and with a real model are being done now. Until downloads exist you build it from source.</p>
+    </div>
+
+    <figure class="shot" aria-label="A sketch of the viewer: the guest's desktop on the left, the model's actions on the right">
+      <svg viewBox="0 0 560 360" role="img" aria-labelledby="shot-title">
+        <title id="shot-title">The viewer: the guest desktop and the log of the model's actions</title>
+        <rect class="s-win" x="2" y="2" width="556" height="356" rx="14"/>
+        <rect class="s-bar" x="2" y="2" width="556" height="34" rx="14"/>
+        <rect class="s-bar" x="2" y="20" width="556" height="16"/>
+        <circle class="s-dot s-d1" cx="22" cy="19" r="5"/><circle class="s-dot s-d2" cx="40" cy="19" r="5"/><circle class="s-dot s-d3" cx="58" cy="19" r="5"/>
+        <text class="s-title" x="84" y="23">Session s_3f9a1c · qwen3-vl-4b · vision · NET OFF</text>
+        <rect class="s-kill" x="476" y="9" width="66" height="20" rx="6"/>
+        <text class="s-killt" x="509" y="23" text-anchor="middle">Kill</text>
+        <rect class="s-desk" x="14" y="46" width="352" height="300" rx="8"/>
+        <rect class="s-panel" x="14" y="46" width="352" height="16" rx="8"/>
+        <rect class="s-term" x="44" y="84" width="248" height="150" rx="8"/>
+        <rect class="s-termbar" x="44" y="84" width="248" height="20" rx="8"/>
+        <text class="s-mono" x="56" y="132">$ uname -r</text>
+        <text class="s-mono s-ok" x="56" y="150">6.12.x+deb13-amd64</text>
+        <text class="s-mono" x="56" y="172">$ <tspan class="s-cursor">▌</tspan></text>
+        <circle class="s-ptr" cx="214" cy="196" r="7"/>
+        <rect class="s-feed" x="378" y="46" width="168" height="300" rx="8"/>
+        <text class="s-h" x="390" y="68">Actions</text>
+        <text class="s-line" x="390" y="92">1 exec  uname -r</text>
+        <text class="s-line s-ok" x="390" y="108">   allowed · exit 0</text>
+        <text class="s-line" x="390" y="132">2 mouse  click (214, 196)</text>
+        <text class="s-line s-ok" x="390" y="148">   allowed</text>
+        <text class="s-line" x="390" y="172">3 exec  rm -rf /</text>
+        <text class="s-line s-no" x="390" y="188">   refused · DENY-ROOT-WIPE</text>
+        <text class="s-line" x="390" y="212">4 done  kernel printed</text>
+      </svg>
+    </figure>
+  </div>
+</section>
+
+<section class="band" id="what">
+  <div class="wrap">
+    <h2>What you get</h2>
+    <div class="cards">
+      <article class="card">
+        <h3>Any model that can see</h3>
+        <p>Point it at a model server you already run, or at a remote one: LM Studio, Ollama, llama.cpp, any OpenAI-compatible API such as OpenRouter, or Anthropic. A model that cannot see still works through the accessibility tree and the recognized text of the screen.</p>
+      </article>
+      <article class="card">
+        <h3>A sandbox, not a promise</h3>
+        <p>The model works inside a QEMU virtual machine with no network device and nothing shared with your computer. Every action is checked against a policy and written to a tamper-evident log before it runs.</p>
+      </article>
+      <article class="card">
+        <h3>Yours alone</h3>
+        <p>One program, no account, no cloud, no telemetry. The desktop is deleted when the session ends. The only thing that leaves your machine is what you send to the model you chose.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="sub">Four parts, each with one job. The model never touches your computer; it can only ask ControlSnack to act in the VM.</p>
+    <figure class="flow">
+      <svg viewBox="0 0 880 210" role="img" aria-labelledby="flow-title">
+        <title id="flow-title">You, the viewer, ControlSnack and the virtual machine, with the model connected to ControlSnack</title>
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="f-arrowhead" d="M0 0L10 5L0 10z"/></marker></defs>
+        <rect class="f-box" x="10" y="70" width="150" height="70" rx="12"/><text class="f-t" x="85" y="102" text-anchor="middle">You</text><text class="f-s" x="85" y="122" text-anchor="middle">viewer window</text>
+        <rect class="f-box f-core" x="250" y="50" width="190" height="110" rx="12"/><text class="f-t" x="345" y="90" text-anchor="middle">ControlSnack</text><text class="f-s" x="345" y="110" text-anchor="middle">policy · limits · audit</text><text class="f-s" x="345" y="128" text-anchor="middle">kill switch</text>
+        <rect class="f-box" x="530" y="70" width="170" height="70" rx="12"/><text class="f-t" x="615" y="102" text-anchor="middle">QEMU VM</text><text class="f-s" x="615" y="122" text-anchor="middle">Debian + XFCE, no NIC</text>
+        <rect class="f-box f-model" x="250" y="170" width="190" height="34" rx="10"/><text class="f-s" x="345" y="192" text-anchor="middle">the model (local or remote)</text>
+        <path class="f-line" d="M160 105H250" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <path class="f-line" d="M440 105H530" marker-start="url(#ah)" marker-end="url(#ah)"/>
+        <path class="f-line f-dash" d="M345 160V170" marker-end="url(#ah)"/>
+        <text class="f-note" x="205" y="96" text-anchor="middle">pictures, chat</text>
+        <text class="f-note" x="485" y="96" text-anchor="middle">validated actions</text>
+        <rect class="f-box f-dim" x="740" y="70" width="130" height="70" rx="12"/><text class="f-t" x="805" y="102" text-anchor="middle">Your files</text><text class="f-s" x="805" y="122" text-anchor="middle">not reachable</text>
+        <path class="f-line f-dash f-no" d="M700 105H740"/>
+        <text class="f-no-x" x="720" y="100" text-anchor="middle">×</text>
+      </svg>
+    </figure>
+    <ol class="loop">
+      <li><strong>Look.</strong> A screenshot, the accessibility tree and the recognized text of the screen go to the model.</li>
+      <li><strong>Decide.</strong> The model answers with actions: click, type, key, run a command, wait.</li>
+      <li><strong>Check.</strong> ControlSnack validates each action, applies the rules, asks you when a rule says so, and records the decision.</li>
+      <li><strong>Act.</strong> Only then does the action run in the VM, and its result goes back to the model.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="band" id="steps">
+  <div class="wrap">
+    <h2>Easy steps</h2>
+    <p class="sub">Five steps to a first task. The same on every system except step 1. Until there are downloads, step 2 builds the program from source (Go 1.26 or newer).</p>
+
+    <div class="tabs" role="tablist" aria-label="Your system">
+      <button role="tab" id="tab-windows" aria-controls="panel-windows" aria-selected="true" data-os="windows">Windows</button>
+      <button role="tab" id="tab-mac" aria-controls="panel-mac" aria-selected="false" data-os="mac" tabindex="-1">macOS</button>
+      <button role="tab" id="tab-linux" aria-controls="panel-linux" aria-selected="false" data-os="linux" tabindex="-1">Linux</button>
+    </div>
+
+    <div id="panel-windows" class="panel" role="tabpanel" aria-labelledby="tab-windows">
+      <ol class="steps">
+        <li>
+          <h3>Install QEMU</h3>
+          <p>In PowerShell. Windows Home works: if the Hypervisor Platform is off, ControlSnack uses software emulation and says so.</p>
+          <pre class="cmd" data-copy><code>winget install SoftwareFreedomConservancy.QEMU</code></pre>
+        </li>
+        <li>
+          <h3>Get ControlSnack</h3>
+          <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
+cd controlsnack
+go run ./tools/dev build</code></pre>
+          <p class="note">The repository is not public yet; the address is where it will be.</p>
+        </li>
+        <li>
+          <h3>Ask <code>doctor</code></h3>
+          <p>It changes nothing and ends with the verdict a run would act on: <em>will use whpx</em> or <em>will use tcg (slow)</em>.</p>
+          <pre class="cmd" data-copy><code>.\dist\controlsnack.exe doctor</code></pre>
+        </li>
+        <li>
+          <h3>Get the base image (once)</h3>
+          <p>Downloads Debian and builds the desktop, 10 to 40 minutes without hardware acceleration. Or import one built elsewhere with <code>image import</code>.</p>
+          <pre class="cmd" data-copy><code>.\dist\controlsnack.exe image build</code></pre>
+        </li>
+        <li>
+          <h3>Run</h3>
+          <p>Start a model server first (see <a href="#models">Models</a>), then:</p>
+          <pre class="cmd" data-copy><code>.\dist\controlsnack.exe run --task "Open a terminal and print the kernel version"</code></pre>
+        </li>
+      </ol>
+    </div>
+
+    <div id="panel-mac" class="panel" role="tabpanel" aria-labelledby="tab-mac" hidden>
+      <ol class="steps">
+        <li>
+          <h3>Install QEMU</h3>
+          <pre class="cmd" data-copy><code>brew install qemu</code></pre>
+        </li>
+        <li>
+          <h3>Get ControlSnack</h3>
+          <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
+cd controlsnack
+go run ./tools/dev build</code></pre>
+          <p class="note">The repository is not public yet. macOS has not been tested.</p>
+        </li>
+        <li>
+          <h3>Ask <code>doctor</code></h3>
+          <p>It expects <em>will use hvf</em> on a machine of the same kind as the guest.</p>
+          <pre class="cmd" data-copy><code>./dist/controlsnack doctor</code></pre>
+        </li>
+        <li>
+          <h3>Get the base image (once)</h3>
+          <pre class="cmd" data-copy><code>./dist/controlsnack image build</code></pre>
+        </li>
+        <li>
+          <h3>Run</h3>
+          <pre class="cmd" data-copy><code>./dist/controlsnack run --task "Open a terminal and print the kernel version"</code></pre>
+        </li>
+      </ol>
+    </div>
+
+    <div id="panel-linux" class="panel" role="tabpanel" aria-labelledby="tab-linux" hidden>
+      <ol class="steps">
+        <li>
+          <h3>Install QEMU</h3>
+          <p>Debian or Ubuntu. For hardware acceleration your user needs access to <code>/dev/kvm</code>.</p>
+          <pre class="cmd" data-copy><code>sudo apt install qemu-system-x86 qemu-utils
+sudo usermod -aG kvm $USER</code></pre>
+        </li>
+        <li>
+          <h3>Get ControlSnack</h3>
+          <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
+cd controlsnack
+go run ./tools/dev build</code></pre>
+          <p class="note">The repository is not public yet.</p>
+        </li>
+        <li>
+          <h3>Ask <code>doctor</code></h3>
+          <pre class="cmd" data-copy><code>./dist/controlsnack doctor</code></pre>
+        </li>
+        <li>
+          <h3>Get the base image (once)</h3>
+          <pre class="cmd" data-copy><code>./dist/controlsnack image build</code></pre>
+        </li>
+        <li>
+          <h3>Run</h3>
+          <pre class="cmd" data-copy><code>./dist/controlsnack run --task "Open a terminal and print the kernel version"</code></pre>
+        </li>
+      </ol>
+    </div>
+
+    <p class="after">A window opens with the guest's desktop. <strong>Kill</strong> ends the VM at once; so do <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>, <kbd>Esc</kbd> three times, and <code>controlsnack kill</code> from another terminal.</p>
+  </div>
+</section>
+
+<section id="models">
+  <div class="wrap">
+    <h2>Works with</h2>
+    <p class="sub">Only what was tested is listed as tested. <code>controlsnack llm probe</code> tells you the same about your own model.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Backend</th><th scope="col">Model</th><th scope="col">Sees</th><th scope="col">Tools</th><th scope="col">Notes</th></tr></thead>
+        <tbody>
+          <tr><td>OpenAI-compatible (OpenRouter)</td><td>qwen/qwen3.8-omni-flash</td><td>yes</td><td>native</td><td>Points in pixels. Tested.</td></tr>
+          <tr><td>LM Studio</td><td>qwen3-vl-4b-instruct</td><td>yes</td><td>native</td><td>Points on a 0 to 1000 scale (detected). 1 to 2.4 s a turn on a 6 GB laptop GPU. Tested.</td></tr>
+          <tr><td>llama.cpp</td><td>Gemma 4 E4B</td><td>no</td><td>native</td><td>Text-only mode through the accessibility tree. Tested.</td></tr>
+          <tr><td>Ollama</td><td>any vision model</td><td>expected</td><td>expected</td><td>Not yet tried with a real model.</td></tr>
+          <tr><td>Anthropic API</td><td>Claude models</td><td>expected</td><td>expected</td><td>Not yet tried with a real model.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="fine">The tested rows ran through the whole model layer on two small tasks. A real model driving a complete session in the VM is the test this site asks you to help with.</p>
+  </div>
+</section>
+
+<section class="band" id="safety">
+  <div class="wrap">
+    <h2>Safety, in short</h2>
+    <ul class="checks">
+      <li><strong>No network device.</strong> The guest cannot reach your network. <code>--allow-net</code> opens a bridge that refuses private and local addresses.</li>
+      <li><strong>Nothing shared.</strong> No folders, no clipboard, no USB. Nothing the model does runs on your computer.</li>
+      <li><strong>Every action judged first.</strong> Wiping the system, fork bombs, privilege escalation and the like are refused; deleting or overwriting asks you.</li>
+      <li><strong>A log that cannot be quietly edited.</strong> Each record carries the hash of the one before; <code>audit verify</code> checks the chain.</li>
+      <li><strong>Kill in milliseconds.</strong> The VM stopped 14 ms after the kill in the tests, from the button, the keyboard or another terminal. If you walk away, the session pauses and ends.</li>
+      <li><strong>What the screen says is data.</strong> Text from the guest is fenced and never taken as an instruction.</li>
+    </ul>
+    <p class="fine">The command policy is a guardrail; the boundary is the VM. The README lists what it does not cover and the risks that remain.</p>
+  </div>
+</section>
+
+<section id="test">
+  <div class="wrap">
+    <h2>Test it</h2>
+    <p class="sub">Help check that it works on your machine. Start the timer, do the steps above, mark each stage when it is done, answer the checks, and copy the report. <strong>Nothing here is sent anywhere</strong>: the page builds the report in your browser.</p>
+
+    <div class="test-grid">
+      <div class="box" aria-labelledby="timer-h">
+        <h3 id="timer-h">1. The timer</h3>
+        <p class="clock" id="clock" role="timer" aria-live="off">00:00.0</p>
+        <p class="row">
+          <button class="btn primary" id="t-start" type="button">Start</button>
+          <button class="btn" id="t-pause" type="button" disabled>Pause</button>
+          <button class="btn" id="t-reset" type="button">Reset</button>
+        </p>
+        <ol class="stages" id="stages"></ol>
+        <p class="fine">Press <em>Done</em> when a stage ends: it records the time since the one before. You can type a time by hand (for example from the terminal's own <em>Boot with ...</em> line).</p>
+      </div>
+
+      <form class="box" id="report-form" autocomplete="off" aria-labelledby="form-h">
+        <h3 id="form-h">2. Your setup</h3>
+        <div class="fields">
+          <label>System
+            <select name="os">
+              <option value="">Choose…</option>
+              <option>Windows 10</option><option>Windows 11</option>
+              <option>macOS (Apple silicon)</option><option>macOS (Intel)</option>
+              <option>Linux (x86_64)</option><option>Linux (arm64)</option><option>Other</option>
+            </select>
+          </label>
+          <label>Accelerator <span class="hint">from <code>doctor</code></span>
+            <select name="accel">
+              <option value="">Not sure</option>
+              <option>whpx</option><option>kvm</option><option>hvf</option><option>tcg (software)</option>
+            </select>
+          </label>
+          <label>Memory (GB) <input name="ram" type="number" min="1" max="1024" inputmode="numeric"></label>
+          <label>Processor <input name="cpu" type="text" maxlength="80" placeholder="for example Intel i7-10870H"></label>
+          <label>ControlSnack <span class="hint">output of <code>version</code></span> <input name="version" type="text" maxlength="120"></label>
+          <label>QEMU version <input name="qemu" type="text" maxlength="60" placeholder="for example 8.2.2"></label>
+          <label>Backend
+            <select name="backend">
+              <option value="">Choose…</option>
+              <option>LM Studio</option><option>Ollama</option><option>llama.cpp</option>
+              <option>OpenRouter / OpenAI-compatible</option><option>Anthropic</option><option>Other</option>
+            </select>
+          </label>
+          <label>Model <input name="model" type="text" maxlength="80" list="model-list" placeholder="for example qwen3-vl-4b-instruct">
+            <datalist id="model-list"><option value="qwen3-vl-4b-instruct"><option value="qwen/qwen3.8-omni-flash"><option value="gemma-4-e4b"></datalist>
+          </label>
+          <label>Where it runs
+            <select name="where"><option value="">Choose…</option><option>On this machine</option><option>On another machine (remote)</option></select>
+          </label>
+        </div>
+
+        <h3>3. What happened</h3>
+        <div class="checklist" id="checklist" role="group" aria-label="Checks"></div>
+
+        <h3>4. Anything odd</h3>
+        <label class="full">Notes <textarea name="notes" rows="4" maxlength="2000" placeholder="A window that did not open, a pause, a message you did not understand…"></textarea></label>
+      </form>
+    </div>
+
+    <div class="box report" aria-labelledby="report-h">
+      <h3 id="report-h">5. Your report</h3>
+      <p class="fine">Copy it, or download it, and send it to whoever asked you to test. It contains only what is on this page.</p>
+      <label class="full"><span class="vh">The report</span><textarea id="report" rows="16" readonly spellcheck="false"></textarea></label>
+      <p class="row">
+        <button class="btn primary" id="r-copy" type="button">Copy</button>
+        <button class="btn" id="r-md" type="button">Download .md</button>
+        <button class="btn" id="r-json" type="button">Download .json</button>
+        <button class="btn danger" id="r-clear" type="button">Clear everything</button>
+        <span class="status-msg" id="r-msg" role="status" aria-live="polite"></span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="faq">
+  <div class="wrap">
+    <h2>Questions</h2>
+    <details><summary>Does my screen go anywhere?</summary><p>Only to the model you choose. With a model on your own machine (LM Studio, Ollama, llama.cpp) nothing leaves it. With a remote one, the screenshots, the accessibility tree and command output go to that provider, and the program says so when the session starts. There is no telemetry and no update check.</p></details>
+    <details><summary>Is Windows Home supported?</summary><p>Yes. ControlSnack uses the Windows Hypervisor Platform when QEMU can, and software emulation when it cannot, which works on every machine. Software emulation is several times slower: a desktop takes a minute or two to start.</p></details>
+    <details><summary>How do I stop it?</summary><p>The <strong>Kill</strong> button, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>, <kbd>Esc</kbd> three times, <code>controlsnack kill</code> in another terminal, or <kbd>Ctrl</kbd>+<kbd>C</kbd>. Close the window and the session pauses after seconds and ends after a minute.</p></details>
+    <details><summary>Can the model damage my computer?</summary><p>It works inside a virtual machine with no network device and no shared folders, and its actions are checked before they run. The command rules are a guardrail, not a wall: the wall is the VM. The README says what is and is not covered.</p></details>
+    <details><summary>What does it cost?</summary><p>Nothing. It is free software under the GNU Affero General Public License v3.0. A remote model costs what its provider charges.</p></details>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <p><strong>ControlSnack</strong> · Computer Use with any multimodal AI</p>
+    <p>Free software, AGPL-3.0-only. Copyright Dr. Manuel Herrador. Source: GitHub, publishing soon.</p>
+    <p class="fine">This page sets no cookies, loads nothing from other sites and collects nothing. What you type in the test form stays in your browser.</p>
+  </div>
+</footer>
+</body>
+</html>
