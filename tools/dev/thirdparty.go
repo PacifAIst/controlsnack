@@ -1,0 +1,280 @@
+// SPDX-FileCopyrightText: 2026 Dr. Manuel Herrador
+// SPDX-License-Identifier: AGPL-3.0-only
+
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+)
+
+// thirdPartyFile is the notice that ships with the program: the license text of every library built into the host binary
+// or the guest agent (the agent is embedded in the host, so it is distributed with it). The gate fails when it is not what
+// `go run ./tools/dev licenses -write` would write.
+const thirdPartyFile = "THIRD_PARTY_LICENSES.md"
+
+// reportTemplate prints one line per library and license: module, version, license name, license file, its URL.
+const reportTemplate = "{{range .}}{{.Name}}\t{{.Version}}\t{{.LicenseName}}\t{{.LicensePath}}\t{{.LicenseURL}}\n{{end}}"
+
+// libraryLine is a line of go-licenses' report.
+type libraryLine struct{ Module, Version, License, Path, URL string }
+
+// parseReport reads what reportTemplate printed. A library whose license could not be identified is an error: nothing is
+// shipped under a license nobody has read.
+func parseReport(out string) ([]libraryLine, error) {
+	var lines []libraryLine
+	for _, ln := range strings.Split(out, "\n") {
+		if strings.TrimSpace(ln) == "" {
+			continue
+		}
+		f := strings.Split(ln, "\t")
+		if len(f) != 5 {
+			return nil, fmt.Errorf("unexpected line in the license report: %q", ln)
+		}
+		if f[2] == "" || f[2] == "Unknown" || f[3] == "" || f[3] == "Unknown" {
+			return nil, fmt.Errorf("%s %s has no license that could be identified (%q)", f[0], f[1], f[2])
+		}
+		lines = append(lines, libraryLine{Module: f[0], Version: f[1], License: f[2], Path: f[3], URL: f[4]})
+	}
+	return lines, nil
+}
+
+// source is the report of one binary on one platform: host is its GOOS, empty for the guest agent.
+type source struct {
+	lines []libraryLine
+	host  string
+}
+
+// library is a module that is built into something that ships, with everything the notice says about it.
+type library struct {
+	Module, Version string
+	Licenses        []string
+	URLs            []string
+	Texts           []string
+	// Host is the host platforms (GOOS) it is built into; Agent says whether the guest agent has it too.
+	Host  map[string]bool
+	Agent bool
+}
+
+// mergeLibraries joins the reports of every binary into one list, sorted by module. read returns a license file's contents.
+func mergeLibraries(sources []source, read func(path string) ([]byte, error)) ([]library, error) {
+	byKey := map[string]*library{}
+	var keys []string
+	for _, s := range sources {
+		for _, l := range s.lines {
+			key := l.Module + "@" + l.Version
+			lib := byKey[key]
+			if lib == nil {
+				lib = &library{Module: l.Module, Version: l.Version, Host: map[string]bool{}}
+				byKey[key] = lib
+				keys = append(keys, key)
+			}
+			if s.host == "" {
+				lib.Agent = true
+			} else {
+				lib.Host[s.host] = true
+			}
+			lib.Licenses = addOnce(lib.Licenses, l.License)
+			lib.URLs = addOnce(lib.URLs, l.URL)
+			raw, err := read(l.Path)
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", l.Module, err)
+			}
+			text := strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\r", "\n"))
+			if text == "" {
+				return nil, fmt.Errorf("%s: the license file %s is empty", l.Module, l.Path)
+			}
+			lib.Texts = addOnce(lib.Texts, text)
+		}
+	}
+	sort.Strings(keys)
+	libs := make([]library, 0, len(keys))
+	for _, k := range keys {
+		lib := byKey[k]
+		sort.Strings(lib.Licenses)
+		sort.Strings(lib.URLs)
+		libs = append(libs, *lib)
+	}
+	return libs, nil
+}
+
+func addOnce(list []string, s string) []string {
+	for _, have := range list {
+		if have == s {
+			return list
+		}
+	}
+	return append(list, s)
+}
+
+// builtInto says where a library is built in, in words: "host", "host (windows)", "agent", "host, agent".
+func (l library) builtInto(allHosts []string) string {
+	var parts []string
+	if len(l.Host) > 0 {
+		var oses []string
+		for _, h := range allHosts {
+			if l.Host[h] {
+				oses = append(oses, h)
+			}
+		}
+		if len(oses) == len(allHosts) {
+			parts = append(parts, "host")
+		} else {
+			parts = append(parts, "host ("+strings.Join(oses, ", ")+")")
+		}
+	}
+	if l.Agent {
+		parts = append(parts, "agent")
+	}
+	return strings.Join(parts, ", ")
+}
+
+// fenceFor is a code fence longer than any run of back ticks in the text.
+func fenceFor(text string) string {
+	longest, run := 2, 0
+	for _, r := range text {
+		if r == '`' {
+			run++
+			if run > longest {
+				longest = run
+			}
+		} else {
+			run = 0
+		}
+	}
+	return strings.Repeat("`", longest+1)
+}
+
+const thirdPartyIntro = `# Third-party licenses
+
+ControlSnack Local is licensed under the GNU Affero General Public License v3.0 only (see ` + "`LICENSE`" + `). The program is built
+with the libraries below, whose licenses require their notices to travel with it. The guest agent is embedded in the program,
+so its libraries are listed too.
+
+This file is generated by ` + "`go run ./tools/dev licenses -write`" + ` from the dependencies of the host binary on each platform
+and of the guest agent, and the quality gate fails when it is out of date. Do not edit it by hand.
+
+Only licenses of the kinds Apache-2.0, MIT, BSD-2-Clause, BSD-3-Clause and ISC are accepted (PLAN.md, D-25); the gate checks that too.
+
+## Not distributed with the program
+
+- **QEMU** is installed by the user and is not part of this program. It has its own licenses.
+- **The Debian cloud image and the packages** installed into the base image by ` + "`controlsnack image build`" + ` (the desktop, the browser,
+  the tools) are downloaded to the user's machine when the image is built. They are not distributed with the program; each package
+  keeps its own license, which the image holds under ` + "`/usr/share/doc/<package>/copyright`" + `.
+- **Models** are the user's own choice and are not part of this program.
+
+## Embedded assets
+
+- The viewer page (` + "`web/static`" + `) is this project's own code. It loads no third-party script, font or stylesheet.
+- The WebP encoder, ` + "`github.com/deepteams/webp`" + `, is a pure-Go port of Google's libwebp. Its license file carries the libwebp
+  notice (BSD-3-Clause) next to its own MIT license; both are reproduced below in full.
+`
+
+// renderThirdParty writes the notice. allHosts is every host platform the program is built for.
+func renderThirdParty(libs []library, allHosts []string) []byte {
+	var b bytes.Buffer
+	b.WriteString(thirdPartyIntro)
+	b.WriteString("\n## Libraries\n\n| Module | Version | License | Built into |\n|---|---|---|---|\n")
+	for _, l := range libs {
+		fmt.Fprintf(&b, "| `%s` | %s | %s | %s |\n", l.Module, l.Version, strings.Join(l.Licenses, ", "), l.builtInto(allHosts))
+	}
+	b.WriteString("\n## License texts\n")
+	for _, l := range libs {
+		fmt.Fprintf(&b, "\n### %s %s\n\nLicense: %s. Source: %s\n", l.Module, l.Version, strings.Join(l.Licenses, ", "), strings.Join(l.URLs, ", "))
+		for _, text := range l.Texts {
+			fence := fenceFor(text)
+			fmt.Fprintf(&b, "\n%stext\n%s\n%s\n", fence, text, fence)
+		}
+	}
+	return b.Bytes()
+}
+
+// hostSystems are the distinct GOOS values of the host targets, sorted.
+func hostSystems() []string {
+	var out []string
+	for _, t := range hostTargets {
+		out = addOnce(out, t.GOOS)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// generateThirdParty reports the dependencies of every binary that ships and renders the notice.
+func generateThirdParty() ([]byte, error) {
+	bin, err := goLicensesBinary()
+	if err != nil {
+		return nil, err
+	}
+	tmpl, err := os.CreateTemp("", "controlsnack-licenses-*.tmpl")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmpl.Name())
+	if _, err := tmpl.WriteString(reportTemplate); err != nil {
+		tmpl.Close()
+		return nil, err
+	}
+	if err := tmpl.Close(); err != nil {
+		return nil, err
+	}
+	report := func(t target, pkg, host string) (source, error) {
+		out, err := capture(targetEnv(t), bin, "report", pkg, "--ignore="+ownModule, "--template="+tmpl.Name())
+		if err != nil {
+			return source{}, err
+		}
+		lines, err := parseReport(out)
+		return source{lines: lines, host: host}, err
+	}
+	var sources []source
+	for _, t := range hostTargets {
+		s, err := report(t, hostPkg, t.GOOS)
+		if err != nil {
+			return nil, fmt.Errorf("host %s: %w", t, err)
+		}
+		sources = append(sources, s)
+	}
+	s, err := report(agentTargets[0], agentPkg, "")
+	if err != nil {
+		return nil, fmt.Errorf("agent %s: %w", agentTargets[0], err)
+	}
+	sources = append(sources, s)
+	libs, err := mergeLibraries(sources, func(path string) ([]byte, error) { return os.ReadFile(path) }) //nolint:gosec // license files of the module cache, named by go-licenses
+	if err != nil {
+		return nil, err
+	}
+	return renderThirdParty(libs, hostSystems()), nil
+}
+
+// checkThirdParty fails when the notice in the repository is not the one the dependencies call for.
+func checkThirdParty() error {
+	want, err := generateThirdParty()
+	if err != nil {
+		return err
+	}
+	have, err := os.ReadFile(thirdPartyFile)
+	if err != nil {
+		return fmt.Errorf("%s cannot be read (%w): run `go run ./tools/dev licenses -write`", thirdPartyFile, err)
+	}
+	return compareNotice(have, want)
+}
+
+// compareNotice says whether the notice on disk is the one wanted. A checkout that turned line ends into CR LF is still the same notice.
+func compareNotice(have, want []byte) error {
+	if !bytes.Equal(bytes.ReplaceAll(have, []byte("\r\n"), []byte("\n")), want) {
+		return fmt.Errorf("%s is out of date: run `go run ./tools/dev licenses -write` and commit the result", thirdPartyFile)
+	}
+	return nil
+}
+
+// writeThirdParty rewrites the notice from the dependencies.
+func writeThirdParty() error {
+	doc, err := generateThirdParty()
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(thirdPartyFile, doc, 0o640)
+}

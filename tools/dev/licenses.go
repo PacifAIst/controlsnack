@@ -4,6 +4,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"sync"
 )
@@ -11,11 +12,32 @@ import (
 // ownModule is excluded from the report: it is our own AGPL code, not a dependency (D-00).
 const ownModule = "github.com/PacifAIst/controlsnack-local"
 
-func cmdLicenses(_ []string) error { return checkLicenses() }
+func cmdLicenses(args []string) error {
+	fs := flag.NewFlagSet("licenses", flag.ContinueOnError)
+	write := fs.Bool("write", false, "rewrite "+thirdPartyFile+" from the dependencies (after checking them)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *write {
+		if err := checkAllowed(); err != nil {
+			return err
+		}
+		return writeThirdParty()
+	}
+	return checkLicenses()
+}
 
-// checkLicenses enforces the D-25 allowlist (Apache-2.0, MIT, BSD-2-Clause, BSD-3-Clause, ISC) on the host
-// binary for every host OS and on the guest agent, which is embedded in the host and so shipped with it.
+// checkLicenses enforces the license policy and that the notice that ships with the program is up to date.
 func checkLicenses() error {
+	if err := checkAllowed(); err != nil {
+		return err
+	}
+	return checkThirdParty()
+}
+
+// checkAllowed enforces the D-25 allowlist (Apache-2.0, MIT, BSD-2-Clause, BSD-3-Clause, ISC) on the host
+// binary for every host OS and on the guest agent, which is embedded in the host and so shipped with it.
+func checkAllowed() error {
 	for _, t := range hostTargets {
 		if err := goLicensesCheck(t, hostPkg); err != nil {
 			return fmt.Errorf("host %s: %w", t, err)
