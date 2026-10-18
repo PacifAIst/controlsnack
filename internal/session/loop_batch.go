@@ -39,7 +39,7 @@ func notRun(it parse.Item, why string) prompt.Result {
 // answer ends early, and the actions after it are not run, when an action is refused or fails, is done, ask_user or a
 // screenshot (the next observation shows the screen), when the task is paused, stopped or killed, and when the screen changed
 // under an action that was planned for the old one and says where to click.
-func (l *Loop) carryOut(ctx context.Context, n int, res parse.Result, calls []parse.ToolCall, mapper vision.Mapper, hash, shotSHA string) (Outcome, bool) {
+func (l *Loop) carryOut(ctx context.Context, n int, res parse.Result, calls []parse.ToolCall, mapper vision.Mapper, hash, shotSHA, screen string) (Outcome, bool) {
 	run, _ := l.Limits.BeginResponse(len(res.Actions))
 	outs := parse.Outcomes(calls, res)
 	var results []prompt.Result
@@ -126,6 +126,11 @@ func (l *Loop) carryOut(ctx context.Context, n int, res parse.Result, calls []pa
 			cur = step.ScreenHash
 		}
 
+		// The guard sees what went wrong as well as what went right: a model that fails again and again is what it is for.
+		if l.Guard != nil && !own && (step.Stop == StopNone || step.Stop == StopBatch) {
+			pause = l.Guard.Action(it.Action, step, screen)
+		}
+
 		switch step.Stop {
 		case StopKilled:
 			out, over, halt = Outcome{End: EndKilled}, true, "the session is being killed"
@@ -140,14 +145,11 @@ func (l *Loop) carryOut(ctx context.Context, n int, res parse.Result, calls []pa
 		case StopBatch:
 			halt = "an earlier action of the answer did not work"
 		}
+		if halt == "" && pause != "" {
+			halt = "the task was paused"
+		}
 		if halt != "" {
 			continue
-		}
-		if l.Guard != nil && !own {
-			if why := l.Guard.Action(it.Action, step); why != "" {
-				pause, halt = why, "the task was paused"
-				continue
-			}
 		}
 		switch {
 		case over:

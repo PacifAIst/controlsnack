@@ -171,13 +171,17 @@ func (p *fakePerson) Ask(ctx context.Context, q string) (string, error) {
 type fakeGuard struct {
 	mu       sync.Mutex
 	actions  []string
+	screens  []string
 	answers  []bool
 	resets   int
 	onAction func(n int) string
 	onAnswer func(n int, usable bool) string
 }
 
-func (g *fakeGuard) Action(a actions.Action, _ Step) string {
+func (g *fakeGuard) Action(a actions.Action, _ Step, screen string) string {
+	g.mu.Lock()
+	g.screens = append(g.screens, screen)
+	g.mu.Unlock()
 	g.mu.Lock()
 	g.actions = append(g.actions, a.Tool)
 	n, f := len(g.actions), g.onAction

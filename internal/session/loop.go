@@ -19,6 +19,7 @@ import (
 	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
 	"github.com/PacifAIst/controlsnack-local/internal/llm/vision"
+	"github.com/PacifAIst/controlsnack-local/internal/protocol"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/limits"
 	"github.com/PacifAIst/controlsnack-local/internal/safety/secret"
@@ -46,8 +47,10 @@ type Person interface {
 // Guard watches for a model that is not getting anywhere: the same action again with the screen unchanged, too many failures
 // in a row. A non-empty answer is a reason to pause the task and ask the person.
 type Guard interface {
-	// Action is told what each action came to.
-	Action(a actions.Action, s Step) (pause string)
+	// Action is told what each action came to, and a fingerprint of the screen the model saw when it chose it (the picture's
+	// hash, or in text-only mode a hash of the tree and the text), so that an action repeated on a screen that did not change can
+	// be told from one repeated on a page that moves on.
+	Action(a actions.Action, s Step, screen string) (pause string)
 	// Answer is told whether each answer of the model held an action that could be run.
 	Answer(usable bool) (pause string)
 	// Reset forgets what it has seen: the person resumed.
@@ -293,7 +296,7 @@ func (l *Loop) turn(ctx context.Context, task string) (Outcome, bool) {
 	if !res.Usable() { // paused: the task goes on from the top when the person resumes
 		return Outcome{}, false
 	}
-	return l.carryOut(ctx, n, res, calls, seen.Mapper, hash, shotSHA)
+	return l.carryOut(ctx, n, res, calls, seen.Mapper, hash, shotSHA, screenKey(seen, hash))
 }
 
 // looking is what a turn does when the screen could not be read: stop if the task is stopped, otherwise pause and say what
@@ -426,4 +429,20 @@ func (l *Loop) modelFailed(err error) Outcome {
 	}
 	l.pause("the model did not answer", "The model did not answer: "+textclean.Line(err.Error(), 400)+". Resume to try again, or Stop to end the task.")
 	return Outcome{}
+}
+
+// screenKey fingerprints what the model saw: the hash of the picture, or, with no picture, a hash of the tree and the text.
+func screenKey(seen vision.Seen, hash string) string {
+	if hash != "" {
+		return hash
+	}
+	b, err := json.Marshal(struct {
+		Tree *protocol.A11yTreeRes
+		OCR  *protocol.OCRRes
+	}{seen.Raw.Tree, seen.Raw.OCR})
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
 }
