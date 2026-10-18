@@ -15,20 +15,21 @@ import (
 
 // Role numbers used by the tests (AtspiRole, atspi-constants.h).
 const (
-	roleCheckBox   = 7
-	roleFiller     = 20
-	roleFrame      = 23
-	roleLabel      = 29
-	roleTableCell  = 56
-	roleListItem   = 32
-	roleMenuItem   = 35
-	rolePanel      = 39
-	rolePassword   = 40
-	rolePushButton = 43
-	roleSeparator  = 50
-	roleSlider     = 51
-	roleApp        = 75
-	roleEntry      = 79
+	roleCheckBox     = 7
+	roleFiller       = 20
+	roleFrame        = 23
+	roleLabel        = 29
+	roleTableCell    = 56
+	roleListItem     = 32
+	roleMenuItem     = 35
+	rolePanel        = 39
+	rolePassword     = 40
+	rolePushButton   = 43
+	roleSeparator    = 50
+	roleSlider       = 51
+	roleToggleButton = 62
+	roleApp          = 75
+	roleEntry        = 79
 )
 
 // shown is the state of an element that is on screen and enabled.

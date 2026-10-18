@@ -2,7 +2,7 @@
 
 This guide is for the person who built it and wants to see it work with a real model: the local **Qwen3-VL** in LM Studio, and the **Qwen** that OpenRouter serves. Follow the numbered steps in order. Each says what to type, what should happen, and what to write down. A stopwatch (your phone's is fine) is for the stages marked with a clock.
 
-What has been tested before you start: the whole program on a real VM with a scripted model, in WSL2 (Ubuntu) with software emulation; the model layer against these same models, outside a session. What has **never** been run: a real model driving a whole session, and anything on native Windows. So the first run on Windows is a real test and may find problems; that is the point, and the last section says what to send back.
+What has been tested before you start: the whole program on a real VM with a scripted model, in WSL2 (Ubuntu); and, on this machine, natively on Windows 10 with WHPX and LM Studio's `qwen3-vl-4b-instruct` (DECISIONS.md D-110): the steps of Parts A and B were run first, found nine faults (a QEMU probe that failed on Windows, a click that did nothing, and others), and those are fixed. What has **not** been run: the OpenRouter model (Part C), and anything longer than a few steps. Expect the small local model to do the first task and to struggle with the editor task; that is a finding about the model, and still worth writing down. The last section says what to send back.
 
 Your API key is a secret. Put it in an environment variable, as below, and nowhere else: not in a file, not in a command you will paste, not in a message.
 
@@ -44,7 +44,7 @@ Close PowerShell and open a new one, in the project folder again, so that it see
 .\dist\controlsnack.exe doctor
 ```
 
-Should end with a verdict: `will use whpx`, or `will use tcg (slow)`. On this machine "Hypervisor Platform" was `disabled`, so expect **tcg**. That is fine: tcg always works. Write down: the whole report (copy it), the verdict.
+Should end with a verdict: `will use whpx`, or `will use tcg (slow)`. On this machine it said **`will use whpx`** even though "Hypervisor Platform" reads `disabled` (QEMU started with WHPX, so there is nothing to fix); tcg always works as the fallback. Write down: the whole report (copy it), the verdict.
 
 *Optional, later:* to try the faster accelerator, turn on **Windows Hypervisor Platform** (Windows Features, or an administrator PowerShell: `Enable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform`), restart, and run `doctor` again. Do not turn WSL2 off. If a run then fails in the accelerator, the program retries once with tcg and tells you; add `--slow` to skip the accelerator on purpose.
 
@@ -79,7 +79,7 @@ Use the model name exactly as `llm models` prints it: if it is not `qwen3-vl-4b-
 
 What should happen, in this order:
 
-1. The terminal prints `Model: qwen3-vl-4b-instruct (VISION)`, then lines about QEMU and the desktop starting. With tcg the guest takes **1 to 2 minutes** to be ready (60 to 75 seconds in WSL).
+1. The terminal prints `Model: qwen3-vl-4b-instruct (VISION)`, then lines about QEMU and the desktop starting. With WHPX the guest is ready in **about 12 seconds**; with tcg it takes **1 to 2 minutes** (60 to 75 seconds in WSL).
 2. A **window of Edge or Chrome** opens with the guest's desktop. The header shows the state, the turn, the budget. If no window opens, the terminal prints an address: open it yourself, once.
 3. The model looks at the screen, opens a terminal, runs `uname -r`, and says it is done. Each action appears in the viewer's side panel and as a line in the terminal.
 4. The session stays open for another task. Press **Kill** in the viewer (or `Ctrl+Shift+Esc`, or `Esc` three times, or `Ctrl+C` in PowerShell) to end it.
@@ -114,6 +114,8 @@ A model may also decline to try it, which is fine. If it does try, the command m
 $k = Read-Host "OpenRouter key" -AsSecureString
 $env:OPENROUTER_API_KEY = [System.Net.NetworkCredential]::new("", $k).Password
 ```
+
+*If you want the assistant to run Part C for you:* store the key as a user variable once, in your own PowerShell window (it is not shown anywhere, and the assistant then names the variable and never sees the value): `[Environment]::SetEnvironmentVariable('OPENROUTER_API_KEY', [System.Net.NetworkCredential]::new('', (Read-Host 'OpenRouter key' -AsSecureString)).Password, 'User')`. Use a new key, and revoke the old one: the one pasted into the chat earlier is in that chat's history.
 
 (Typing it hides it; closing the window forgets it.)
 

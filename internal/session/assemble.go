@@ -242,6 +242,7 @@ func Assemble(p Parts) (*Session, error) {
 		Viewer: p.Viewer, Audit: p.Audit, Person: s.Console, Guard: s.Guards, Killed: p.Killed, Redactor: s.Redactor, Network: network, MaxActions: maxActions}
 	if p.Keep != nil {
 		s.Loop.Kept = p.Keep.Shot
+		s.Loop.KeptRequest = p.Keep.Request
 	}
 	s.Watchdog = &Watchdog{Machine: p.Machine, Limits: s.Limits}
 	return s, nil

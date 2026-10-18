@@ -124,6 +124,7 @@ func TestLazyBusConcurrentUseDialsOnce(t *testing.T) {
 
 func TestLazyBusDelegatesEverything(t *testing.T) {
 	w := newWorld()
+	w.bus.nodes[w.open].role = roleMenuItem // clicked by its action, which goes through the bus
 	l := NewLazyBus(func(context.Context) (Bus, error) { return w.bus, nil })
 	svc := NewService(l, w.desktop, w.driver)
 	res, err := svc.Tree(context.Background(), "", Options{})

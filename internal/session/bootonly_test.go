@@ -362,6 +362,9 @@ func TestKeepKeepsTheScreenInADirectoryOfItsOwn(t *testing.T) {
 			t.Errorf("--keep keeps %s: %v", name, err)
 		}
 	}
+	if n := strings.Count(rg.out.String(), "Kept in "); n != 1 {
+		t.Errorf("the person is told where %d times:\n%s", n, rg.out.String())
+	}
 	if !strings.Contains(rg.out.String(), "Kept in "+kept[0]+": the transcript and 0 pictures.") {
 		t.Errorf("the person is not told where:\n%s", rg.out.String())
 	}

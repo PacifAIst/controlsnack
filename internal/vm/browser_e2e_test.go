@@ -269,10 +269,12 @@ func TestE2EBrowser(t *testing.T) {
 	if _, err := call(protocol.BrowserReq{Op: "click", Target: "#no-such-element"}); code(err) != protocol.CodeNotFound {
 		t.Errorf("no element matches: %v", err)
 	}
-	// Without the network a web address cannot be reached: the proxy is not there. The answer says so.
-	_, err := call(protocol.BrowserReq{Op: "navigate", URL: "http://example.com/"})
-	t.Logf("navigating to a web address without the network: %v", err)
-	if err == nil {
-		t.Errorf("a web address cannot load without the network")
+	// Without the network a web address cannot be reached, and the guest's proxy says so in a sentence (a refused connection
+	// would tell a model nothing): the navigation works, and the page that comes back is that sentence.
+	if _, err := call(protocol.BrowserReq{Op: "navigate", URL: "http://example.com/"}); err != nil {
+		t.Fatalf("navigating to a web address without the network: %v", err)
+	}
+	if text := must(protocol.BrowserReq{Op: "read"}).Text; !strings.Contains(text, "Network is disabled for this session") {
+		t.Errorf("the page of a web address without the network reads %q", text)
 	}
 }

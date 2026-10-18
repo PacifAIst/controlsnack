@@ -123,7 +123,13 @@ func (o *Observer) Look(ctx context.Context) (Seen, error) {
 
 	var tree protocol.A11yTreeRes
 	treeOK := true
-	req := protocol.A11yTreeReq{Scope: o.cfg.Scope, MaxNodes: o.cfg.MaxNodes, BudgetMS: int(o.cfg.TreeBudget.Milliseconds())}
+	// With no window in focus (the desktop as it is after boot, or once a window is closed) the tree of the active window is empty;
+	// what there is to operate is the panel, the dock and the desktop, so that is what the model is shown.
+	scope := o.cfg.Scope
+	if scope == "active_window" && info.ActiveWindow == nil {
+		scope = "desktop"
+	}
+	req := protocol.A11yTreeReq{Scope: scope, MaxNodes: o.cfg.MaxNodes, BudgetMS: int(o.cfg.TreeBudget.Milliseconds())}
 	if _, err := o.c.Call(ctx, protocol.TypeA11yTree, req, nil, &tree); err != nil {
 		if codeOf(err) == "" {
 			return Seen{}, fmt.Errorf("reading the accessibility tree: %w", err)
@@ -168,7 +174,7 @@ func (o *Observer) Look(ctx context.Context) (Seen, error) {
 
 	seen.Active = seen.Mapper.Window(info.ActiveWindow)
 	if treeOK {
-		seen.UI = seen.Mapper.UITree(tree, o.cfg.Scope)
+		seen.UI = seen.Mapper.UITree(tree, scope)
 		seen.Raw.Tree = &tree
 	}
 	return seen, nil

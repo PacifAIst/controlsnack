@@ -55,6 +55,9 @@ func (OSHost) Getenv(key string) string { return os.Getenv(key) }
 
 // Run runs path with a minimal environment and bounded output.
 func (OSHost) Run(ctx context.Context, path, stdin string, args ...string) (RunResult, error) {
+	if runtime.GOOS == "windows" && stdin != "" && usesQMPStdio(args) {
+		return runQMPScript(ctx, path, stdin, args)
+	}
 	cmd := exec.CommandContext(ctx, path, args...) //nolint:gosec // path comes from discovery, args are constants
 	cmd.Env = probeEnv()
 	cmd.Stdin = strings.NewReader(stdin)

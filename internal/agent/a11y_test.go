@@ -18,7 +18,7 @@ import (
 
 // Role numbers of AT-SPI used here.
 const (
-	atFrame, atListItem, atPushButton, atApp, atEntry = 23, 32, 43, 75, 79
+	atFrame, atListItem, atPushButton, atApp, atEntry, atMenuItem = 23, 32, 43, 75, 79, 35
 )
 
 const atShown = a11y.StateSet(1<<a11y.StateEnabled | 1<<a11y.StateSensitive | 1<<a11y.StateShowing | 1<<a11y.StateVisible)
@@ -253,9 +253,19 @@ func TestA11yErrorsCarryTheProtocolCodes(t *testing.T) {
 func TestA11yClickByActionAndByPointer(t *testing.T) {
 	r := newA11yRig()
 	g := r.tree(t, protocol.A11yTreeReq{}).Generation
+	// A button is clicked with the pointer (the way of the input handler, with its pause on the target).
 	res, err := r.act(t, protocol.A11yActionReq{ID: "a2", Generation: g, Op: "click"})
-	if err != nil || res.Method != "action:click" || len(r.in.dev.ops) != 0 {
+	if err != nil || res.Method != "pointer" || r.in.without() != "move 730,310; down 1; up 1" {
 		t.Errorf("%+v %v %v", res, err, r.in.dev.ops)
+	}
+	r.in.dev.ops = nil
+	// A menu item, by its own action.
+	r2 := newA11yRig()
+	r2.bus.nodes[ref("button")].role = atMenuItem
+	g2 := r2.tree(t, protocol.A11yTreeReq{}).Generation
+	res, err = r2.act(t, protocol.A11yActionReq{ID: "a2", Generation: g2, Op: "click"})
+	if err != nil || res.Method != "action:click" || len(r2.in.dev.ops) != 0 {
+		t.Errorf("%+v %v %v", res, err, r2.in.dev.ops)
 	}
 	res, err = r.act(t, protocol.A11yActionReq{ID: "a3", Generation: g, Op: "click"})
 	if err != nil || res.Method != "pointer" {

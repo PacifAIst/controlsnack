@@ -112,10 +112,17 @@ func ProbeAccel(ctx context.Context, h Host, inst Install, accel string) error {
 
 var reAccelFailure = regexp.MustCompile(`(?i)\b(fail(ed|ure)?|errors?|cannot|can't|could not|unable|not supported|unsupported|denied|invalid|not available)\b`)
 
+// reBenignAccelWarning is what QEMU says about an accelerator that works: QEMU 11 on Windows 10 warns that WHPX cannot report the
+// processor's performance monitoring features and then runs the machine on WHPX (checked: the machine reports "running").
+var reBenignAccelWarning = regexp.MustCompile(`(?i)failed to get performance monitoring features`)
+
 // accelErrorLine returns the first stderr line that names the accelerator and a failure, or "".
 func accelErrorLine(stderr, accel string) string {
 	word := regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(accel) + `\b`)
 	for _, line := range strings.Split(stderr, "\n") {
+		if reBenignAccelWarning.MatchString(line) {
+			continue
+		}
 		if word.MatchString(line) && reAccelFailure.MatchString(line) {
 			return strings.TrimSpace(line)
 		}

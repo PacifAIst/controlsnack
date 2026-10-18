@@ -48,7 +48,12 @@ const (
 
 // Timing of mouse gestures. A double click is two clicks well inside the desktop's double-click interval (400 ms by
 // default); a drag takes about 200 ms in ten steps, slow enough for applications that need motion events to start one.
+//
+// hoverGap is the pause between putting the pointer on a target and pressing: a GTK button only counts a click when it has already
+// seen the pointer enter, which takes the application a moment to process, and a press that comes at once is dropped. (Found on
+// the real guest: a click on a panel launcher did nothing until the pointer had rested on it first.)
 const (
+	hoverGap    = 120 * time.Millisecond
 	clickHold   = 12 * time.Millisecond
 	doubleGap   = 60 * time.Millisecond
 	notchGap    = 8 * time.Millisecond
@@ -267,12 +272,16 @@ func (in *Input) run(ctx context.Context, ev protocol.InputEvent) error {
 		if err := d.MoveTo(ev.X, ev.Y); err != nil {
 			return err
 		}
+		if ev.Type == evDown {
+			in.Sleep(hoverGap)
+		}
 		return d.Button(b, ev.Type == evDown)
 	case evClick:
 		b, _ := buttonNumber(ev.Button)
 		if err := d.MoveTo(ev.X, ev.Y); err != nil {
 			return err
 		}
+		in.Sleep(hoverGap)
 		clicks := 1
 		if ev.Double {
 			clicks = 2
@@ -350,6 +359,7 @@ func (in *Input) drag(ctx context.Context, ev protocol.InputEvent) (err error) {
 	if err := in.Device.MoveTo(ev.X, ev.Y); err != nil {
 		return err
 	}
+	in.Sleep(hoverGap)
 	if err := in.Device.Button(b, true); err != nil {
 		return err
 	}

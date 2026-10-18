@@ -115,8 +115,10 @@ func TestWhatIsKeptIsForTheOwnerAlone(t *testing.T) {
 	}
 	k.Shot(1, backend.Image{MIME: backend.MIMEPNG, Data: []byte("x")})
 	k.Send(viewer.Chat{Role: "user", Text: "x"})
+	k.Request(1, backend.Request{Messages: []backend.Message{{Role: backend.RoleUser, Text: "x"}}})
 	_ = k.Close()
-	for _, p := range []string{dir, filepath.Join(dir, shotsName), filepath.Join(dir, transcriptName), filepath.Join(dir, shotsName, "turn-0001.png")} {
+	for _, p := range []string{dir, filepath.Join(dir, shotsName), filepath.Join(dir, transcriptName), filepath.Join(dir, shotsName, "turn-0001.png"),
+		filepath.Join(dir, requestsName), filepath.Join(dir, requestsName, "turn-0001.txt")} {
 		info, err := os.Stat(p)
 		if err != nil || info.Mode().Perm()&0o077 != 0 {
 			t.Errorf("%s: %v %v", p, info, err)
@@ -249,6 +251,9 @@ func TestKeepWithAModelSavesTheTranscriptAndThePicturesAndNothingElse(t *testing
 	shots, _ := filepath.Glob(filepath.Join(kept[0], shotsName, "turn-*"))
 	if len(shots) == 0 {
 		t.Errorf("no picture was kept")
+	}
+	if n := strings.Count(f.out.String(), "Kept in "+kept[0]); n != 1 {
+		t.Errorf("the person is told where %d times, not once (the hook and the end of the session both clean up)", n)
 	}
 	if !strings.Contains(f.out.String(), "Kept in "+kept[0]) {
 		t.Errorf("the person is not told where:\n%s", f.out.String())

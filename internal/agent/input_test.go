@@ -429,3 +429,45 @@ func TestInputRefusalsCarryTheProtocolCodes(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 }
+
+func TestThePointerRestsOnATargetBeforeItPressesAndNotBeforeItMovesOrReleases(t *testing.T) {
+	// Each sleep is written into the operations, so that the order shows.
+	timeline := func(ev protocol.InputEvent) string {
+		r := newInputRig()
+		r.in.MaxSettle, r.in.Settle = 0, 0
+		r.in.Sleep = func(d time.Duration) { r.dev.ops = append(r.dev.ops, "sleep "+d.String()) }
+		if _, err := r.run(t, ev); err != nil {
+			t.Fatal(err)
+		}
+		var keep []string
+		for _, o := range r.dev.ops {
+			if o != "sync" && o != "sleep 0s" {
+				keep = append(keep, o)
+			}
+		}
+		return strings.Join(keep, "; ")
+	}
+	tests := []struct {
+		name string
+		ev   protocol.InputEvent
+		want string
+	}{
+		{"a click", protocol.InputEvent{Type: "click", X: 100, Y: 50}, "move 100,50; sleep 120ms; down 1; sleep 12ms; up 1"},
+		{"a double click rests once", protocol.InputEvent{Type: "click", X: 9, Y: 9, Double: true}, "move 9,9; sleep 120ms; down 1; sleep 12ms; up 1; sleep 60ms; down 1; sleep 12ms; up 1"},
+		{"a press", protocol.InputEvent{Type: "down", X: 10, Y: 20}, "move 10,20; sleep 120ms; down 1"},
+		{"a release does not wait", protocol.InputEvent{Type: "up", X: 30, Y: 40}, "move 30,40; up 1"},
+		{"a move does not wait", protocol.InputEvent{Type: "move", X: 1, Y: 2}, "move 1,2"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := timeline(tt.ev); got != tt.want {
+				t.Errorf("%s\nwant %s", got, tt.want)
+			}
+		})
+	}
+	// A drag rests before it presses, as a click does.
+	drag := timeline(protocol.InputEvent{Type: "drag", X: 100, Y: 100, DragTo: &protocol.Point{X: 140, Y: 120}})
+	if !strings.HasPrefix(drag, "move 100,100; sleep 120ms; down 1; sleep 30ms; move ") {
+		t.Errorf("a drag: %s", drag)
+	}
+}

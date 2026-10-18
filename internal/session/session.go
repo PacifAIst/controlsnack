@@ -251,16 +251,19 @@ func (r *runner) session(parent context.Context, cfg config.Config) (err error) 
 			return err
 		}
 	}
+	var removed sync.Once // the teardown hook and the end of this function both call it
 	removeSession := func() {
-		if keeper != nil {
-			// A session that only booted has the one picture of the screen when it was ready.
-			_ = os.Rename(filepath.Join(sessionDir, "ready.png"), filepath.Join(keeper.Dir(), "ready.png"))
-			if kerr := keeper.Close(); kerr != nil {
-				fmt.Fprintf(r.out, "Not everything that --keep was to keep could be saved: %v\n", kerr)
+		removed.Do(func() {
+			if keeper != nil {
+				// A session that only booted has the one picture of the screen when it was ready.
+				_ = os.Rename(filepath.Join(sessionDir, "ready.png"), filepath.Join(keeper.Dir(), "ready.png"))
+				if kerr := keeper.Close(); kerr != nil {
+					fmt.Fprintf(r.out, "Not everything that --keep was to keep could be saved: %v\n", kerr)
+				}
+				fmt.Fprintf(r.out, "Kept in %s: the transcript and %d pictures.\n", keeper.Dir(), keeper.Shots())
 			}
-			fmt.Fprintf(r.out, "Kept in %s: the transcript and %d pictures.\n", keeper.Dir(), keeper.Shots())
-		}
-		_ = os.RemoveAll(sessionDir)
+			_ = os.RemoveAll(sessionDir)
+		})
 	}
 	defer removeSession()
 	po := vm.PrepareOptions{Install: inst, Base: im.Path, Name: vmName(id), Dir: sessionDir,

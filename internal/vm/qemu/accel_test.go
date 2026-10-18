@@ -160,3 +160,18 @@ func TestProbeAccelRealQEMU(t *testing.T) {
 		t.Errorf("%s probe: %v", hardware, err)
 	}
 }
+
+func TestAWarningThatWHPXCannotReportPerformanceFeaturesIsNotAFailureButAnotherWarningStillIs(t *testing.T) {
+	benign := "qemu-system-x86_64.exe: -accel whpx: warning: WHPX: Failed to get performance monitoring features, hr=80370300\n"
+	if got := accelErrorLine(benign, AccelWHPX); got != "" {
+		t.Errorf("the machine runs on WHPX after this warning, and it is taken for a failure: %q", got)
+	}
+	// ... and it does not hide a real failure that comes with it.
+	both := benign + "qemu-system-x86_64.exe: -accel whpx: failed to create the partition\n"
+	if got := accelErrorLine(both, AccelWHPX); !strings.Contains(got, "failed to create the partition") {
+		t.Errorf("a real failure after the benign warning: %q", got)
+	}
+	if got := accelErrorLine("qemu: -accel whpx: warning: WHPX: failed to set up the VM partition, falling back\n", AccelWHPX); got == "" {
+		t.Error("a warning of a real failure is one")
+	}
+}

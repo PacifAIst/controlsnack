@@ -97,6 +97,9 @@ type Dispatcher struct {
 	// often meanwhile, and counts the action once.
 	Activity func(starting bool)
 
+	// typed is what is being typed into the terminal that has the focus.
+	typed typedLine
+
 	// step is the person's word on step mode, set while the session runs: 0 leaves it to the profile, 1 is on, 2 is off.
 	step atomic.Int32
 }
@@ -135,7 +138,14 @@ func (d *Dispatcher) judge(ctx context.Context, a actions.Action) judged {
 		return judged{verdict: d.profile().Apply(safety.Allow)} // reading and waiting have no rules; --step still asks
 	}
 	dec := d.Policy.EvaluateGUI(g, d.Exec.Snapshot())
-	return judged{verdict: d.profile().Apply(dec.Verdict), rules: dec.Rules, redactText: dec.RedactText}
+	verdict, rules := dec.Verdict, dec.Rules
+	if a.Tool == "type_text" || a.Tool == "key" {
+		// In a terminal, what is typed is a command: the exec rules judge it too (typed.go).
+		tv, th := d.typedVerdict(ctx, a.Tool, g.Text, g.Keys)
+		verdict = safety.Worse(verdict, tv)
+		rules = append(append([]policy.RuleHit(nil), rules...), th...)
+	}
+	return judged{verdict: d.profile().Apply(verdict), rules: rules, redactText: dec.RedactText}
 }
 
 // guiAction is the part of an action the GUI rules look at, or false for a tool that has no GUI rules.

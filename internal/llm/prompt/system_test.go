@@ -62,7 +62,7 @@ func TestSystemPromptSaysWhatMattersToTheMode(t *testing.T) {
 		has, not   []string
 	}{
 		{"native", native,
-			[]string{"Answer by calling the tools", "image of 1024x640 pixels", "The machine has no network", "<<untrusted:" + testNonce + " source>>", "<<end:" + testNonce + ">>", "1 to 3 actions"},
+			[]string{"Answer by calling the tools", "image of 1024x640 pixels", "The machine has no network", "xfce4-terminal", "mousepad", "thunar", "chromium", "(setsid xfce4-terminal >/dev/null 2>&1 &)", "<<untrusted:" + testNonce + " source>>", "<<end:" + testNonce + ">>", "1 to 3 actions"},
 			[]string{"Tools you may use", "JSON object", "Numbered boxes", "filtered path"}},
 		{"json", render(func(p *Params) { p.Mode = backend.ModeJSON }),
 			[]string{"one JSON object", `"actions"`, "Tools you may use", "exec: Run a shell command", "command (string"},

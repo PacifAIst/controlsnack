@@ -435,6 +435,11 @@ var actionClickRoles = map[string]bool{
 	"switch": true, "push button menu": true,
 }
 
+// pointerFirstRoles are the roles that are clicked with the pointer when they are on the screen, and by their own action only when
+// they are not (or the pointer fails, which an element with no area does). A button's action is not always what a click does: on the real guest, the action of the XFCE
+// panel's launchers (role "button") answered "done" and started nothing, while a click with the pointer started the program.
+var pointerFirstRoles = map[string]bool{"button": true, "toggle button": true}
+
 // the names AT-SPI actions have for "click", most direct first (GTK says click, Qt press, a few say activate).
 var clickActions = []string{"click", "press", "activate", "jump", "toggle", "check", "uncheck", "push", "switch", "select", "open"}
 
@@ -451,6 +456,16 @@ func preferredAction(actions []string) (int, string, bool) {
 }
 
 func (s *Service) click(ctx context.Context, n Node) (Outcome, error) {
+	if pointerFirstRoles[n.Role] {
+		err := s.pointerClick(ctx, n)
+		if ctx.Err() != nil {
+			return Outcome{}, ctx.Err()
+		}
+		if err == nil {
+			return Outcome{Method: "pointer"}, nil
+		}
+		// The pointer could not do it (the element is off the screen, say): its own action still may.
+	}
 	if actionClickRoles[n.Role] {
 		if acts, err := s.bus.Actions(ctx, n.Ref); err == nil {
 			if i, name, ok := preferredAction(acts); ok {

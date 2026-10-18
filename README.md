@@ -76,7 +76,7 @@ Windows Home is supported, and so is Pro. ControlSnack uses the Windows Hypervis
   ```
   `controlsnack doctor` never elevates and never changes a setting; it only tells you.
 - **The WSL2 footgun.** WSL2, Hyper-V, Windows Sandbox and Memory Integrity start the Windows hypervisor, which then holds VT-x; QEMU can use hardware virtualization only through WHPX. So turn on Windows Hypervisor Platform; do not turn WSL2 off. And run the Windows build of ControlSnack, not the Linux build inside WSL2: there `/dev/kvm` exists only with nested virtualization, and without it you get TCG.
-- **Expected performance.** KVM (Linux) and HVF (macOS) are the fastest; WHPX is hardware-accelerated but usually slower than KVM on comparable hardware; TCG is several times slower than any of them (a desktop boot takes about a minute instead of seconds). The numbers measured so far are in [Performance](#10-performance); only TCG has been measured.
+- **Expected performance.** KVM (Linux) and HVF (macOS) are the fastest; WHPX is hardware-accelerated but usually slower than KVM on comparable hardware; TCG is several times slower than any of them (a desktop boot takes about a minute instead of seconds). The numbers measured so far are in [Performance](#10-performance): on Windows 10 with WHPX the guest was ready in 12 seconds, against 61 to 75 seconds with TCG. WHPX worked there although the optional feature "Windows Hypervisor Platform" read "disabled" and WSL2 was running: `controlsnack doctor` decides by trying QEMU, and says so.
 - **Last resort.** TCG always works: `controlsnack run --slow` (the same as `--accel=tcg`). If WHPX fails to launch, `run` retries once with TCG on its own and warns you in the terminal, in the viewer and in the audit log.
 - **Endpoints.** The viewer and the control endpoint listen on `127.0.0.1` only, but on Windows any program that runs as you can connect to a loopback port. See [Security caveats](#7-security-caveats).
 
@@ -174,7 +174,7 @@ Each guarantee holds even with `--unsafe`, and each one has a test.
 
 ## 7. Security caveats
 
-- **The exec policy is a guardrail, not a boundary.** It stops the mistakes and the obvious attacks (wiping the root, a fork bomb, `curl | sh`, privilege escalation, firewall changes, and so on, see the `DENY-*` and `CONFIRM-*` rules in `internal/safety/policy/default.yaml`), and a shell command that cannot be understood is refused. Code in another language run by an interpreter (`python3 -c ...`, `perl -e ...`) is not analyzed, so it can do anything the guest account can. The boundary is the VM: assume the guest can be wrecked.
+- **The exec policy is a guardrail, not a boundary.** It stops the mistakes and the obvious attacks (wiping the root, a fork bomb, `curl | sh`, privilege escalation, firewall changes, and so on, see the `DENY-*` and `CONFIRM-*` rules in `internal/safety/policy/default.yaml`), and a shell command that cannot be understood is refused. Code in another language run by an interpreter (`python3 -c ...`, `perl -e ...`) is not analyzed, so it can do anything the guest account can. A command typed into a terminal window with the keyboard is judged by the same rules as the exec tool (each ended line, and what was typed before Return), but a line meant for a program that reads it, such as an editor or a language's prompt, is not shell and is let through. The boundary is the VM: assume the guest can be wrecked.
 - **Visual prompt injection.** A page or a picture can show the model text that tries to steer it. The fence applies to text; a model can still be misled by what it sees. Watch the viewer, and keep `--step` on for anything that matters.
 - **A remote model receives your screen.** Screenshots, the accessibility tree, recognized text and command output go to whatever endpoint you set. Use a local model for anything private.
 - **`--allow-net` lets the model cause real-world effects** (posting, buying, sending) even though the VM is isolated. Use `--allow-domain` to narrow it, and the confirmation rules for network actions stay on.
@@ -196,24 +196,25 @@ Only what was tested is listed as tested. "Expected, untested" is a guess, not a
 | Backend | Model | Vision | WebP | Native tool calls | JSON mode | Notes | Tested |
 |---|---|---|---|---|---|---|---|
 | OpenAI-compatible (OpenRouter) | `qwen/qwen3.8-omni-flash` | yes | yes | yes | yes | Points in pixels; picture-only clicking works | 2026-10-17 |
-| LM Studio | `qwen3-vl-4b-instruct` (Q4_K_M with its projector) | yes | no (JPEG is used) | yes | yes | Points on a 0 to 1000 scale (the probe detects it); 8192-token context; 1 to 2.4 s a turn on an RTX 3060 (6 GB) | 2026-10-17 |
+| LM Studio | `qwen3-vl-4b-instruct` (Q4_K_M with its projector) | yes | no (JPEG is used) | yes | yes | Points on a 0 to 1000 scale (the probe detects it); 8192-token context; 1.5 to 2.8 s a turn on an RTX 3060 (6 GB). **In a whole session on Windows:** "open a terminal and print the kernel version" was done in 5 turns, 11 s after the desktop was ready, and right; "open the text editor, type a line and save it" was not (it opened `nano` in the terminal and lost its way): a 4B model is at its limit there | 2026-10-18 |
 | llama.cpp | Gemma 4 E4B IQ4_NL (no projector) | no (text-only) | n/a | yes, and it sometimes writes calls as words, which the parser reads | yes | 8192-token context; works through the accessibility tree and recognized text | 2026-10-17 |
 | Ollama | any vision model | expected, untested with a real model | | | | Tested against the fake server only | |
 | Anthropic API | Claude models | expected, untested with a real model | | | | Tested against the fake server only | |
 
-The "tested" rows ran through the whole model layer (probe, prompt, conversation, parser, results) on two small tasks in a simulated desktop (D-83, D-84 in `DECISIONS.md`). No real model has yet driven `controlsnack run` in a real VM from start to finish; the end-to-end scenarios use a scripted model (see below).
+The "tested" rows ran through the whole model layer (probe, prompt, conversation, parser, results) on two small tasks in a simulated desktop (D-83, D-84 in `DECISIONS.md`); the LM Studio model has also driven whole sessions in a real VM (D-110). The OpenRouter model has not yet driven one.
 
 A model that is too small, or a context that is too short, shows up as a model that repeats itself or whose answers cannot be read. The session pauses after three unusable answers in a row and tells you what to try.
 
 ## 10. Performance
 
-Measured on the author's machine: Windows 10, Intel Core i7-10870H, WSL2 (Ubuntu 24.04), QEMU 8.2.2, **software emulation (TCG)** because `/dev/kvm` was not usable by the user there, x86_64 guest, 2 vCPUs, 2 GB, 1280x800.
+Measured on the author's machine, Windows 10 Pro with an Intel Core i7-10870H, in two ways: **natively** (QEMU 11.1.0 for Windows, accelerator **WHPX**) and **in WSL2** (Ubuntu 24.04, QEMU 8.2.2, **software emulation (TCG)**, because `/dev/kvm` could not be used there). x86_64 guest, 2 vCPUs, 2 GB, 1280x800.
 
 | | Measured | Notes |
 |---|---|---|
-| Boot to agent connected (TCG) | 61 to 75 s | QEMU is up after 10 s; the desktop after 58 to 68 s |
+| Boot to agent connected (WHPX, native Windows) | 12 to 13 s | QEMU is up after 10.4 s; the desktop after 11 to 12 s |
+| Boot to agent connected (TCG, WSL2) | 61 to 75 s | QEMU is up after 10 s; the desktop after 58 to 68 s |
 | Base image build (TCG) | 10 min 35 s | image: 765 MiB |
-| Kill to QEMU gone | 8 to 17 ms | whole session returned in 21 ms; the target was under 500 ms |
+| Kill to QEMU gone | 8 to 17 ms on Linux; 138 ms on native Windows | the whole session returned in 21 ms and 221 ms; the target was under 500 ms |
 | Dead-man switch | pause after 3 s, end after 60 s | |
 | A look at the screen (TCG) | about 15 s | observation including the accessibility tree and recognized text |
 | Local model turn | 1.1 to 2.4 s | `qwen3-vl-4b-instruct`, RTX 3060, request of about 3.1k tokens |
@@ -224,7 +225,7 @@ Measured on the author's machine: Windows 10, Intel Core i7-10870H, WSL2 (Ubuntu
 | Accessibility tree | 79 nodes, 9.4 KB (file manager); 126 nodes, 14.6 KB (whole desktop) | |
 | Guest agent | 11.5 MB (amd64), 10.6 MB (arm64) | embedded in the program |
 
-**Not measured:** KVM, WHPX and HVF (no machine with one was available), and aarch64 at all. Expect boot-to-ready under 45 seconds with hardware acceleration, which is the target and not a measurement.
+**Not measured:** KVM and HVF (no machine with one was available), and aarch64 at all. The target of boot-to-ready under 45 seconds with hardware acceleration was met with WHPX.
 
 ## 11. Privacy
 
@@ -265,5 +266,6 @@ This edition is one person, one machine. Multi-machine and team features are not
 So that this file does not claim more than was done:
 
 - **Run for real** (a real VM in WSL2 on Windows 10, QEMU 8.2.2, TCG, x86_64): image build; boot and the agent; every agent request; the guest's network proxy and the host bridge; and nine end-to-end scenarios of a whole `run` session with a *scripted* model: an editor opened, typed in and read back; a command that would wipe the guest refused and recorded; an injection in a file fenced; an action approved and another rejected through the viewer's socket; a kill; `--allow-net` on and off; a viewer that goes away; the agent stopped in a running guest (the session carries on through QEMU's screen and keyboard). Every audit log in them verifies and no QEMU is left behind.
-- **Run for real with real models, but not in a full session:** the model layer (probe, prompt, parser) against three models (table above).
-- **Not run:** a full `run` with a real model driving a real VM (the test exists, `TestE2ESessionARealModelDoesASmallTask`, and needs a model server the test machine can reach); hardware acceleration of any kind (KVM, WHPX, HVF); macOS; aarch64 guests; Windows with a native QEMU; the viewer window in browsers other than Chrome and Edge; long tasks. The code for these exists and is covered by unit tests with fakes, but "unit-tested" is all that can be said.
+- **Run natively on Windows 10** (QEMU 11.1.0, WHPX, the base image imported from the WSL build, the viewer window in Microsoft Edge, LM Studio's `qwen3-vl-4b-instruct`): `doctor`, `image import`, `llm probe`, whole sessions with a real model (a task done, a task not done: D-110), the kill from a second terminal, the viewer's login and its end. This is where the probe of QEMU for Windows, the pause before a click and the panel launchers were found wrong and fixed (D-110).
+- **Run for real with real models, but not in a full session:** the model layer (probe, prompt, parser) against three models (table above); the OpenRouter model has not driven a session.
+- **Not run:** a full `run` with the OpenRouter model; KVM and HVF; macOS; aarch64 guests; the viewer window in browsers other than Edge and Chrome; long tasks; any task that needs more than a few steps with a model larger than 4B. The code for these exists and is covered by unit tests with fakes, but "unit-tested" is all that can be said.

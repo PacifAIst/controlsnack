@@ -60,6 +60,16 @@ func (x *Executor) SetView(v vision.RawSeen) {
 	x.view = v
 }
 
+// ActiveWindow is the id and the class of the window that had the focus when the model last looked ("" when none had it).
+func (x *Executor) ActiveWindow() (id, class string) {
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	if w := x.view.Info.ActiveWindow; w != nil {
+		return w.ID, w.Class
+	}
+	return "", ""
+}
+
 // Snapshot is the accessibility tree the model last saw, in the form the policy judges clicks by (guest pixels). It is nil when
 // there is none.
 func (x *Executor) Snapshot() *policy.A11ySnapshot {

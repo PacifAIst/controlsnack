@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -433,7 +434,14 @@ func TestE2ESessionThePersonApprovesOneActionAndRejectsAnotherThroughThePage(t *
 
 // qemuRunning says whether a QEMU of the named VM is still running on this machine.
 func qemuRunning(name string) bool {
-	out, err := exec.Command("pgrep", "-f", "-c", "controlsnack-"+name).Output()
+	cmd := exec.Command("pgrep", "-f", "-c", "controlsnack-"+name)
+	if runtime.GOOS == "windows" {
+		// There is no pgrep there: ask for the QEMU processes whose command line names the VM (the name goes in by the environment).
+		cmd = exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command",
+			`@(Get-CimInstance Win32_Process -Filter "Name like 'qemu-system%'" | Where-Object { $_.CommandLine -like ('*controlsnack-' + $env:CS_VM + '*') }).Count`)
+		cmd.Env = append(os.Environ(), "CS_VM="+name)
+	}
+	out, err := cmd.Output()
 	if err != nil {
 		return false // pgrep exits 1 when nothing matches
 	}
@@ -888,4 +896,39 @@ func TestE2ESessionWhatTheViewerCostsInBandwidthWhenTheScreenIsStillAndWhenItMov
 		t.Errorf("a moving screen sent no pictures")
 	}
 	_ = active
+}
+
+func TestE2ESessionACommandTypedIntoATerminalIsJudgedLikeAnExecOne(t *testing.T) {
+	var after string
+	step := 0
+	e := newE2E(t, fakellm.Options{Then: func(r *fakellm.Request) fakellm.Reply {
+		defer func() { step++ }()
+		switch step {
+		case 0:
+			return saysTool("exec", map[string]any{"command": "(setsid xfce4-terminal >/dev/null 2>&1 &); echo started", "timeout_s": 30})
+		case 1:
+			return saysTool("wait_for", map[string]any{"condition": "window_title", "value": "Terminal", "timeout_s": 60})
+		case 2:
+			// What the exec tool would be refused is refused when it is typed into the terminal.
+			return saysTool("type_text", map[string]any{"text": "rm -rf /\n"})
+		case 3:
+			return saysTool("type_text", map[string]any{"text": "echo typed-in-the-terminal >> /home/cs/work/typed.txt\n"})
+		case 4:
+			return saysTool("wait_for", map[string]any{"condition": "seconds", "value": "3", "timeout_s": 15})
+		case 5:
+			return saysTool("exec", map[string]any{"command": "cat /home/cs/work/typed.txt; test -d /etc -a -x /bin/ls && echo guest-intact", "timeout_s": 30})
+		default:
+			after = strings.Join(toolResults(r), "\n")
+			return saysDone(true, "judged")
+		}
+	}})
+	if err := e.run(e.config("Use the terminal")); err != nil {
+		t.Fatalf("the session: %v", err)
+	}
+	if got := strings.Join(decisions(e.records()), ","); got != "exec:allowed,wait_for:allowed,type_text:denied,type_text:allowed,wait_for:allowed,exec:allowed" {
+		t.Errorf("decisions %s", got)
+	}
+	if !strings.Contains(after, "typed-in-the-terminal") || !strings.Contains(after, "guest-intact") {
+		t.Errorf("the ordinary command was typed and the guest is intact: %q", after)
+	}
 }

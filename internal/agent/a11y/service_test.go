@@ -22,17 +22,21 @@ type fakeDesktop struct {
 func (d *fakeDesktop) ActiveWindow(context.Context) (*Window, error) { return d.w, d.err }
 
 type fakeDriver struct {
-	mu     sync.Mutex
-	clicks [][2]int
-	keys   []string
-	typed  []string
-	err    error
+	mu      sync.Mutex
+	onClick func() // runs during a click, before it answers
+	clicks  [][2]int
+	keys    []string
+	typed   []string
+	err     error
 }
 
 func (d *fakeDriver) Click(_ context.Context, x, y int) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.clicks = append(d.clicks, [2]int{x, y})
+	if d.onClick != nil {
+		d.onClick()
+	}
 	return d.err
 }
 
@@ -319,6 +323,7 @@ func TestActRefusesBadRequests(t *testing.T) {
 
 func TestClickUsesTheElementsOwnAction(t *testing.T) {
 	w := newWorld()
+	w.bus.nodes[w.open].role = roleMenuItem // a menu item is clicked by its action; a button by the pointer (the next tests)
 	g := w.tree(t, "").Generation
 	out, err := w.svc.Act(context.Background(), "a2", g, OpClick, "")
 	if err != nil || out.Method != "action:click" {
@@ -381,6 +386,7 @@ func TestClickFallsBackToThePointerWhenTheActionFails(t *testing.T) {
 
 func TestClickDoesNotWaitForAButtonThatOpenedADialog(t *testing.T) {
 	w := newWorld()
+	w.bus.nodes[w.open].role = roleMenuItem
 	g := w.tree(t, "").Generation
 	w.bus.blockAction = true
 	start := time.Now()
@@ -398,6 +404,7 @@ func TestClickDoesNotWaitForAButtonThatOpenedADialog(t *testing.T) {
 
 func TestClickEndsWhenTheRequestIsCanceled(t *testing.T) {
 	w := newWorld()
+	w.bus.nodes[w.open].role = roleMenuItem
 	g := w.tree(t, "").Generation
 	w.bus.blockAction = true
 	w.svc.actionTimeout = time.Minute
@@ -683,5 +690,60 @@ func TestProbeFindsAnElementWithoutTakingAGeneration(t *testing.T) {
 	cancel()
 	if _, err := w.svc.Probe(ctx, "", "open", 0); !errors.Is(err, context.Canceled) {
 		t.Errorf("%v", err)
+	}
+}
+
+func TestAButtonIsClickedWithThePointerWhenItIsOnTheScreen(t *testing.T) {
+	// The action of some buttons answers "done" and starts nothing (the panel's launchers on the real guest); the pointer does
+	// what a person does.
+	for _, role := range []uint32{rolePushButton, roleToggleButton} {
+		w := newWorld()
+		w.bus.nodes[w.open].role = role
+		g := w.tree(t, "").Generation
+		out, err := w.svc.Act(context.Background(), "a2", g, OpClick, "")
+		if err != nil || out.Method != "pointer" {
+			t.Fatalf("role %d: %+v %v", role, out, err)
+		}
+		if len(w.driver.clicks) != 1 || w.driver.clicks[0] != [2]int{130, 60} || len(w.bus.done) != 0 {
+			t.Errorf("role %d: clicks %v, actions %v", role, w.driver.clicks, w.bus.done)
+		}
+	}
+}
+
+func TestAButtonThatTheThePointerCannotReachIsClickedByItsAction(t *testing.T) {
+	w := newWorld()
+	w.driver.err = errors.New("the point is outside the screen")
+	g := w.tree(t, "").Generation
+	out, err := w.svc.Act(context.Background(), "a2", g, OpClick, "")
+	if err != nil || out.Method != "action:click" {
+		t.Fatalf("%+v %v", out, err)
+	}
+	if len(w.driver.clicks) != 1 || len(w.bus.done) != 1 {
+		t.Errorf("clicks %v, actions %v", w.driver.clicks, w.bus.done)
+	}
+}
+
+func TestACheckBoxAndALinkKeepToTheirActions(t *testing.T) {
+	for _, role := range []uint32{roleCheckBox} {
+		w := newWorld()
+		w.bus.nodes[w.open].role = role
+		g := w.tree(t, "").Generation
+		if out, err := w.svc.Act(context.Background(), "a2", g, OpClick, ""); err != nil || out.Method != "action:click" || len(w.driver.clicks) != 0 {
+			t.Errorf("role %d: %+v %v clicks %v", role, out, err, w.driver.clicks)
+		}
+	}
+}
+
+func TestAButtonClickThatIsCanceledDoesNotFallBackToTheAction(t *testing.T) {
+	w := newWorld()
+	ctx, cancel := context.WithCancel(context.Background())
+	w.driver.onClick = cancel // the request is canceled while the pointer is at work
+	w.driver.err = errors.New("interrupted")
+	g := w.tree(t, "").Generation
+	if _, err := w.svc.Act(ctx, "a2", g, OpClick, ""); !errors.Is(err, context.Canceled) {
+		t.Errorf("%v", err)
+	}
+	if len(w.bus.done) != 0 {
+		t.Errorf("a canceled request went on to act: %v", w.bus.done)
 	}
 }

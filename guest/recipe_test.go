@@ -111,14 +111,13 @@ func TestScriptsHaveValidSyntax(t *testing.T) {
 	if err != nil {
 		t.Skip("no bash here")
 	}
-	dir := t.TempDir()
 	for name, data := range map[string][]byte{"bootstrap.sh": read("bootstrap.sh"), "provision.sh": ProvisionScript(),
 		"xsession-env.sh": read("xsession-env.sh"), "chromium-flags.sh": read("chromium-flags.sh")} {
-		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, data, 0o600); err != nil {
-			t.Fatal(err)
-		}
-		if out, err := exec.CommandContext(context.Background(), bash, "-n", p).CombinedOutput(); err != nil { //nolint:gosec // a tool found on this machine
+		// The script goes in by the standard input: the `bash` found may be the one of WSL on Windows, which cannot read a
+		// Windows path.
+		cmd := exec.CommandContext(context.Background(), bash, "-n") //nolint:gosec // a tool found on this machine
+		cmd.Stdin = bytes.NewReader(data)
+		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Errorf("%s: %v: %s", name, err, out)
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,7 @@ type Keeper struct {
 const (
 	transcriptName = "transcript.jsonl"
 	shotsName      = "shots"
+	requestsName   = "requests"
 )
 
 // NewKeeper makes the directory (owner only) and the transcript in it.
@@ -106,6 +108,40 @@ func (k *Keeper) Shot(turn int, img backend.Image) {
 		k.fail(err)
 	}
 	if err := f.Close(); err != nil {
+		k.fail(err)
+	}
+}
+
+// Request saves what the model was asked on a turn, as text: each message after the system prompt (whose hash the log has) with
+// the number of pictures it carried. It is what to read to see why a model did what it did.
+func (k *Keeper) Request(turn int, req backend.Request) {
+	var b strings.Builder
+	for _, m := range req.Messages {
+		if m.Role == backend.RoleSystem {
+			continue
+		}
+		fmt.Fprintf(&b, "## %s", m.Role)
+		if m.Tool != "" {
+			fmt.Fprintf(&b, " (%s)", m.Tool)
+		}
+		if len(m.Images) > 0 {
+			fmt.Fprintf(&b, " [%d picture(s)]", len(m.Images))
+		}
+		b.WriteString("\n")
+		for _, c := range m.Calls {
+			fmt.Fprintf(&b, "call %s %s\n", c.Name, c.Args)
+		}
+		b.WriteString(m.Text)
+		b.WriteString("\n\n")
+	}
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	dir := filepath.Join(k.dir, requestsName)
+	if err := platform.EnsureDir(dir); err != nil {
+		k.fail(err)
+		return
+	}
+	if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("turn-%04d.txt", turn)), []byte(b.String()), 0o600); err != nil {
 		k.fail(err)
 	}
 }

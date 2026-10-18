@@ -424,3 +424,32 @@ func TestTheAgentsRawAnswersAreKeptInGuestPixels(t *testing.T) {
 		t.Errorf("without text: %+v, %v", seen.Raw, err)
 	}
 }
+
+func TestWithNoWindowInFocusTheModelIsShownTheDesktopAndNotAnEmptyWindow(t *testing.T) {
+	look := func(scope string, active bool) (protocol.A11yTreeReq, Seen) {
+		g := newGuest(1280, 800, 1)
+		if !active {
+			g.info.ActiveWindow = nil
+		}
+		seen, err := observer(t, g, visionSetup(), func(c *ObserverConfig) { c.Scope = scope }).Look(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return g.treeReq, seen
+	}
+	// The desktop after boot, or after the last window was closed: the panel and the dock are what there is to operate.
+	req, seen := look("", false)
+	if req.Scope != "desktop" || seen.UI == nil || seen.UI.Scope != "desktop" {
+		t.Errorf("no window in focus: asked for %q, the observation says %v", req.Scope, seen.UI)
+	}
+	// With a window in focus, its own tree.
+	if req, seen := look("", true); req.Scope != "active_window" || seen.UI.Scope != "active_window" {
+		t.Errorf("a window in focus: %q / %q", req.Scope, seen.UI.Scope)
+	}
+	// What the session chose is not changed: the desktop stays the desktop and the browser stays the browser.
+	for _, scope := range []string{"desktop", "browser"} {
+		if req, seen := look(scope, false); req.Scope != scope || seen.UI.Scope != scope {
+			t.Errorf("scope %q with no window in focus: asked for %q, observation %q", scope, req.Scope, seen.UI.Scope)
+		}
+	}
+}

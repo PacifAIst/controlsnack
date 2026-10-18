@@ -127,7 +127,9 @@ type Loop struct {
 	Answered func(time.Duration)
 	// Kept is given the picture the model is shown on each turn that has a new one (for --keep).
 	Kept func(turn int, img backend.Image)
-	Now  func() time.Time
+	// KeptRequest is given what the model is asked on the first attempt of each turn (for --keep).
+	KeptRequest func(turn int, req backend.Request)
+	Now         func() time.Time
 
 	onResume []func()
 	chatSeq  int
@@ -333,6 +335,9 @@ func (l *Loop) answer(ctx context.Context, n int) (parse.Result, []parse.ToolCal
 		if err != nil {
 			l.notice(viewer.LevelError, textclean.Line(err.Error(), 600))
 			return parse.Result{}, nil, Outcome{End: EndFailed, Err: err}, true
+		}
+		if attempt == 0 && l.KeptRequest != nil {
+			l.KeptRequest(n, req)
 		}
 		began := l.now()
 		resp, err := l.Model.Complete(ctx, req)
