@@ -197,13 +197,15 @@ func TestBridgeCarriesAConnectionAndTellsTheAuditLog(t *testing.T) {
 	if got := readN(t, c, 4); got != "ping" {
 		t.Fatalf("echo %q", got)
 	}
+	// Windows reads its clock in ticks of 0.5 to 15.6 ms: a connection must outlast one to be measured at all.
+	time.Sleep(40 * time.Millisecond)
 	_ = c.Close()
 
 	ev := r.events.wait(t, 2)
 	if ev[0].Phase != PhaseDecision || !ev[0].Decision.Allowed || ev[0].Decision.Host != "example.com" || ev[0].Decision.Port != 443 {
 		t.Errorf("decision event: %+v", ev[0])
 	}
-	if ev[1].Phase != PhaseClosed || ev[1].Up != 4 || ev[1].Down != 4 || ev[1].Duration <= 0 {
+	if ev[1].Phase != PhaseClosed || ev[1].Up != 4 || ev[1].Down != 4 || ev[1].Duration < 10*time.Millisecond {
 		t.Errorf("closed event: %+v", ev[1])
 	}
 	if got := d.requests(); len(got) != 1 || got[0] != "example.com:443" {
