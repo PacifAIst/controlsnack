@@ -140,6 +140,7 @@ func (p *peer) write(typ websocket.MessageType, b []byte) bool {
 		p.stop(fmt.Errorf("%w: %w", errStalled, err))
 		return false
 	}
+	p.hub.stats.bytes.Add(int64(len(b)))
 	return true
 }
 

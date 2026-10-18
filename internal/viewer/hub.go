@@ -64,6 +64,7 @@ type HubStats struct {
 	Invalid       int64 // messages of the page that broke the rules
 	Unknown       int64 // messages of the page with a type that is not one
 	Limited       int64 // messages of the page left out by the rate limit
+	BytesSent     int64 // bytes written to the page, of every message and frame
 }
 
 // Hub is the connection to the page: it takes the session's messages and frames, never blocks the session whatever the
@@ -83,7 +84,7 @@ type Hub struct {
 	order   []string          // the ids in the order they came
 
 	stats struct {
-		connections, framesSent, framesDropped, dropped, overflows, invalid, unknown, limited atomic.Int64
+		connections, framesSent, framesDropped, dropped, overflows, invalid, unknown, limited, bytes atomic.Int64
 	}
 }
 
@@ -133,7 +134,7 @@ func (h *Hub) Stats() HubStats {
 	return HubStats{
 		Connections: h.stats.connections.Load(), FramesSent: h.stats.framesSent.Load(), FramesDropped: h.stats.framesDropped.Load(),
 		Dropped: h.stats.dropped.Load(), Overflows: h.stats.overflows.Load(), Invalid: h.stats.invalid.Load(),
-		Unknown: h.stats.unknown.Load(), Limited: h.stats.limited.Load(),
+		Unknown: h.stats.unknown.Load(), Limited: h.stats.limited.Load(), BytesSent: h.stats.bytes.Load(),
 	}
 }
 
