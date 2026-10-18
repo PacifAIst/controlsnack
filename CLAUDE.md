@@ -15,6 +15,7 @@ You are implementing ControlSnack Local as specified in PLAN.md.
 - Give the runtime VM a NIC, shared folders or clipboard; add host-side tools for the LLM.
 - Add a dependency outside Apache-2.0 / MIT / BSD / ISC without asking.
 - Paste code from other projects into the repo.
+- Add a git remote, push, create a repository or open an issue on GitHub (or anywhere else) until the user says so: the upload to https://github.com/PacifAIst/controlsnack is P8-T09 and waits for their word.
 
 ## Platform
 - The accelerator is chosen at runtime (internal/vm/accel.go): kvm, whpx or hvf when usable, otherwise tcg — never a build-time choice.
