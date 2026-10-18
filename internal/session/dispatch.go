@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
@@ -92,6 +93,9 @@ type Dispatcher struct {
 	// Redactor masks what must not reach the viewer or the log (secrets the session knows).
 	Redactor *secret.Redactor
 	Now      func() time.Time
+
+	// step is the person's word on step mode, set while the session runs: 0 leaves it to the profile, 1 is on, 2 is off.
+	step atomic.Int32
 }
 
 var reWID = regexp.MustCompile(`^w[0-9]{1,5}$`)
@@ -121,14 +125,14 @@ func (d *Dispatcher) judge(ctx context.Context, a actions.Action) judged {
 	switch args := a.Args.(type) {
 	case *actions.ExecArgs:
 		dec := d.Policy.EvaluateExec(ctx, args.Command, args.Cwd)
-		return judged{verdict: d.Profile.Apply(dec.Verdict), rules: dec.Rules}
+		return judged{verdict: d.profile().Apply(dec.Verdict), rules: dec.Rules}
 	}
 	g, ok := guiAction(a)
 	if !ok {
-		return judged{verdict: d.Profile.Apply(safety.Allow)} // reading and waiting have no rules; --step still asks
+		return judged{verdict: d.profile().Apply(safety.Allow)} // reading and waiting have no rules; --step still asks
 	}
 	dec := d.Policy.EvaluateGUI(g, d.Exec.Snapshot())
-	return judged{verdict: d.Profile.Apply(dec.Verdict), rules: dec.Rules, redactText: dec.RedactText}
+	return judged{verdict: d.profile().Apply(dec.Verdict), rules: dec.Rules, redactText: dec.RedactText}
 }
 
 // guiAction is the part of an action the GUI rules look at, or false for a tool that has no GUI rules.
@@ -394,6 +398,28 @@ func (d *Dispatcher) planOf(id string, a actions.Action) viewer.Plan {
 				p.Bounds = &viewer.Bounds{X: n.Bounds[0], Y: n.Bounds[1], W: n.Bounds[2], H: n.Bounds[3]}
 			}
 		}
+	}
+	return p
+}
+
+// SetStep turns step mode (every action needs the person's approval) on or off while the session runs. Starting a session
+// with --step means it is on at the start; the person's own word, from the viewer, decides from then on.
+func (d *Dispatcher) SetStep(on bool) {
+	if on {
+		d.step.Store(1)
+	} else {
+		d.step.Store(2)
+	}
+}
+
+// profile is the profile in force: the session's, with the person's word on step mode if they have given it.
+func (d *Dispatcher) profile() safety.Profile {
+	p := d.Profile
+	switch d.step.Load() {
+	case 1:
+		p.Step = true
+	case 2:
+		p.Step = false
 	}
 	return p
 }
