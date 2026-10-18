@@ -601,3 +601,50 @@ func TestAStopDuringAQuestionSaysSoToTheActionsAfterIt(t *testing.T) {
 		t.Errorf("results %q", tools)
 	}
 }
+
+func TestEachWayTheModelCanFailComesWithWhatThePersonCanDoAboutIt(t *testing.T) {
+	for _, tc := range []struct {
+		kind   backend.Kind
+		fatal  bool
+		advice string
+	}{
+		{backend.KindUnavailable, false, "Is the model's server running"},
+		{backend.KindTimeout, false, "llm.timeout"},
+		{backend.KindRateLimited, false, "limiting requests"},
+		{backend.KindServer, false, "error of its own"},
+		{backend.KindProtocol, false, "does not understand"},
+		{backend.KindAuth, true, "refused the key"},
+		{backend.KindBadRequest, true, "context window"},
+		{backend.KindNotFound, true, "base URL"},
+	} {
+		g := newLrig(t)
+		g.model.replies = []reply{{err: &backend.Error{Kind: tc.kind, Backend: "openai", Message: "boom"}}, calls(doneOK)}
+		if tc.fatal {
+			if out := g.run("t"); out.End != EndFailed {
+				t.Errorf("%v: outcome %+v", tc.kind, out)
+			}
+		} else {
+			ch := g.runAsync(context.Background(), "t")
+			g.waitState(Paused)
+			_ = g.m.To(Running, "resumed")
+			wait(t, ch)
+		}
+		txt := g.view.text()
+		if !strings.Contains(txt, tc.advice) || !strings.Contains(txt, "boom") {
+			t.Errorf("%v: notices %s", tc.kind, txt)
+		}
+	}
+	// An error that is not the backend's has no advice and still is reported.
+	g := newLrig(t)
+	g.model.replies = []reply{{err: errors.New("something odd")}, calls(doneOK)}
+	ch := g.runAsync(context.Background(), "t")
+	g.waitState(Paused)
+	if txt := g.view.text(); !strings.Contains(txt, "The model did not answer: something odd. Resume to try again") {
+		t.Errorf("notices %s", txt)
+	}
+	_ = g.m.To(Running, "resumed")
+	wait(t, ch)
+	if modelAdvice(backend.Kind(99)) != "" {
+		t.Error("advice for a kind of failure nobody has heard of")
+	}
+}

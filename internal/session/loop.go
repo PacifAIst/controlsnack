@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
@@ -416,18 +417,44 @@ func (l *Loop) auditAnswer(n int, resp backend.Response, took time.Duration) err
 	return l.record(audit.Record{Kind: audit.KindLLM, Event: "response", Actor: "llm", Turn: n, LLM: info})
 }
 
+// modelAdvice says, for each way a call to the model can fail, what the person can do about it.
+func modelAdvice(k backend.Kind) string {
+	switch k {
+	case backend.KindUnavailable:
+		return "Is the model's server running, and is the address right?"
+	case backend.KindTimeout:
+		return "The model took too long: a bigger model or a slower machine may need a longer llm.timeout."
+	case backend.KindRateLimited:
+		return "The provider is limiting requests: wait a little."
+	case backend.KindServer:
+		return "The model's server reported an error of its own."
+	case backend.KindProtocol:
+		return "The model's server answered in a way ControlSnack does not understand."
+	case backend.KindAuth:
+		return "The provider refused the key: check the environment variable it is read from."
+	case backend.KindBadRequest:
+		return "The model refused the request, for example because the conversation is longer than its context window or it takes no pictures."
+	case backend.KindNotFound:
+		return "The model or the address was not found: check the model's name and the base URL."
+	}
+	return ""
+}
+
 // modelFailed decides what a failed call to the model comes to: a failure that will not mend by itself ends the task, any
-// other pauses it so that the person can resume it once the model is back.
+// other pauses it so that the person can resume it once the model is back. (The client has already tried again for the failures
+// worth it, with a pause between tries.)
 func (l *Loop) modelFailed(err error) Outcome {
+	advice := ""
 	var be *backend.Error
 	if errors.As(err, &be) {
+		advice = modelAdvice(be.Kind)
 		switch be.Kind {
 		case backend.KindAuth, backend.KindBadRequest, backend.KindNotFound:
-			l.notice(viewer.LevelError, "The model cannot be used: "+textclean.Line(err.Error(), 400))
+			l.notice(viewer.LevelError, words("The model cannot be used: "+textclean.Line(err.Error(), 400)+".", advice))
 			return Outcome{End: EndFailed, Err: err}
 		}
 	}
-	l.pause("the model did not answer", "The model did not answer: "+textclean.Line(err.Error(), 400)+". Resume to try again, or Stop to end the task.")
+	l.pause("the model did not answer", words("The model did not answer: "+textclean.Line(err.Error(), 400)+".", advice, "Resume to try again, or Stop to end the task."))
 	return Outcome{}
 }
 
@@ -445,4 +472,15 @@ func screenKey(seen vision.Seen, hash string) string {
 	}
 	sum := sha256.Sum256(b)
 	return hex.EncodeToString(sum[:])
+}
+
+// words joins sentences with a space, leaving out the empty ones.
+func words(sentences ...string) string {
+	var parts []string
+	for _, s := range sentences {
+		if s != "" {
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, " ")
 }
