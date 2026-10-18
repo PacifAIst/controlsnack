@@ -84,7 +84,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 
 ## Phase 7 — Integration: internal/session, run
 - [x] (2026-10-18) P7-T01 State machine (§3.4) with transition tests — `internal/session/state.go`: ten states, the diagram as a table (checked pair by pair), `To` and `ToIf`, observers that hear every move in the order it was made, `WaitRunning` (the turn loop's gate) and `Wait`; race detector clean; 16 of 16 mutations caught (D-94)
-- [ ] P7-T02 Turn loop + batching rules (§11)
+- [ ] P7-T02 Turn loop + batching rules (§11) — **first half done 2026-10-18**: the executor (`exec.go`, an action to the agent's requests) and the dispatcher (`dispatch.go`, the pipeline of rules, confirmation, budgets, record and plan; D-95); **still to do: the turn loop itself** (`loop.go`)
 - [ ] P7-T03 Chat, ask_user, Stop, Pause, Step mode
 - [ ] P7-T04 Budgets, loop detection, circuit breaker, dead-man switch
 - [ ] P7-T05 Agent-down fallback + LLM error handling

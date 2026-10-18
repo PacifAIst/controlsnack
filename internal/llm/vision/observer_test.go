@@ -381,3 +381,46 @@ func TestFillKeepsTheNotesItWasGivenAndAddsItsOwn(t *testing.T) {
 		t.Errorf("notes = %q", obs.Notes)
 	}
 }
+
+func TestTheAgentsRawAnswersAreKeptInGuestPixels(t *testing.T) {
+	// With a picture scaled to two thirds, what the model sees is in the picture's pixels and what the agent said is in the
+	// guest's: the session judges and aims with the second.
+	g := newGuest(1920, 1080, 2.0/3)
+	seen, err := observer(t, g, visionSetup(), nil).Look(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seen.Raw.Tree == nil || len(seen.Raw.Tree.Nodes) != 2 || seen.Raw.Tree.Generation != "g7" {
+		t.Fatalf("raw tree = %+v", seen.Raw.Tree)
+	}
+	if got := seen.Raw.Tree.Nodes[1].Bounds; got != (protocol.Rect{960, 540, 100, 40}) {
+		t.Errorf("the button in guest pixels: %v (the model sees %v)", got, seen.UI.Nodes[1].Bounds)
+	}
+	if seen.Raw.OCR != nil {
+		t.Error("a look with a picture has no raw text")
+	}
+	if seen.Raw.Info.Cursor != (protocol.Point{X: 480, Y: 300}) && seen.Raw.Info.Cursor == (protocol.Point{}) {
+		t.Errorf("raw screen info = %+v", seen.Raw.Info)
+	}
+
+	// Without a picture there is text, and it too is kept as the agent said it.
+	g = newGuest(1280, 800, 1)
+	seen, err = observer(t, g, textSetup(), nil).Look(context.Background())
+	if err != nil || seen.Raw.OCR == nil || len(seen.Raw.OCR.Lines) != 1 || seen.Raw.OCR.Lines[0].Bounds != (protocol.Rect{10, 30, 200, 20}) || seen.Raw.Tree == nil {
+		t.Errorf("text-only: %+v, %v", seen.Raw, err)
+	}
+
+	// What could not be read is nil, not empty.
+	g = newGuest(1280, 800, 1)
+	g.treeErr = &remoteErr{protocol.CodeTimeout, "too long"}
+	seen, err = observer(t, g, textSetup(), nil).Look(context.Background())
+	if err != nil || seen.Raw.Tree != nil || seen.Raw.OCR == nil {
+		t.Errorf("without a tree: %+v, %v", seen.Raw, err)
+	}
+	g = newGuest(1280, 800, 1)
+	g.ocrErr = &remoteErr{protocol.CodeUnsupported, "no tesseract"}
+	seen, err = observer(t, g, textSetup(), nil).Look(context.Background())
+	if err != nil || seen.Raw.OCR != nil || seen.Raw.Tree == nil {
+		t.Errorf("without text: %+v, %v", seen.Raw, err)
+	}
+}

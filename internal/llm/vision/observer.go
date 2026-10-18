@@ -83,6 +83,10 @@ type Seen struct {
 	Shot *Shot
 	// Notes say, for the model, what could not be read and why.
 	Notes []string
+	// Raw is what the agent said, in guest pixels and before the model's coordinate space was applied: for the parts of the
+	// session that act on it, which judge and aim in the guest's own terms (the policy's hit test of a click, the place of
+	// an element or a line of text that the model named by its id).
+	Raw RawSeen
 
 	mode, tools string
 }
@@ -111,6 +115,7 @@ func (o *Observer) Look(ctx context.Context) (Seen, error) {
 		return Seen{}, fmt.Errorf("reading the screen: %w", err)
 	}
 	var seen Seen
+	seen.Raw.Info = info
 	seen.mode, seen.tools = "text-only", o.cfg.Setup.Profile
 	if o.cfg.Setup.Vision {
 		seen.mode = "vision"
@@ -157,12 +162,14 @@ func (o *Observer) Look(ctx context.Context) (Seen, error) {
 			}
 		} else {
 			seen.OCR = seen.Mapper.OCR(res)
+			seen.Raw.OCR = &res
 		}
 	}
 
 	seen.Active = seen.Mapper.Window(info.ActiveWindow)
 	if treeOK {
 		seen.UI = seen.Mapper.UITree(tree, o.cfg.Scope)
+		seen.Raw.Tree = &tree
 	}
 	return seen, nil
 }
@@ -182,4 +189,11 @@ func (s Seen) Fill(o *prompt.Observation) {
 		o.Image = &note
 	}
 	o.Notes = append(o.Notes, s.Notes...)
+}
+
+// RawSeen is the agent's own answers to one look. Tree and OCR are nil when they could not be read.
+type RawSeen struct {
+	Info protocol.ScreenInfoRes
+	Tree *protocol.A11yTreeRes
+	OCR  *protocol.OCRRes
 }
