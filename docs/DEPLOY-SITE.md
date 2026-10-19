@@ -1,6 +1,6 @@
-# Putting the site on Cloudflare Pages (free)
+# Putting the site on Cloudflare (free)
 
-The site is the folder `site/`: plain files, no build step, no script from other places. Cloudflare Pages serves it for free.
+The site is the folder `site/`: plain files, no build step, no script from other places. Cloudflare serves it for free (the dashboard offers it as Pages, or as a Workers project with static assets; both read the folder as it is).
 
 The easy steps on the site are the steps that were run: TESTING.md Parts A to C passed on native Windows 10 with a local model and with a hosted one (D-110, D-111). Publishing does not need the GitHub repository: Direct Upload works without it. The site is the pages `index.html` and `docs.html` (the documentation, with a guide for newcomers), the screenshots in `img/`, and the files they use; upload the whole folder.
 
@@ -12,8 +12,8 @@ The easy steps on the site are the steps that were run: TESTING.md Parts A to C 
 
 ## Publish, by dragging the folder
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Pages** → **Upload assets**.
-2. Name the project `controlsnack`, upload the `site` folder, **Deploy**. The site is then at `https://controlsnack.pages.dev`.
+1. Cloudflare dashboard → **Workers & Pages** → **Create** → upload the files (**Upload assets**, or drag the folder).
+2. Name the project `controlsnack`, upload the `site` folder, **Deploy**. The site is then at the address Cloudflare gives it: this project's is `https://controlsnack.smartcityjaen.workers.dev`.
 
 or from a terminal, with Node:
 
@@ -23,7 +23,7 @@ npx wrangler pages deploy site --project-name controlsnack
 
 ## The address
 
-The site lives at `https://controlsnack.pages.dev` and is uploaded by hand, as above, when its owner decides (D-114). There is no custom domain, no build step and no workflow in this repository that publishes it: the README, the guide and the documentation name that address, and a test (`internal/sitecheck`) fails if the old `.com` address comes back into them. If the project name `controlsnack` were ever taken on Cloudflare, the address would be different and those three would have to say so.
+The site lives at `https://controlsnack.smartcityjaen.workers.dev` and is uploaded by hand, as above, when its owner decides (D-114). There is no custom domain, no build step and no workflow in this repository that publishes it: the README, the guide, the documentation and the release notes name that address, and a test (`internal/sitecheck`) fails if one of the addresses given up (a `.com`, and the `pages.dev` one) comes back into them.
 
 ## What the site does and does not do
 

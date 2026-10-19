@@ -4,7 +4,7 @@ ControlSnack lets an AI model use a computer for you, safely. It starts a small 
 
 This guide takes you from nothing to a first task, step by step, with screenshots of the real program. You need two things: ControlSnack and a model. The model can run **on your own computer** (path A) or be **rented through an API** (path B). The setup in the middle is the same for both.
 
-Every command, flag and setting is described in the [documentation](https://controlsnack.pages.dev/docs) (the same text is in [`site/docs.html`](../site/docs.html)); this guide is the short road.
+Every command, flag and setting is described in the [documentation](https://controlsnack.smartcityjaen.workers.dev/docs) (the same text is in [`site/docs.html`](../site/docs.html)); this guide is the short road.
 
 - [Which path should I pick?](#which-path-should-i-pick)
 - [Setup, once (both paths)](#setup-once-both-paths)
@@ -139,7 +139,7 @@ The Ollama path was tested only against a stand-in server, not yet with a real m
 
 ## Path B: a model through an API (OpenRouter)
 
-OpenRouter is one account that gives access to many models. The test below used `qwen/qwen3.8-omni-flash`. Any provider with an OpenAI-compatible API works the same way; OpenAI and Anthropic have their own settings in the [recipes](https://controlsnack.pages.dev/docs#recipes).
+OpenRouter is one account that gives access to many models. The test below used `qwen/qwen3.8-omni-flash`. Any provider with an OpenAI-compatible API works the same way; OpenAI and Anthropic have their own settings in the [recipes](https://controlsnack.smartcityjaen.workers.dev/docs#recipes).
 
 ### B1. Make an account and a key
 
@@ -201,7 +201,7 @@ Seven seconds in. The model found the terminal launcher in the dock and clicked 
 
 The end, 33 seconds after the desktop was ready. The front terminal shows the command and its output, the chat has the model's summary, and the state went back to **Ready**: the session waits for your next task and does not end by itself. (The model clicked the launcher a second time before the first window had appeared, so two terminals opened. Models make small slips like this, which is one reason you can watch.)
 
-To end the session, press **KILL**, press `Ctrl`+`C` in the terminal, or run `controlsnack kill` in another one. The little computer is deleted. More ways to stop it are in the [documentation](https://controlsnack.pages.dev/docs#stopping).
+To end the session, press **KILL**, press `Ctrl`+`C` in the terminal, or run `controlsnack kill` in another one. The little computer is deleted. More ways to stop it are in the [documentation](https://controlsnack.smartcityjaen.workers.dev/docs#stopping).
 
 ### A longer task
 
@@ -238,4 +238,4 @@ The audit log of the editor session: what the model asked for, what the rules de
 | The model asks you something, or a box asks you to approve an action | The rules want your say. Answer in the chat, or press Approve or Reject. An action nobody answers within two minutes counts as rejected. |
 | Another session is running | Only one runs at a time per user. `controlsnack kill` ends it. |
 
-When you are ready for more: the [documentation](https://controlsnack.pages.dev/docs) has every command and flag, commands for other models, for letting the guest browse a site, for scripts and for keeping a machine between sessions, and how to change what the model may do with a policy file. [`TESTING.md`](../TESTING.md) is the step-by-step test of a new machine, and the [README](../README.md) says what has and has not been run.
+When you are ready for more: the [documentation](https://controlsnack.smartcityjaen.workers.dev/docs) has every command and flag, commands for other models, for letting the guest browse a site, for scripts and for keeping a machine between sessions, and how to change what the model may do with a policy file. [`TESTING.md`](../TESTING.md) is the step-by-step test of a new machine, and the [README](../README.md) says what has and has not been run.

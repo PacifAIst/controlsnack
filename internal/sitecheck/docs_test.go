@@ -498,24 +498,27 @@ func TestTheGuideInTheRepositoryShowsTheSameScreenshotsAsThePage(t *testing.T) {
 	}
 }
 
-// The site lives at https://controlsnack.pages.dev and nowhere else (D-114): the address that was given up must not come back into what
-// a reader is told, and the real one must be where a reader is told where the documentation is.
-func TestTheReadingMatterNamesTheAddressOfTheSiteAndNotTheOneGivenUp(t *testing.T) {
-	const site = "https://controlsnack.pages.dev"
-	files := []string{"../../README.md", "../../TESTING.md", "../../docs/GETTING-STARTED.md", "../../docs/DEPLOY-SITE.md", "../../site/index.html", "../../site/docs.html", "../../site/404.html"}
+// The site lives at https://controlsnack.smartcityjaen.workers.dev and nowhere else (D-114): the addresses that were given up must not
+// come back into what a reader is told, and the real one must be where a reader is told where the documentation is.
+func TestTheReadingMatterNamesTheAddressOfTheSiteAndNotTheOnesGivenUp(t *testing.T) {
+	const site = "https://controlsnack.smartcityjaen.workers.dev"
+	files := []string{"../../README.md", "../../TESTING.md", "../../docs/GETTING-STARTED.md", "../../docs/DEPLOY-SITE.md", "../../.github/release-notes.md",
+		"../../site/index.html", "../../site/docs.html", "../../site/404.html"}
 	for _, name := range files {
 		data, err := os.ReadFile(name)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if strings.Contains(string(data), "controlsnack.com") {
-			t.Errorf("%s names the address that was given up", name)
+		for _, given := range []string{"controlsnack.com", "controlsnack.pages.dev"} {
+			if strings.Contains(string(data), given) {
+				t.Errorf("%s names %s, which was given up", name, given)
+			}
 		}
 	}
-	for _, name := range []string{"../../README.md", "../../docs/GETTING-STARTED.md", "../../site/docs.html"} {
+	for _, name := range []string{"../../README.md", "../../docs/GETTING-STARTED.md", "../../.github/release-notes.md", "../../site/docs.html"} {
 		data, _ := os.ReadFile(name)
-		if !strings.Contains(string(data), site+"/docs") && !strings.Contains(string(data), site) {
-			t.Errorf("%s does not say where the site is: %s", name, site)
+		if !strings.Contains(string(data), site+"/docs") {
+			t.Errorf("%s does not say where the documentation is: %s/docs", name, site)
 		}
 	}
 }
