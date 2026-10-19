@@ -88,7 +88,8 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 		if err != nil {
 			return err
 		}
-
+		// The page keeps a tail of the audit log: each record that is written is told to it as the line `audit show` would print.
+		tally.OnRecord(func(rc audit.Record) { vs.hub.Send(viewer.Audit{Line: audit.Summary(rc)}) })
 	}
 
 	// What the person is told goes to the viewer and to the terminal; without a viewer the terminal is all there is.

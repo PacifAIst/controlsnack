@@ -20,6 +20,15 @@ type Tally struct {
 	mu       sync.Mutex
 	answers  int
 	verdicts map[string]string // action id to verdict
+	onRecord func(audit.Record)
+}
+
+// OnRecord sets what is told of each record once it is written (the viewer's tail of the log). It never sees a record that
+// could not be written, and it is called outside the tally's lock.
+func (t *Tally) OnRecord(f func(audit.Record)) {
+	t.mu.Lock()
+	t.onRecord = f
+	t.mu.Unlock()
 }
 
 // Append writes the record and, if it was written, counts it.
@@ -29,7 +38,6 @@ func (t *Tally) Append(r audit.Record) (audit.Record, error) {
 		return out, err
 	}
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	switch {
 	case r.Kind == audit.KindLLM && r.Event == "response":
 		t.answers++
@@ -42,6 +50,11 @@ func (t *Tally) Append(r audit.Record) (audit.Record, error) {
 		} else if _, seen := t.verdicts[r.ActionID]; !seen {
 			t.verdicts[r.ActionID] = r.Verdict // an action the loop did itself (done, ask_user) has only its result
 		}
+	}
+	told := t.onRecord
+	t.mu.Unlock()
+	if told != nil {
+		told(out)
 	}
 	return out, nil
 }

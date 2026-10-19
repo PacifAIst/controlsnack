@@ -131,6 +131,10 @@ func (a *FileAdmin) Show(_ context.Context, w io.Writer, ref string, raw bool) e
 // not a log of ours at all), and a control sequence in it would act on the terminal of the person who reads it.
 func plain(s string) string { return textclean.Line(s, 400) }
 
+// Summary is the line `audit show` prints for a record: its number, time, kind, event, actor, tool, verdict, rules and reason, cleaned
+// of anything that would act on a terminal or a page. It is what the viewer shows in its tail of the log.
+func Summary(r Record) string { return summarize(r) }
+
 func summarize(r Record) string {
 	parts := []string{fmt.Sprintf("%4d", r.Seq), plain(r.TS), fmt.Sprintf("%-9s", plain(r.Kind))}
 	if r.Event != "" {

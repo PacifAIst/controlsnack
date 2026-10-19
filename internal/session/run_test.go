@@ -475,6 +475,14 @@ func TestThePageTypesATaskWatchesItAndKillsTheSession(t *testing.T) {
 	pg.send(map[string]any{"type": "chat", "text": "Print the kernel version"})
 	pg.waitFor("the echo of the person's words", func(m map[string]any) bool { return m["type"] == "chat" && m["role"] == "user" })
 	pg.waitFor("a state of running", func(m map[string]any) bool { return m["type"] == "state" && m["state"] == "running" })
+	// The page's tail of the audit log gets the decision about the command, as the line `audit show` prints.
+	al := pg.waitFor("the audit line of the decision", func(m map[string]any) bool {
+		line, _ := m["line"].(string)
+		return m["type"] == "audit" && strings.Contains(line, "decision") && strings.Contains(line, "exec")
+	})
+	if line := al["line"].(string); !strings.Contains(line, "-> allow") {
+		t.Errorf("the audit line %q does not say what was decided", line)
+	}
 	tr := pg.waitFor("the command's trace", func(m map[string]any) bool {
 		return m["type"] == "trace" && m["tool"] == "exec" && m["status"] == "done"
 	})
