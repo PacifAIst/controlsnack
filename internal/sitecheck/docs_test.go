@@ -532,6 +532,7 @@ func TestEveryGuideSaysToDownloadTheArchiveBeforeBuildingFromSource(t *testing.T
 		{"../../README.md", "download the archive for your system", "Or build from source"},
 		{"../../docs/GETTING-STARTED.md", "Download the archive for your system", "Or build it from source"},
 		{"../../site/docs.html", "Download the archive for your system", "Or build it from source"},
+		{"../../site/index.html", "download the archive for your system", "Or build from source"},
 	} {
 		data, err := os.ReadFile(c.name)
 		if err != nil {
@@ -552,6 +553,21 @@ func TestEveryGuideSaysToDownloadTheArchiveBeforeBuildingFromSource(t *testing.T
 		}
 		if !strings.Contains(text, "not signed") || !strings.Contains(text, "com.apple.quarantine") {
 			t.Errorf("%s does not say that the programs are not signed and what that means on each system", c.name)
+		}
+	}
+	// On the home page each system's tab says it too, in the same order.
+	index, err := os.ReadFile("../../site/index.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	panels := strings.Split(string(index), `role="tabpanel"`)[1:]
+	if len(panels) != 3 {
+		t.Fatalf("the home page has %d tabs of steps, want 3", len(panels))
+	}
+	for i, panel := range panels {
+		d, b := strings.Index(panel, "Download the archive for your system"), strings.Index(panel, "Or build from source.")
+		if d < 0 || b < 0 || d > b {
+			t.Errorf("tab %d of the home page: the download must come before building from source (at %d and %d)", i+1, d, b)
 		}
 	}
 	// /releases/latest does not show a pre-release, which every release is for now: the pages must not rely on it.

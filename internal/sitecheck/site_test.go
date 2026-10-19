@@ -323,7 +323,8 @@ func TestTheSitePageWorksInABrowserWithTheStrictPolicy(t *testing.T) {
 	if got := b.run(`document.getElementById('tab-linux').getAttribute('aria-selected')`); got != "true" {
 		t.Errorf("the right arrow does not move to Linux: %s", got)
 	}
-	if n := b.run(`String(document.querySelectorAll('pre.cmd .copy').length) + '/' + document.querySelectorAll('pre.cmd').length`); n != "15/15" {
+	// Every command block has its copy button, however many the page has.
+	if n := b.run(`String(document.querySelectorAll('pre.cmd .copy').length) + '/' + document.querySelectorAll('pre.cmd').length`); strings.Split(n, "/")[0] != strings.Split(n, "/")[1] || n == "0/0" {
 		t.Errorf("copy buttons on commands: %s", n)
 	}
 

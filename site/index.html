@@ -43,7 +43,7 @@
         <a class="btn" href="docs.html#newbies">New here? Guide with screenshots</a>
         <a class="btn" href="docs.html">Every flag, documented</a>
       </p>
-      <p class="status" role="note"><strong>Pre-release.</strong> Run end to end on Windows 10 with hardware acceleration, with a local 4B model and with a hosted Qwen model, and on Linux in a VM; macOS has not been tried. Until downloads exist you build it from source.</p>
+      <p class="status" role="note"><strong>Pre-release.</strong> Run end to end on Windows 10 with hardware acceleration, with a local 4B model and with a hosted Qwen model, and on Linux in a VM; macOS has not been tried. Download it from the <a href="https://github.com/PacifAIst/controlsnack/releases">releases page</a>; the programs are not signed.</p>
     </div>
 
     <figure class="shot" aria-label="A sketch of the viewer: the guest's desktop on the left, the model's actions on the right">
@@ -132,7 +132,21 @@
 <section class="band" id="steps">
   <div class="wrap">
     <h2>Easy steps</h2>
-    <p class="sub">Five steps to a first task. The same on every system except step 1. Until there are downloads, step 2 builds the program from source (Go 1.26 or newer).</p>
+    <p class="sub">Five steps to a first task. Steps 1 and 2 differ by system; the rest are the same. Step 2 is to download the archive for your system from the <a href="https://github.com/PacifAIst/controlsnack/releases">releases page</a> (open the newest release and look under <em>Assets</em>); the table says which file is yours. Or build from source, which each system's step 2 also shows.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Your system</th><th scope="col">The file to download</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Windows 10 or 11, 64-bit</th><td><code>controlsnack_&lt;version&gt;_windows_amd64.zip</code></td></tr>
+          <tr><th scope="row">macOS, Apple silicon (M1 and later)</th><td><code>controlsnack_&lt;version&gt;_darwin_arm64.tar.gz</code></td></tr>
+          <tr><th scope="row">macOS, Intel</th><td><code>controlsnack_&lt;version&gt;_darwin_amd64.tar.gz</code></td></tr>
+          <tr><th scope="row">Linux, 64-bit Intel or AMD</th><td><code>controlsnack_&lt;version&gt;_linux_amd64.tar.gz</code></td></tr>
+          <tr><th scope="row">Linux, 64-bit ARM</th><td><code>controlsnack_&lt;version&gt;_linux_arm64.tar.gz</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="after">The version is part of the file name; the examples use <code>v0.1.0-alpha.1</code>, the first release. <strong>The programs are not signed</strong>, so your system may object the first time (step 2 says what to do). Each release has a <code>SHA256SUMS</code> file to check your download against.</p>
 
     <div class="tabs" role="tablist" aria-label="Your system">
       <button role="tab" id="tab-windows" aria-controls="panel-windows" aria-selected="true" data-os="windows">Windows</button>
@@ -149,25 +163,29 @@
         </li>
         <li>
           <h3>Get ControlSnack</h3>
+          <p>Download the archive for your system: <code>controlsnack_&lt;version&gt;_windows_amd64.zip</code>. Unpack it where you saved it and go into the new folder.</p>
+          <pre class="cmd" data-copy><code>Expand-Archive .\controlsnack_v0.1.0-alpha.1_windows_amd64.zip -DestinationPath .
+cd controlsnack_v0.1.0-alpha.1_windows_amd64</code></pre>
+          <p class="note">The program is not signed, so Windows may say the publisher is unknown: choose <em>More info</em>, then <em>Run anyway</em>. The <a href="docs.html#newbies">guide with screenshots</a> shows every step.</p>
+          <p><strong>Or build from source.</strong> This needs Git and Go 1.26 or newer (<code>winget install Git.Git</code> and <code>winget install GoLang.Go</code>), and leaves the program in the <code>dist</code> folder, so use <code>.\dist\controlsnack.exe</code> below.</p>
           <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
 cd controlsnack
 go run ./tools/dev build</code></pre>
-          <p class="note">Needs Git and Go (<code>winget install Git.Git</code> and <code>winget install GoLang.Go</code>). The <a href="docs.html#newbies">guide with screenshots</a> shows every step.</p>
         </li>
         <li>
           <h3>Ask <code>doctor</code></h3>
           <p>It changes nothing and ends with the verdict a run would act on: <em>will use whpx</em> or <em>will use tcg (slow)</em>.</p>
-          <pre class="cmd" data-copy><code>.\dist\controlsnack.exe doctor</code></pre>
+          <pre class="cmd" data-copy><code>.\controlsnack.exe doctor</code></pre>
         </li>
         <li>
           <h3>Get the base image (once)</h3>
           <p>Downloads Debian and builds the desktop, 10 to 40 minutes without hardware acceleration. Or import one built elsewhere with <code>image import</code>.</p>
-          <pre class="cmd" data-copy><code>.\dist\controlsnack.exe image build</code></pre>
+          <pre class="cmd" data-copy><code>.\controlsnack.exe image build</code></pre>
         </li>
         <li>
           <h3>Run</h3>
           <p>Start a model server first (see <a href="#models">Models</a>), then:</p>
-          <pre class="cmd" data-copy><code>.\dist\controlsnack.exe run --task "Open a terminal and print the kernel version"</code></pre>
+          <pre class="cmd" data-copy><code>.\controlsnack.exe run --task "Open a terminal and print the kernel version"</code></pre>
         </li>
       </ol>
     </div>
@@ -180,23 +198,28 @@ go run ./tools/dev build</code></pre>
         </li>
         <li>
           <h3>Get ControlSnack</h3>
+          <p>Download the archive for your system: <code>controlsnack_&lt;version&gt;_darwin_arm64.tar.gz</code> on Apple silicon, <code>controlsnack_&lt;version&gt;_darwin_amd64.tar.gz</code> on an Intel Mac. Unpack it where you saved it and go into the new folder.</p>
+          <pre class="cmd" data-copy><code>tar -xzf controlsnack_v0.1.0-alpha.1_darwin_arm64.tar.gz
+cd controlsnack_v0.1.0-alpha.1_darwin_arm64
+xattr -d com.apple.quarantine ./controlsnack</code></pre>
+          <p class="note">The program is not signed, so macOS puts a downloaded program in quarantine; the last command lifts it. macOS has not been tested.</p>
+          <p><strong>Or build from source.</strong> This needs Git and Go 1.26 or newer (<code>brew install git go</code>), and leaves the program in the <code>dist</code> folder, so use <code>./dist/controlsnack</code> below.</p>
           <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
 cd controlsnack
 go run ./tools/dev build</code></pre>
-          <p class="note">macOS has not been tested.</p>
         </li>
         <li>
           <h3>Ask <code>doctor</code></h3>
           <p>It expects <em>will use hvf</em> on a machine of the same kind as the guest.</p>
-          <pre class="cmd" data-copy><code>./dist/controlsnack doctor</code></pre>
+          <pre class="cmd" data-copy><code>./controlsnack doctor</code></pre>
         </li>
         <li>
           <h3>Get the base image (once)</h3>
-          <pre class="cmd" data-copy><code>./dist/controlsnack image build</code></pre>
+          <pre class="cmd" data-copy><code>./controlsnack image build</code></pre>
         </li>
         <li>
           <h3>Run</h3>
-          <pre class="cmd" data-copy><code>./dist/controlsnack run --task "Open a terminal and print the kernel version"</code></pre>
+          <pre class="cmd" data-copy><code>./controlsnack run --task "Open a terminal and print the kernel version"</code></pre>
         </li>
       </ol>
     </div>
@@ -211,21 +234,26 @@ sudo usermod -aG kvm $USER</code></pre>
         </li>
         <li>
           <h3>Get ControlSnack</h3>
+          <p>Download the archive for your system: <code>controlsnack_&lt;version&gt;_linux_amd64.tar.gz</code> on Intel or AMD, <code>controlsnack_&lt;version&gt;_linux_arm64.tar.gz</code> on ARM. Unpack it where you saved it and go into the new folder.</p>
+          <pre class="cmd" data-copy><code>tar -xzf controlsnack_v0.1.0-alpha.1_linux_amd64.tar.gz
+cd controlsnack_v0.1.0-alpha.1_linux_amd64</code></pre>
+          <p class="note">The program is not signed. Linux does not object; check the download against <code>SHA256SUMS</code> if you want to.</p>
+          <p><strong>Or build from source.</strong> This needs Git and Go 1.26 or newer (<code>sudo apt install git golang-go</code>), and leaves the program in the <code>dist</code> folder, so use <code>./dist/controlsnack</code> below.</p>
           <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
 cd controlsnack
 go run ./tools/dev build</code></pre>
         </li>
         <li>
           <h3>Ask <code>doctor</code></h3>
-          <pre class="cmd" data-copy><code>./dist/controlsnack doctor</code></pre>
+          <pre class="cmd" data-copy><code>./controlsnack doctor</code></pre>
         </li>
         <li>
           <h3>Get the base image (once)</h3>
-          <pre class="cmd" data-copy><code>./dist/controlsnack image build</code></pre>
+          <pre class="cmd" data-copy><code>./controlsnack image build</code></pre>
         </li>
         <li>
           <h3>Run</h3>
-          <pre class="cmd" data-copy><code>./dist/controlsnack run --task "Open a terminal and print the kernel version"</code></pre>
+          <pre class="cmd" data-copy><code>./controlsnack run --task "Open a terminal and print the kernel version"</code></pre>
         </li>
       </ol>
     </div>

@@ -141,6 +141,7 @@ h3 { font-size: 1.1rem; margin: 0 0 8px; }
 .steps li::before { content: counter(step); position: absolute; left: 16px; top: 16px; width: 34px; height: 34px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 800; display: grid; place-items: center; border: 1px solid var(--accent); }
 .steps p { margin: 0 0 10px; color: var(--muted); }
 .steps .note { font-size: .88rem; margin: 8px 0 0; }
+.steps p code, .after code { overflow-wrap: anywhere; }
 .cmd { position: relative; margin: 0; background: var(--code-bg); color: var(--code-text); border-radius: 10px; padding: 14px 84px 14px 16px; overflow-x: auto; white-space: pre; }
 .cmd code { background: none; border: 0; padding: 0; color: inherit; font-size: .9rem; }
 .copy { position: absolute; top: 8px; right: 8px; min-height: 32px; padding: 4px 10px; border-radius: 8px; border: 1px solid #3a4756; background: #1d2632; color: #e6edf3; font: 600 .8rem var(--font); cursor: pointer; }
