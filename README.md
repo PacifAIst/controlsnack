@@ -273,3 +273,7 @@ So that this file does not claim more than was done:
 - **Run natively on Windows 10** (QEMU 11.1.0, WHPX, the base image imported from the WSL build, the viewer window in Microsoft Edge, LM Studio's `qwen3-vl-4b-instruct`): `doctor`, `image import`, `llm probe`, whole sessions with a real model (with the 4B local model one task done and one not, D-110; with the OpenRouter model both done, D-111), the kill from a second terminal, the viewer's login and its end. This is where the probe of QEMU for Windows, the pause before a click and the panel launchers were found wrong and fixed (D-110).
 - **Run for real with real models, but not in a full session:** the model layer (probe, prompt, parser) against three models (table above); llama.cpp has not driven a session.
 - **Not run:** a full `run` with Ollama, the Anthropic API or llama.cpp; KVM and HVF; macOS by a person (the tests pass on GitHub's macOS runner since D-113, but nobody has run QEMU with HVF, or the viewer, on a Mac); aarch64 guests; the viewer window in browsers other than Edge and Chrome; long tasks; any task that needs more than a few steps with a model larger than 4B. The code for these exists and is covered by unit tests with fakes, but "unit-tested" is all that can be said.
+
+---
+
+<p align="center">Made with ❤️ for the Local AI Community by PacifAIst</p>
