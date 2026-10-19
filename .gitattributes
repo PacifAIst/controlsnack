@@ -1,0 +1,10 @@
+# Text files are LF in every working tree, whatever the system's setting: the guest's shell scripts, the golden files the tests compare
+# byte for byte, go.sum and the sources all depend on it (a Windows checkout with core.autocrlf=true would otherwise turn them into CRLF).
+* text=auto eol=lf
+
+# Not text.
+*.png binary
+*.webp binary
+*.gz binary
+*.ico binary
+*.qcow2 binary
