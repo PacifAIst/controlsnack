@@ -85,7 +85,7 @@ jobs:
   ubuntu-extras:
     name: ubuntu extras
     runs-on: ubuntu-latest
-    needs: check
+    # No `needs: check`: nothing here depends on the checks, and waiting for them hid this job's own problems for three runs.
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -107,7 +107,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends xvfb at-spi2-core tesseract-ocr libwebp7
-          xvfb-run -a go test -tags integration -count=1 ./internal/agent/...
+          # -noreset: Xvfb resets itself when its last client goes, and the next test's connection is then refused.
+          xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" go test -tags integration -count=1 ./internal/agent/...
         # Chromium for CDP comes from the runner's preinstalled Google Chrome.
 
   e2e:

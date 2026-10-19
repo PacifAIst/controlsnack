@@ -8,21 +8,34 @@ package x11
 import (
 	"context"
 	"errors"
+	"io"
 	"os"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/jezek/xgb/xproto"
 )
 
-// These tests need a running X server: `xvfb-run -a go test -tags integration ./internal/agent/...` (the CI job of
-// PLAN.md section 13.5). Without DISPLAY they skip.
+// These tests need a running X server: `xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" go test -tags integration ./internal/agent/...`
+// (the CI job of PLAN.md section 13.5). Without DISPLAY they skip. Xvfb resets itself when its last client goes unless it is given
+// -noreset, and a client that comes in that moment is turned away (EOF, or connection reset by peer), so a connection that fails
+// that way is tried again for a moment.
 
 func openOrSkip(t *testing.T) *Conn {
 	t.Helper()
 	if os.Getenv("DISPLAY") == "" {
 		t.Skip("no X display")
 	}
-	c, err := Open("")
+	var c *Conn
+	var err error
+	for deadline := time.Now().Add(3 * time.Second); ; {
+		c, err = Open("")
+		if err == nil || time.Now().After(deadline) || !(errors.Is(err, io.EOF) || errors.Is(err, syscall.ECONNRESET)) {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 	if err != nil {
 		var uf *ErrUnsupportedFormat
 		if asUnsupported(err, &uf) {
