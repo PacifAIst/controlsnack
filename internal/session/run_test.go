@@ -466,6 +466,10 @@ func TestThePageTypesATaskWatchesItAndKillsTheSession(t *testing.T) {
 		t.Errorf("hello %+v", hello)
 	}
 	pg.waitFor("the session to be ready", func(m map[string]any) bool { return m["type"] == "state" && m["state"] == "ready" })
+	// With no task on the command line the terminal says the task is to be typed in the viewer.
+	if out := f.out.String(); !strings.Contains(out, "Ready. Give the model a task in the viewer.") || strings.Contains(out, "Running the task") {
+		t.Errorf("the terminal does not say where the task goes:\n%s", out)
+	}
 
 	// The person types the task in the chat, and the model's work comes back as chat lines, traces and notices.
 	pg.send(map[string]any{"type": "chat", "text": "Print the kernel version"})
@@ -501,6 +505,32 @@ func TestThePageTypesATaskWatchesItAndKillsTheSession(t *testing.T) {
 	}
 	if k := recordsOf(recs, "lifecycle", "kill"); len(k) != 1 || !strings.Contains(string(k[0].Data), "button") {
 		t.Errorf("kill %+v", k)
+	}
+}
+
+func TestATaskGivenOnTheCommandLineIsRunWithTheViewerOpenAndTheTerminalSaysSo(t *testing.T) {
+	f := newFullRig(t)
+	f.model.replies = []reply{calls(tc("c1", "done", `{"success":true,"summary":"all done"}`))}
+	cfg := config.Defaults()
+	cfg.Viewer.Mode = viewer.ModeBrowser
+	cfg.Session.Task = "Print the kernel version"
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- f.run(ctx, cfg) }()
+	eventually(t, "the task to be run", func() bool { return strings.Contains(f.out.String(), "Task finished in 1 turn") })
+	out := f.out.String()
+	if !strings.Contains(out, "Running the task: Print the kernel version\nWatch it in the viewer.") || strings.Contains(out, "Give the model a task in the viewer") {
+		t.Errorf("the terminal does not say a task is running:\n%s", out)
+	}
+	cancel()
+	select {
+	case err := <-done:
+		if exitcode.Of(err) != exitcode.Killed {
+			t.Errorf("error %v (%d)", err, exitcode.Of(err))
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("the session did not end")
 	}
 }
 

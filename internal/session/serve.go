@@ -220,9 +220,12 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 		go func() { _ = bridge.Run(bridgeCtx, conn, redial) }()
 	}
 
-	if headless {
+	switch {
+	case headless:
 		fmt.Fprintf(r.out, "Running the task: %s\n", textclean.Line(cfg.Session.Task, 200))
-	} else {
+	case cfg.Session.Task != "":
+		fmt.Fprintf(r.out, "Running the task: %s\nWatch it in the viewer. Press Ctrl+C to stop, or run `controlsnack kill` from another terminal.\n", textclean.Line(cfg.Session.Task, 200))
+	default:
 		fmt.Fprintln(r.out, "Ready. Give the model a task in the viewer. Press Ctrl+C to stop, or run `controlsnack kill` from another terminal.")
 	}
 
