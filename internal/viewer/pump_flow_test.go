@@ -391,8 +391,9 @@ func TestThePumpWorksWithTheRealHub(t *testing.T) {
 	}
 }
 
-func TestDisconnectWaitsForALookInFlight(t *testing.T) {
-	// Once OnDisconnect has returned the pump no longer touches the agent or the sink, so the session can close them.
+func TestStopWaitsForALookInFlight(t *testing.T) {
+	// Once Stop has returned the pump no longer touches the agent or the sink, so the session can close them. (OnDisconnect does not
+	// wait: it frees the page's place at once, see pump_test.go.)
 	inside, release := make(chan struct{}), make(chan struct{})
 	var after atomic.Bool
 	var returned atomic.Bool
@@ -417,20 +418,20 @@ func TestDisconnectWaitsForALookInFlight(t *testing.T) {
 	p.OnConnect()
 	<-inside
 	done := make(chan struct{})
-	go func() { p.OnDisconnect(); returned.Store(true); close(done) }()
+	go func() { p.Stop(); returned.Store(true); close(done) }()
 	select {
 	case <-done:
-		t.Fatal("OnDisconnect returned with a look still in flight")
+		t.Fatal("Stop returned with a look still in flight")
 	case <-time.After(80 * time.Millisecond):
 	}
 	close(release)
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		t.Fatal("OnDisconnect did not return once the look was over")
+		t.Fatal("Stop did not return once the look was over")
 	}
 	time.Sleep(50 * time.Millisecond)
 	if after.Load() {
-		t.Error("the pump touched the agent after OnDisconnect returned")
+		t.Error("the pump touched the agent after Stop returned")
 	}
 }

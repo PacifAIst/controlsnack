@@ -184,6 +184,7 @@ func (r *runner) serve(l *live, setLink func(*Link)) (outcome error) {
 			return err
 		}
 		vs.in.set(sess.Console)
+		vs.pump = pump
 		vs.pres.add(pump.OnConnect, pump.OnDisconnect)
 		vs.pres.add(sess.Console.Connected, sess.Console.Disconnected)
 		vs.pres.add(deadman.Connected, deadman.Disconnected)
@@ -402,6 +403,9 @@ func (r *runner) orderly(l *live, sess *Session, win *viewer.Window, dm *viewer.
 		vs.hub.Send(viewer.Ended{Reason: why, Summary: line})
 		time.Sleep(100 * time.Millisecond) // let the page read it before the connection goes
 		_ = vs.srv.Close()
+		if vs.pump != nil {
+			vs.pump.Stop() // a look at the screen may still be going on: the agent is not closed from under it
+		}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), gracePeriod)
 	defer cancel()

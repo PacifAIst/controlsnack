@@ -225,7 +225,7 @@ func (r *pumpRig) run(t *testing.T) {
 	t.Helper()
 	r.pump.OnConnect()
 	until(t, "the pretend time to run out", func() bool { return !r.clock.Now().Before(r.clock.end) })
-	r.pump.OnDisconnect()
+	r.pump.Stop()
 }
 
 func (r *pumpRig) looksBetween(from, to time.Duration) int {
@@ -241,4 +241,54 @@ func (r *pumpRig) looksBetween(from, to time.Duration) int {
 // quiet is a guest whose screen never changes, with the cursor in one place.
 func quiet(_ int, _ time.Duration, req protocol.ScreenshotReq) (protocol.ScreenshotRes, []byte, error) {
 	return protocol.ScreenshotRes{Hash: req.IfChangedSince, Unchanged: true, Cursor: protocol.Point{X: 5, Y: 5}}, nil, nil
+}
+
+// slowLook is a guest that takes as long over a screenshot as the test lets it: every look says it has started and waits for release.
+func slowLook(started chan<- struct{}, release <-chan struct{}) func(int, time.Duration, protocol.ScreenshotReq) (protocol.ScreenshotRes, []byte, error) {
+	return func(n int, at time.Duration, req protocol.ScreenshotReq) (protocol.ScreenshotRes, []byte, error) {
+		select {
+		case started <- struct{}{}:
+		default: // nobody is listening any more
+		}
+		<-release
+		return quiet(n, at, req)
+	}
+}
+
+func TestAPageThatGoesIsNotHeldUpByALookAtTheScreenThatIsStillRunning(t *testing.T) {
+	started, release := make(chan struct{}, 8), make(chan struct{})
+	r := newPumpRig(t, time.Hour, slowLook(started, release))
+	r.pump.OnConnect()
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the pump made no look")
+	}
+	// The look cannot be interrupted (a slow guest takes seconds over it). The Hub holds the page's place until OnDisconnect
+	// returns, and a window that reloads is refused while it is held, so OnDisconnect must not wait for the look.
+	returned := make(chan struct{})
+	go func() { r.pump.OnDisconnect(); close(returned) }()
+	select {
+	case <-returned:
+	case <-time.After(2 * time.Second):
+		t.Fatal("OnDisconnect waited for a look at the screen to end")
+	}
+	close(release)
+	r.pump.Stop() // and Stop does wait: it returns only when the loop has ended
+}
+
+func TestAPageThatConnectsAgainGetsItsLoopOnlyAfterTheOldLookIsOver(t *testing.T) {
+	started, release := make(chan struct{}, 64), make(chan struct{})
+	r := newPumpRig(t, time.Hour, slowLook(started, release))
+	r.pump.OnConnect()
+	<-started
+	r.pump.OnDisconnect()
+	r.pump.OnConnect() // the same window again, while the first look is still under way
+	time.Sleep(150 * time.Millisecond)
+	if n := len(r.agent.all()); n != 1 {
+		t.Fatalf("%d looks are going on: the new loop did not wait for the old one, and the two share the pump's state", n)
+	}
+	close(release)
+	until(t, "the new loop to look", func() bool { return len(r.agent.all()) >= 2 })
+	r.pump.Stop()
 }

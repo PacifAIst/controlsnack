@@ -85,6 +85,8 @@ type viewerSide struct {
 	hub  *viewer.Hub
 	in   *lateInbound
 	pres *presence
+	// pump takes the pictures of the guest for the page; it is set once the session has an agent to take them from.
+	pump *viewer.Pump
 }
 
 // viewerArgs are what the viewer is made from.

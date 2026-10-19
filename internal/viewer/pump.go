@@ -97,10 +97,10 @@ type Pump struct {
 	wake        chan struct{}
 
 	mu     sync.Mutex
-	cancel context.CancelFunc
-	done   chan struct{}
+	cancel context.CancelFunc // of the loop of the page that is connected; nil when none is
+	done   chan struct{}      // closed when the latest loop has ended, which may be after its page went
 
-	// state of the loop; only its goroutine uses these
+	// state of the loop; only its goroutine uses these (one loop at a time: a new one starts when the one before has ended)
 	seq        uint32
 	failures   int
 	lastHash   string
@@ -163,7 +163,8 @@ func (p *Pump) NoteAction() {
 // NoteLLM records how long the model took to answer, for the stats.
 func (p *Pump) NoteLLM(d time.Duration) { p.llmMS.Store(d.Milliseconds()) }
 
-// OnConnect starts the loop when a page connects (HubOptions.OnConnect).
+// OnConnect starts the loop when a page connects (HubOptions.OnConnect). If the loop of the page before is still finishing a
+// look at the screen, the new loop waits for it in its own goroutine: two loops never run at once, and the page is not held up.
 func (p *Pump) OnConnect() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -171,24 +172,39 @@ func (p *Pump) OnConnect() {
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	p.cancel, p.done = cancel, make(chan struct{})
-	go func(done chan struct{}) {
+	before, done := p.done, make(chan struct{})
+	p.cancel, p.done = cancel, done
+	go func() {
 		defer close(done)
+		if before != nil {
+			<-before
+		}
 		p.run(ctx)
-	}(p.done)
+	}()
 }
 
-// OnDisconnect stops the loop and waits for it to end (HubOptions.OnDisconnect).
+// OnDisconnect tells the loop to stop (HubOptions.OnDisconnect). It does not wait for a look at the screen that is in progress,
+// which can take seconds on a slow guest: the Hub keeps the page's place until this returns, and a window that reloads is
+// refused as long as the place is held. Stop waits.
 func (p *Pump) OnDisconnect() {
 	p.mu.Lock()
-	cancel, done := p.cancel, p.done
-	p.cancel, p.done = nil, nil
+	cancel := p.cancel
+	p.cancel = nil
 	p.mu.Unlock()
-	if cancel == nil {
-		return
+	if cancel != nil {
+		cancel()
 	}
-	cancel()
-	<-done
+}
+
+// Stop stops the loop and waits until it has ended, for the end of a session and for tests.
+func (p *Pump) Stop() {
+	p.OnDisconnect()
+	p.mu.Lock()
+	done := p.done
+	p.mu.Unlock()
+	if done != nil {
+		<-done
+	}
 }
 
 // interval is the time between two looks at the screen at a given moment: the active or the idle rate, and slower while
