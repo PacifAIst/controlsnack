@@ -6,6 +6,10 @@ It is one program, written in Go with no cgo, that runs on Linux, macOS and Wind
 
 > **Status: pre-release.** Everything described here is built and tested, but there are no release binaries yet (build from source, see Quick start), and some paths have been run only on one machine (see [What has and has not been run](#what-has-and-has-not-been-run)). Read that section before you rely on a claim made elsewhere in this file.
 
+**New here?** The [getting-started guide](docs/GETTING-STARTED.md) goes from nothing to a first task, with a model on your own computer or through an API, with screenshots of the real program. Every command, flag and setting is in the [documentation](site/docs.html) (the site's copy of it is at <https://www.controlsnack.com/docs>).
+
+![The ControlSnack viewer at the end of a task: the guest's desktop with a terminal that printed the kernel version, the model's summary in the chat, and the list of actions it took, each allowed.](site/img/viewer-done.png)
+
 ## 1. What it is, and what it is not
 
 - **It is local.** The VM, the viewer, the audit log and the policy run on your machine. The only thing that leaves is what you send to the model endpoint you choose (see [Privacy](#11-privacy)). A local model (Ollama, LM Studio, llama.cpp) keeps everything on the machine.
@@ -195,13 +199,13 @@ Only what was tested is listed as tested. "Expected, untested" is a guess, not a
 
 | Backend | Model | Vision | WebP | Native tool calls | JSON mode | Notes | Tested |
 |---|---|---|---|---|---|---|---|
-| OpenAI-compatible (OpenRouter) | `qwen/qwen3.8-omni-flash` | yes | yes | yes | yes | Points in pixels; picture-only clicking works | 2026-10-17 |
+| OpenAI-compatible (OpenRouter) | `qwen/qwen3.8-omni-flash` | yes | yes | yes | yes | Points in pixels; picture-only clicking works. **In whole sessions on Windows:** "open a terminal and print the kernel version" done in 4 turns, 33 s after the desktop was ready; "open the text editor, type a line and save it as hello.txt" done in 9 to 10 turns, and the model checked the file from the command line (D-111) | 2026-10-19 |
 | LM Studio | `qwen3-vl-4b-instruct` (Q4_K_M with its projector) | yes | no (JPEG is used) | yes | yes | Points on a 0 to 1000 scale (the probe detects it); 8192-token context; 1.5 to 2.8 s a turn on an RTX 3060 (6 GB). **In a whole session on Windows:** "open a terminal and print the kernel version" was done in 5 turns, 11 s after the desktop was ready, and right; "open the text editor, type a line and save it" was not (it opened `nano` in the terminal and lost its way): a 4B model is at its limit there | 2026-10-18 |
 | llama.cpp | Gemma 4 E4B IQ4_NL (no projector) | no (text-only) | n/a | yes, and it sometimes writes calls as words, which the parser reads | yes | 8192-token context; works through the accessibility tree and recognized text | 2026-10-17 |
 | Ollama | any vision model | expected, untested with a real model | | | | Tested against the fake server only | |
 | Anthropic API | Claude models | expected, untested with a real model | | | | Tested against the fake server only | |
 
-The "tested" rows ran through the whole model layer (probe, prompt, conversation, parser, results) on two small tasks in a simulated desktop (D-83, D-84 in `DECISIONS.md`); the LM Studio model has also driven whole sessions in a real VM (D-110). The OpenRouter model has not yet driven one.
+The "tested" rows ran through the whole model layer (probe, prompt, conversation, parser, results) on two small tasks in a simulated desktop (D-83, D-84 in `DECISIONS.md`); the LM Studio and OpenRouter models have also driven whole sessions in a real VM (D-110, D-111).
 
 A model that is too small, or a context that is too short, shows up as a model that repeats itself or whose answers cannot be read. The session pauses after three unusable answers in a row and tells you what to try.
 
@@ -266,6 +270,6 @@ This edition is one person, one machine. Multi-machine and team features are not
 So that this file does not claim more than was done:
 
 - **Run for real** (a real VM in WSL2 on Windows 10, QEMU 8.2.2, TCG, x86_64): image build; boot and the agent; every agent request; the guest's network proxy and the host bridge; and nine end-to-end scenarios of a whole `run` session with a *scripted* model: an editor opened, typed in and read back; a command that would wipe the guest refused and recorded; an injection in a file fenced; an action approved and another rejected through the viewer's socket; a kill; `--allow-net` on and off; a viewer that goes away; the agent stopped in a running guest (the session carries on through QEMU's screen and keyboard). Every audit log in them verifies and no QEMU is left behind.
-- **Run natively on Windows 10** (QEMU 11.1.0, WHPX, the base image imported from the WSL build, the viewer window in Microsoft Edge, LM Studio's `qwen3-vl-4b-instruct`): `doctor`, `image import`, `llm probe`, whole sessions with a real model (a task done, a task not done: D-110), the kill from a second terminal, the viewer's login and its end. This is where the probe of QEMU for Windows, the pause before a click and the panel launchers were found wrong and fixed (D-110).
-- **Run for real with real models, but not in a full session:** the model layer (probe, prompt, parser) against three models (table above); the OpenRouter model has not driven a session.
-- **Not run:** a full `run` with the OpenRouter model; KVM and HVF; macOS; aarch64 guests; the viewer window in browsers other than Edge and Chrome; long tasks; any task that needs more than a few steps with a model larger than 4B. The code for these exists and is covered by unit tests with fakes, but "unit-tested" is all that can be said.
+- **Run natively on Windows 10** (QEMU 11.1.0, WHPX, the base image imported from the WSL build, the viewer window in Microsoft Edge, LM Studio's `qwen3-vl-4b-instruct`): `doctor`, `image import`, `llm probe`, whole sessions with a real model (with the 4B local model one task done and one not, D-110; with the OpenRouter model both done, D-111), the kill from a second terminal, the viewer's login and its end. This is where the probe of QEMU for Windows, the pause before a click and the panel launchers were found wrong and fixed (D-110).
+- **Run for real with real models, but not in a full session:** the model layer (probe, prompt, parser) against three models (table above); llama.cpp has not driven a session.
+- **Not run:** a full `run` with Ollama, the Anthropic API or llama.cpp; KVM and HVF; macOS; aarch64 guests; the viewer window in browsers other than Edge and Chrome; long tasks; any task that needs more than a few steps with a model larger than 4B. The code for these exists and is covered by unit tests with fakes, but "unit-tested" is all that can be said.

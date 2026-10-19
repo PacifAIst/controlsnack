@@ -2,7 +2,7 @@
 
 This guide is for the person who built it and wants to see it work with a real model: the local **Qwen3-VL** in LM Studio, and the **Qwen** that OpenRouter serves. Follow the numbered steps in order. Each says what to type, what should happen, and what to write down. A stopwatch (your phone's is fine) is for the stages marked with a clock.
 
-What has been tested before you start: the whole program on a real VM with a scripted model, in WSL2 (Ubuntu); and, on this machine, natively on Windows 10 with WHPX and LM Studio's `qwen3-vl-4b-instruct` (DECISIONS.md D-110): the steps of Parts A and B were run first, found nine faults (a QEMU probe that failed on Windows, a click that did nothing, and others), and those are fixed. What has **not** been run: the OpenRouter model (Part C), and anything longer than a few steps. Expect the small local model to do the first task and to struggle with the editor task; that is a finding about the model, and still worth writing down. The last section says what to send back.
+What has been tested before you start: the whole program on a real VM with a scripted model, in WSL2 (Ubuntu); and, on this machine, natively on Windows 10 with WHPX and LM Studio's `qwen3-vl-4b-instruct` (DECISIONS.md D-110): the steps of Parts A and B were run first, found nine faults (a QEMU probe that failed on Windows, a click that did nothing, and others), and those are fixed. Part C was run the same way with `qwen/qwen3.8-omni-flash` (D-111): the probe passed all six checks, and both tasks were done (4 turns, and 9 to 10 turns). What has **not** been run: Ollama, the Anthropic API, macOS, and anything longer than a few steps. Expect the small local model to do the first task and to struggle with the editor task, and the hosted model to do both; a different result is a finding, and worth writing down. The last section says what to send back.
 
 Your API key is a secret. Put it in an environment variable, as below, and nowhere else: not in a file, not in a command you will paste, not in a message.
 
@@ -115,7 +115,7 @@ $k = Read-Host "OpenRouter key" -AsSecureString
 $env:OPENROUTER_API_KEY = [System.Net.NetworkCredential]::new("", $k).Password
 ```
 
-*If you want the assistant to run Part C for you:* store the key as a user variable once, in your own PowerShell window (it is not shown anywhere, and the assistant then names the variable and never sees the value): `[Environment]::SetEnvironmentVariable('OPENROUTER_API_KEY', [System.Net.NetworkCredential]::new('', (Read-Host 'OpenRouter key' -AsSecureString)).Password, 'User')`. Use a new key, and revoke the old one: the one pasted into the chat earlier is in that chat's history.
+*A key is a secret.* Keep it only in the variable of this window, as above. If one ever lands somewhere it should not (a chat, an issue, a file in a repository), revoke it at the provider and make a new one.
 
 (Typing it hides it; closing the window forgets it.)
 

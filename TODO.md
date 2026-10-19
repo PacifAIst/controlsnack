@@ -106,6 +106,10 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] Native viewer window (-tags webview), tile-diff streaming, manual takeover, system-wide kill hotkey, robotgo backend, MessagePack, recording/replay, policy editor UI
 
 ## Discovered
+- [ ] D-112: add real screenshots of LM Studio and of a local-model session to the guide (the service did not start from the assistant's session; the user's own LM Studio window may show chats: crop it).
+- [ ] D-112: `--timeout` shorter than `safety.idle_timeout` (15 m) is refused with a message about a key that has no flag; either clamp the default idle timeout to the session timeout or give it a flag.
+- [ ] D-112: the model may click a dock launcher twice and open two windows; a wait for the window after a launcher click, or a hint in the prompt, would avoid it.
+- [ ] D-112: the end-of-task line says "1 turns".
 - [ ] D-110: stable element ids: ids are numbered in tree order, so an element that appears before another (the panel's new `ControlSnack` button) shifts every id after it (a7 became a8 between two turns) and a small model follows the wrong one. Keep an element's id for as long as the element exists (the generation then only says that the tree changed).
 - [ ] D-110: the OpenRouter model has not driven a session (the key must come from the environment, TESTING.md Part C); longer tasks; the model with more than 8192 tokens of context; the dock's other launchers.
 - [ ] D-110: WHPX with the optional feature "Windows Hypervisor Platform" disabled works on this Windows 10 machine; check Windows 11, Windows Home and a machine without WSL2.

@@ -1,4 +1,4 @@
-// ControlSnack site: the tabs, the copy buttons, and the test section (a timer and a form that builds a report in the browser).
+// ControlSnack site: the tabs, the copy buttons, the contents box of the documentation, and the test section (a timer and a form that builds a report in the browser).
 // Nothing here talks to a server. The test section keeps what you type in this browser's localStorage, and only there.
 (function () {
   "use strict";
@@ -303,7 +303,18 @@
     reportEl.value = markdown(snapshot());
   }
 
+  // ---- the contents of the documentation page: a box to open on a phone, always open beside the text on a wide screen ----------
+  function initToc() {
+    const box = $("#toc-box");
+    if (!box || !window.matchMedia) return;
+    const narrow = window.matchMedia("(max-width: 980px)");
+    const sync = () => { box.open = !narrow.matches; };
+    sync();
+    narrow.addEventListener("change", sync);
+  }
+
   initTabs();
   initCopyButtons();
   initTest();
+  initToc();
 })();

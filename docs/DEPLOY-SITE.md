@@ -2,13 +2,13 @@
 
 The site is the folder `site/`: plain files, no build step, no script from other places. Cloudflare Pages serves it for free.
 
-**Do not publish before the user's real-model tests have passed (TESTING.md): the easy steps on the site must be the steps that worked.** Publishing does not need the GitHub repository: Direct Upload works without it.
+The easy steps on the site are the steps that were run: TESTING.md Parts A to C passed on native Windows 10 with a local model and with a hosted one (D-110, D-111). Publishing does not need the GitHub repository: Direct Upload works without it. The site is the pages `index.html` and `docs.html` (the documentation, with a guide for newcomers), the screenshots in `img/`, and the files they use; upload the whole folder.
 
-## Before the first publish
+## Before each publish
 
-1. In `site/index.html`, change the footer's "Source: GitHub, publishing soon" to the real link once the repository exists, and remove the "The repository is not public yet" notes of the steps.
-2. Change the "Pre-release" paragraph of the first section to say what is true by then (what has been run, where), and point step 2 at the release archives if there are any.
-3. `go test ./internal/sitecheck` (it checks that nothing is loaded from elsewhere, that the headers are strict, and that the page works in a browser).
+1. Check that the "Pre-release" paragraph of the first section and the table of models say what is true by then (what has been run, where), and point step 2 at the release archives if there are any.
+2. `go test ./internal/sitecheck`. It checks that nothing is loaded from elsewhere (the only link to another address is the one to the source on GitHub), that the headers are strict, that both pages work in a browser at desktop and phone width, and that `docs.html` describes every command, flag, configuration key, built-in rule, tool and exit code of the program, that its examples load, and that every screenshot exists, has its true size and a description.
+3. If a flag or a command changes, the check fails until `docs.html` (and the guide in `docs/GETTING-STARTED.md`, which shows the same screenshots) says so. The screenshots are real: retake them when the viewer or the terminal output changes in a way a reader would notice.
 
 ## Publish, by dragging the folder
 

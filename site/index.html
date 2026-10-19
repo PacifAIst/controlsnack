@@ -24,6 +24,7 @@
       <a href="#steps">Easy steps</a>
       <a href="#models">Models</a>
       <a href="#safety">Safety</a>
+      <a href="docs.html">Docs</a>
       <a href="#test" class="pill">Test it</a>
     </nav>
   </div>
@@ -39,9 +40,10 @@
       <p class="lead">Give a vision model a throwaway Linux desktop inside a sandbox on your computer. Watch it click, type and run commands. Stop it with one button, in milliseconds.</p>
       <p class="cta">
         <a class="btn primary" href="#steps">Get started in 5 steps</a>
-        <a class="btn" href="#test">Test it with a timer</a>
+        <a class="btn" href="docs.html#newbies">New here? Guide with screenshots</a>
+        <a class="btn" href="docs.html">Every flag, documented</a>
       </p>
-      <p class="status" role="note"><strong>Pre-release.</strong> Built and tested on Linux in a real VM; the first runs on Windows and with a real model are being done now. Until downloads exist you build it from source.</p>
+      <p class="status" role="note"><strong>Pre-release.</strong> Run end to end on Windows 10 with hardware acceleration, with a local 4B model and with a hosted Qwen model, and on Linux in a VM; macOS has not been tried. Until downloads exist you build it from source.</p>
     </div>
 
     <figure class="shot" aria-label="A sketch of the viewer: the guest's desktop on the left, the model's actions on the right">
@@ -150,7 +152,7 @@
           <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
 cd controlsnack
 go run ./tools/dev build</code></pre>
-          <p class="note">The repository is not public yet; the address is where it will be.</p>
+          <p class="note">Needs Git and Go (<code>winget install Git.Git</code> and <code>winget install GoLang.Go</code>). The <a href="docs.html#newbies">guide with screenshots</a> shows every step.</p>
         </li>
         <li>
           <h3>Ask <code>doctor</code></h3>
@@ -181,7 +183,7 @@ go run ./tools/dev build</code></pre>
           <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
 cd controlsnack
 go run ./tools/dev build</code></pre>
-          <p class="note">The repository is not public yet. macOS has not been tested.</p>
+          <p class="note">macOS has not been tested.</p>
         </li>
         <li>
           <h3>Ask <code>doctor</code></h3>
@@ -212,7 +214,6 @@ sudo usermod -aG kvm $USER</code></pre>
           <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
 cd controlsnack
 go run ./tools/dev build</code></pre>
-          <p class="note">The repository is not public yet.</p>
         </li>
         <li>
           <h3>Ask <code>doctor</code></h3>
@@ -241,15 +242,15 @@ go run ./tools/dev build</code></pre>
       <table>
         <thead><tr><th scope="col">Backend</th><th scope="col">Model</th><th scope="col">Sees</th><th scope="col">Tools</th><th scope="col">Notes</th></tr></thead>
         <tbody>
-          <tr><td>OpenAI-compatible (OpenRouter)</td><td>qwen/qwen3.8-omni-flash</td><td>yes</td><td>native</td><td>Points in pixels. Tested.</td></tr>
-          <tr><td>LM Studio</td><td>qwen3-vl-4b-instruct</td><td>yes</td><td>native</td><td>Points on a 0 to 1000 scale (detected). 1 to 2.4 s a turn on a 6 GB laptop GPU. Tested.</td></tr>
+          <tr><td>OpenAI-compatible (OpenRouter)</td><td>qwen/qwen3.8-omni-flash</td><td>yes</td><td>native</td><td>Points in pixels. Whole sessions: print the kernel version in 4 turns, and open the editor, type a line and save it in 9 to 10 turns. Tested.</td></tr>
+          <tr><td>LM Studio</td><td>qwen3-vl-4b-instruct</td><td>yes</td><td>native</td><td>Points on a 0 to 1000 scale (detected). 1.5 to 2.8 s a turn on a 6 GB laptop GPU. Whole sessions: the kernel-version task done in 5 turns; the editor task not done (a 4B model is at its limit). Tested.</td></tr>
           <tr><td>llama.cpp</td><td>Gemma 4 E4B</td><td>no</td><td>native</td><td>Text-only mode through the accessibility tree. Tested.</td></tr>
           <tr><td>Ollama</td><td>any vision model</td><td>expected</td><td>expected</td><td>Not yet tried with a real model.</td></tr>
           <tr><td>Anthropic API</td><td>Claude models</td><td>expected</td><td>expected</td><td>Not yet tried with a real model.</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="fine">The tested rows ran through the whole model layer on two small tasks. A real model driving a complete session in the VM is the test this site asks you to help with.</p>
+    <p class="fine">The tested rows ran two small tasks in a real VM on Windows 10; llama.cpp ran through the whole model layer but not yet a full session. Bigger models, other machines and longer tasks are what the test below asks you to help with.</p>
   </div>
 </section>
 
@@ -261,7 +262,7 @@ go run ./tools/dev build</code></pre>
       <li><strong>Nothing shared.</strong> No folders, no clipboard, no USB. Nothing the model does runs on your computer.</li>
       <li><strong>Every action judged first.</strong> Wiping the system, fork bombs, privilege escalation and the like are refused; deleting or overwriting asks you.</li>
       <li><strong>A log that cannot be quietly edited.</strong> Each record carries the hash of the one before; <code>audit verify</code> checks the chain.</li>
-      <li><strong>Kill in milliseconds.</strong> The VM stopped 14 ms after the kill in the tests, from the button, the keyboard or another terminal. If you walk away, the session pauses and ends.</li>
+      <li><strong>Kill in milliseconds.</strong> The VM stopped 8 to 17 ms after the kill on Linux and about 120 to 140 ms on Windows in the tests, from the button, the keyboard or another terminal. If you walk away, the session pauses and ends.</li>
       <li><strong>What the screen says is data.</strong> Text from the guest is fenced and never taken as an instruction.</li>
     </ul>
     <p class="fine">The command policy is a guardrail; the boundary is the VM. The README lists what it does not cover and the risks that remain.</p>
@@ -352,6 +353,7 @@ go run ./tools/dev build</code></pre>
     <details><summary>Is Windows Home supported?</summary><p>Yes. ControlSnack uses the Windows Hypervisor Platform when QEMU can, and software emulation when it cannot, which works on every machine. Software emulation is several times slower: a desktop takes a minute or two to start.</p></details>
     <details><summary>How do I stop it?</summary><p>The <strong>Kill</strong> button, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd>, <kbd>Esc</kbd> three times, <code>controlsnack kill</code> in another terminal, or <kbd>Ctrl</kbd>+<kbd>C</kbd>. Close the window and the session pauses after seconds and ends after a minute.</p></details>
     <details><summary>Can the model damage my computer?</summary><p>It works inside a virtual machine with no network device and no shared folders, and its actions are checked before they run. The command rules are a guardrail, not a wall: the wall is the VM. The README says what is and is not covered.</p></details>
+    <details><summary>Where is every command and flag explained?</summary><p>In the <a href="docs.html">documentation</a>: every command, every flag with its default and its configuration key, the configuration file, the exit codes, the policy file, and the tools the model is given. If you are new, <a href="docs.html#newbies">start with the guide</a>: it goes from nothing to a first task, with a model on your own computer or through an API, with screenshots of the real program.</p></details>
     <details><summary>What does it cost?</summary><p>Nothing. It is free software under the GNU Affero General Public License v3.0. A remote model costs what its provider charges.</p></details>
   </div>
 </section>
@@ -361,7 +363,7 @@ go run ./tools/dev build</code></pre>
 <footer>
   <div class="wrap foot">
     <p><strong>ControlSnack</strong> · Computer Use with any multimodal AI</p>
-    <p>Free software, AGPL-3.0-only. Copyright Dr. Manuel Herrador. Source: GitHub, publishing soon.</p>
+    <p>Free software, AGPL-3.0-only. Copyright Dr. Manuel Herrador. Source: <a href="https://github.com/PacifAIst/controlsnack">github.com/PacifAIst/controlsnack</a> · <a href="docs.html">Documentation</a></p>
     <p class="fine">This page sets no cookies, loads nothing from other sites and collects nothing. What you type in the test form stays in your browser.</p>
   </div>
 </footer>

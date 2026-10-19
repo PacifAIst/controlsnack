@@ -37,7 +37,7 @@ func read(t *testing.T, name string) string {
 }
 
 func TestTheSiteHasItsFilesAndItsSlogan(t *testing.T) {
-	for _, name := range []string{"index.html", "404.html", "style.css", "app.js", "favicon.svg", "_headers", "robots.txt"} {
+	for _, name := range []string{"index.html", "docs.html", "404.html", "style.css", "app.js", "favicon.svg", "_headers", "robots.txt"} {
 		if _, err := os.Stat(filepath.Join(siteDir, name)); err != nil {
 			t.Errorf("the site lacks %s: %v", name, err)
 		}
@@ -64,8 +64,9 @@ var (
 )
 
 func TestTheSiteLoadsNothingFromElsewhereAndHasNoInlineCode(t *testing.T) {
-	for _, name := range []string{"index.html", "404.html"} {
-		html := read(t, name)
+	for _, name := range []string{"index.html", "docs.html", "404.html"} {
+		// The one address the pages may link to is the source of the program; nothing is ever loaded from there or anywhere else.
+		html := strings.ReplaceAll(read(t, name), `<a href="https://github.com/PacifAIst/controlsnack">`, "<a>")
 		if reAttrURL.MatchString(html) {
 			t.Errorf("%s loads or links to another site by an attribute: %s", name, reAttrURL.FindString(html))
 		}

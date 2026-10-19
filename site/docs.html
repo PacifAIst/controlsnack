@@ -1,0 +1,1307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ControlSnack documentation: every command, flag and setting</title>
+<meta name="description" content="The complete reference for ControlSnack: every command and flag with its default and configuration key, the configuration file, exit codes, the policy file, the model's tools, and where the files live.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="./" aria-label="ControlSnack, home page">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect class="logo-bg" x="2" y="2" width="28" height="28" rx="8"/><path class="logo-mark" d="M9 21l5-5-5-5M16 22h7"/></svg>
+      <span>ControlSnack</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="./">Home</a>
+      <a href="./#steps">Easy steps</a>
+      <a href="./#models">Models</a>
+      <a href="docs.html" aria-current="page">Docs</a>
+      <a href="./#test" class="pill">Test it</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<div class="wrap doc-head">
+  <p class="eyebrow">Documentation</p>
+  <h1>Every command, flag and setting</h1>
+  <p class="lead">What each part of ControlSnack does, what it accepts, what it defaults to and what it refuses. Written from the program itself: <code>controlsnack --help</code> prints the same facts in short form.</p>
+</div>
+
+<div class="wrap docs">
+
+<aside class="toc" aria-label="On this page">
+<details id="toc-box" open>
+<summary>On this page</summary>
+<p class="grp">New here?</p>
+<ol>
+  <li><a href="#newbies">Start here</a>
+    <ul>
+      <li><a href="#new-choose">Local or API?</a></li>
+      <li><a href="#new-before">Setup, once</a></li>
+      <li><a href="#new-local">Path A: a local model</a></li>
+      <li><a href="#new-api">Path B: an API model</a></li>
+      <li><a href="#new-viewer">Reading the viewer</a></li>
+      <li><a href="#new-stuck">If something goes wrong</a></li>
+    </ul>
+  </li>
+</ol>
+<p class="grp">Overview</p>
+<ol>
+  <li><a href="#overview">How to read this page</a></li>
+  <li><a href="#commands">All commands</a></li>
+  <li><a href="#cmd-global">Global flags</a></li>
+</ol>
+<p class="grp">Commands</p>
+<ol>
+  <li><a href="#cmd-run">run</a>
+    <ul>
+      <li><a href="#run-session">Task and session</a></li>
+      <li><a href="#run-model">The model</a></li>
+      <li><a href="#run-guest">The guest machine</a></li>
+      <li><a href="#run-viewer">The viewer</a></li>
+      <li><a href="#run-net">Network</a></li>
+      <li><a href="#run-safety">Safety and limits</a></li>
+      <li><a href="#run-unsafe">What --unsafe changes</a></li>
+    </ul>
+  </li>
+  <li><a href="#cmd-doctor">doctor</a></li>
+  <li><a href="#cmd-image">image</a>
+    <ul>
+      <li><a href="#cmd-image-build">image build</a></li>
+      <li><a href="#cmd-image-import">image import</a></li>
+      <li><a href="#cmd-image-ls">image ls</a></li>
+      <li><a href="#cmd-image-path">image path</a></li>
+      <li><a href="#cmd-image-verify">image verify</a></li>
+      <li><a href="#cmd-image-rm">image rm</a></li>
+    </ul>
+  </li>
+  <li><a href="#cmd-llm">llm</a>
+    <ul>
+      <li><a href="#cmd-llm-models">llm models</a></li>
+      <li><a href="#cmd-llm-probe">llm probe</a></li>
+    </ul>
+  </li>
+  <li><a href="#cmd-kill">kill</a></li>
+  <li><a href="#cmd-audit">audit</a>
+    <ul>
+      <li><a href="#cmd-audit-ls">audit ls</a></li>
+      <li><a href="#cmd-audit-show">audit show</a></li>
+      <li><a href="#cmd-audit-verify">audit verify</a></li>
+      <li><a href="#cmd-audit-prune">audit prune</a></li>
+    </ul>
+  </li>
+  <li><a href="#cmd-vm">vm</a>
+    <ul>
+      <li><a href="#cmd-vm-ls">vm ls</a></li>
+      <li><a href="#cmd-vm-rm">vm rm</a></li>
+    </ul>
+  </li>
+  <li><a href="#cmd-config">config</a>
+    <ul>
+      <li><a href="#cmd-config-show">config show</a></li>
+      <li><a href="#cmd-config-path">config path</a></li>
+    </ul>
+  </li>
+  <li><a href="#cmd-schema">schema</a></li>
+  <li><a href="#cmd-version">version</a></li>
+  <li><a href="#cmd-completion">completion</a></li>
+</ol>
+<p class="grp">Reference</p>
+<ol>
+  <li><a href="#configuration">Configuration file and environment</a></li>
+  <li><a href="#config-keys">Every configuration key</a></li>
+  <li><a href="#api-keys">API keys</a></li>
+  <li><a href="#exit-codes">Exit codes</a></li>
+  <li><a href="#policy">The policy file</a></li>
+  <li><a href="#tools">The model's tools</a></li>
+  <li><a href="#stopping">Stopping a session</a></li>
+  <li><a href="#guarantees">Guarantees in every mode</a></li>
+  <li><a href="#files">Where things live</a></li>
+  <li><a href="#recipes">Recipes</a></li>
+</ol>
+</details>
+</aside>
+
+<article class="doc">
+<section id="newbies">
+<h2>New here? Start here</h2>
+<p>ControlSnack lets an AI model use a computer for you, safely. It starts a small throwaway Linux computer inside a window on your machine (a virtual machine), shows you its screen, and lets the model look at that screen, click, type and run commands in it. Everything the model does is checked first and written down, and the little computer is deleted when you are done. Your own files are never in reach.</p>
+<p>This part takes you from nothing to a first task, step by step, with screenshots of the real program. You need two things: ControlSnack and a model. The model can run <strong>on your own computer</strong> (path A) or be <strong>rented through an API</strong> (path B). The setup in the middle is the same for both.</p>
+
+<h3 id="new-choose">Which path should I pick?</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col"></th><th scope="col">A. A model on your computer</th><th scope="col">B. A model through an API</th></tr></thead>
+<tbody>
+<tr><th scope="row">Privacy</th><td>Nothing leaves your computer.</td><td>Every turn sends a screenshot of the little computer, the text of its screen and command output to the provider. ControlSnack tells you so each time it starts.</td></tr>
+<tr><th scope="row">Cost</th><td>Free, after the download.</td><td>You pay the provider per use. Prices differ per model; look up your model's price before long runs.</td></tr>
+<tr><th scope="row">What you need</th><td>A program that serves models (LM Studio or Ollama), a few GB of disk, and ideally a graphics card with 6 GB or more. It was tested on a laptop with a 6 GB card.</td><td>An account with a provider and an API key. Any computer that can run the virtual machine.</td></tr>
+<tr><th scope="row">How well it works</th><td>A small model (4 billion parameters) did the simple task and failed the harder one in the author's tests. Bigger models do better and need more memory.</td><td>A hosted Qwen model did both tasks in the same tests.</td></tr>
+</tbody>
+</table>
+</div>
+<p>If you only want to see it work, take path B for the first run. If privacy or cost matters more, take path A and start with the simplest task.</p>
+
+<h3 id="new-before">Setup, once (both paths)</h3>
+<p>These steps are in a terminal: PowerShell on Windows, any terminal on macOS and Linux. The screenshots show the command as <code>controlsnack</code>. If you did not put the program on your PATH, type <code>.\dist\controlsnack.exe</code> (Windows) or <code>./dist/controlsnack</code> instead.</p>
+
+<h4>1. Install QEMU, Git and Go</h4>
+<p>QEMU is the program that runs the virtual machine; Git and Go are needed to get and build ControlSnack until there are downloads to use instead.</p>
+<pre class="cmd" data-copy><code>winget install SoftwareFreedomConservancy.QEMU     # Windows (PowerShell), one line each
+winget install Git.Git
+winget install GoLang.Go
+brew install qemu git go                            # macOS
+sudo apt install qemu-system-x86 qemu-utils git golang-go     # Debian, Ubuntu</code></pre>
+<p>Open a new terminal afterwards so it can find them. On Linux, hardware acceleration also needs access to <code>/dev/kvm</code>: <code>sudo usermod -aG kvm $USER</code>, then log in again.</p>
+
+<h4>2. Get and build ControlSnack</h4>
+<pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
+cd controlsnack
+go run ./tools/dev build</code></pre>
+<p>This takes a minute or two and leaves the program in the <code>dist</code> folder.</p>
+
+<h4>3. Ask <code>doctor</code> whether your computer can run it</h4>
+<pre class="cmd" data-copy><code>controlsnack doctor</code></pre>
+<figure>
+<a href="img/terminal-doctor.png"><img src="img/terminal-doctor.png" width="1002" height="608" loading="lazy" alt="A Windows PowerShell window after running controlsnack doctor. It lists the host, QEMU version 11.1.0 with the accelerators tcg and whpx, a note that whpx works, and ends with the verdict: will use whpx."></a>
+<figcaption>The report ends with a verdict. <code>will use whpx</code> (Windows), <code>kvm</code> (Linux) or <code>hvf</code> (macOS) means the virtual machine will be fast. <code>will use tcg (slow)</code> still works, only several times slower. <code>cannot run a VM</code> comes with numbered steps to fix it.</figcaption>
+</figure>
+
+<h4>4. Get the base image (the Debian desktop), once</h4>
+<pre class="cmd" data-copy><code>controlsnack image build</code></pre>
+<p>It downloads Debian, installs a desktop in a one-off boot and saves the result, about 765 MiB. It asks before it downloads. With hardware acceleration this takes minutes; with software emulation it took about 10 minutes on the author's machine and can take over 30 on slower ones. If someone gave you an image file and its <code>manifest.json</code>, <code>controlsnack image import file.qcow2 --manifest manifest.json</code> takes seconds instead.</p>
+<pre class="cmd" data-copy><code>controlsnack image ls</code></pre>
+<figure>
+<a href="img/terminal-image-ls.png"><img src="img/terminal-image-ls.png" width="1242" height="160" loading="lazy" alt="A PowerShell window after controlsnack image ls, showing one image: id 7264dc721451, x86_64, created 2026-10-14, 763.8 MiB, built from the Debian 13 generic amd64 image."></a>
+<figcaption>One image is all you need. Every session starts from a fresh copy of it, so the image itself never changes.</figcaption>
+</figure>
+
+<h3 id="new-local">Path A: a model on your own computer</h3>
+<p>The model has to be able to <em>see</em>, because the screen reaches it as a picture. The steps below use LM Studio, which was tested. Ollama works the same way in principle and is at the end.</p>
+
+<h4>A1. Install LM Studio and download a vision model</h4>
+<p>Install LM Studio from its website (<code>lmstudio.ai</code>). In its search, look for a Qwen3-VL model of 4 billion parameters or more (the tests used <code>qwen3-vl-4b-instruct</code>, a 4-bit version, about 3 GB) and download it. Pick a model that can see images: a model that cannot see still works, but only through the accessibility tree and recognized text, and does less.</p>
+
+<h4>A2. Load it with a long enough context</h4>
+<p>Each turn sends a screenshot, and a screenshot costs many tokens, so the context length matters. Load the model with a context length of at least <strong>8192</strong> (16384 if your memory allows). With a shorter one the model forgets what it was doing, repeats itself, or gives answers that cannot be read, and the session pauses after three of those in a row.</p>
+
+<h4>A3. Start the server</h4>
+<p>In LM Studio open the <strong>Developer</strong> tab and set the server to <strong>Running</strong>. It listens on port 1234, on your own machine only. If you turned on “Require Authentication”, give the key with <code>--api-key-env</code> as in path B.</p>
+
+<h4>A4. Check that ControlSnack can see it</h4>
+<pre class="cmd" data-copy><code>controlsnack llm models</code></pre>
+<p>You should see your model with <code>yes</code> in the VISION column and the context length you loaded. If the server is not running, this is what you get, and it tells you what to do:</p>
+<figure>
+<a href="img/terminal-no-server.png"><img src="img/terminal-no-server.png" width="1242" height="320" loading="lazy" alt="A PowerShell window after controlsnack llm models when no model server is running. The message says no local model server answered at ollama 127.0.0.1:11434 and lmstudio 127.0.0.1:1234, and explains how to start LM Studio, Ollama or another server."></a>
+<figcaption>The real message when nothing answers. Start the server (step A3) and run the command again.</figcaption>
+</figure>
+<p>Then test what the model can do:</p>
+<pre class="cmd" data-copy><code>controlsnack llm probe --llm lmstudio --model qwen3-vl-4b-instruct</code></pre>
+<p>It asks the model six small questions (can it see, does it take WebP, can it point at things, can it call tools, can it answer in JSON) and prints <code>ok</code> or what failed. The probe of the API model in path B shows what a pass looks like.</p>
+
+<h4>A5. Run the first task</h4>
+<pre class="cmd" data-copy><code>controlsnack run --llm lmstudio --model qwen3-vl-4b-instruct --task "Open a terminal and print the kernel version"</code></pre>
+<p>The virtual machine starts (12 seconds with hardware acceleration), a window opens with its screen, and the model starts working. What you see is described in <a href="#new-viewer">Reading the viewer</a>. The screen looks the same as in path B, except that the top bar shows <code>lmstudio</code> and the model's name and has no <strong>REMOTE LLM</strong> badge.</p>
+<div class="callout">
+  <p><strong>What to expect.</strong> In the author's test the 4-billion-parameter model opened the terminal and printed the kernel version in 5 turns, 11 seconds after the desktop was ready, and it was right. It did <em>not</em> manage the harder task (open the text editor, type a line, save it as <code>hello.txt</code>): it opened the wrong program and lost its way, and the program stopped it after it started repeating itself. That says something about a small model, not about your setup. Try a bigger model, or give smaller steps.</p>
+</div>
+<h4>Ollama instead</h4>
+<pre class="cmd" data-copy><code>ollama pull qwen2.5vl
+ollama serve
+controlsnack run --llm ollama --model qwen2.5vl --task "Open a terminal and print the kernel version"</code></pre>
+<p>The Ollama path was tested only against a stand-in server, not yet with a real model.</p>
+
+<h3 id="new-api">Path B: a model through an API (OpenRouter)</h3>
+<p>OpenRouter is one account that gives access to many models. The test below used <code>qwen/qwen3.8-omni-flash</code>. Any provider with an OpenAI-compatible API works the same way; OpenAI and Anthropic have their own settings in <a href="#recipes">Recipes</a>.</p>
+
+<h4>B1. Make an account and a key</h4>
+<p>Create an account at <code>openrouter.ai</code>, add a few dollars of credit, and make an API key on your account's keys page. Copy it once, when it is shown. <strong>Treat it like a password</strong>: whoever has it can spend your money.</p>
+
+<h4>B2. Give the key to the terminal without showing it</h4>
+<p>ControlSnack never takes the key on the command line. It takes the <em>name</em> of an environment variable that holds the key. In PowerShell, this asks for the key without showing it, and keeps it only in this window:</p>
+<pre class="cmd" data-copy><code>$k = Read-Host "OpenRouter key" -AsSecureString
+$env:OPENROUTER_API_KEY = [System.Net.NetworkCredential]::new("", $k).Password</code></pre>
+<p>In bash or zsh: <code>read -rs OPENROUTER_API_KEY; export OPENROUTER_API_KEY</code>. Close the window and the key is gone from it.</p>
+
+<h4>B3. Test the model</h4>
+<pre class="cmd" data-copy><code>controlsnack llm probe --llm openai --base-url https://openrouter.ai/api/v1 --model qwen/qwen3.8-omni-flash --api-key-env OPENROUTER_API_KEY</code></pre>
+<figure>
+<a href="img/terminal-api-probe.png"><img src="img/terminal-api-probe.png" width="1122" height="352" loading="lazy" alt="A PowerShell window after controlsnack llm probe against OpenRouter. It says the model runs on openrouter.ai, not on this machine, then lists vision, webp, pointing, native_tools, structured and json, each with ok and a time, and ends with screenshots as webp, coordinates in pixels, actions as native tool calls."></a>
+<figcaption>A model that passes all six. Note the warning at the top: with a hosted model, screenshots, screen text and command output are sent to the provider.</figcaption>
+</figure>
+
+<h4>B4. Run the first task</h4>
+<pre class="cmd" data-copy><code>controlsnack run --llm openai --base-url https://openrouter.ai/api/v1 --model qwen/qwen3.8-omni-flash --api-key-env OPENROUTER_API_KEY --task "Open a terminal and print the kernel version"</code></pre>
+<figure>
+<a href="img/terminal-api-run.png"><img src="img/terminal-api-run.png" width="1102" height="608" loading="lazy" alt="A PowerShell window running controlsnack run. It shows the model and the notice about the remote model, the session starting with the accelerator whpx, the boot taking 11 seconds, the viewer opening in a window of Microsoft Edge, the task running, and the final note: task finished in 4 turns, opened an XFCE terminal and ran uname -r, which printed the kernel version 6.12.111+deb13-amd64."></a>
+<figcaption>The terminal tells the story of the session: the boot, the task, and the model's own summary at the end. This run: a 12-second boot, then 4 turns and 33 seconds from the desktop being ready to the end of the task.</figcaption>
+</figure>
+<p>At the same time a window opened with the little computer's screen. The next part walks through it.</p>
+
+<h3 id="new-viewer">Reading the viewer</h3>
+<p>The viewer is the window that opens when a session starts. These pictures are from the run above, a few seconds apart.</p>
+<figure>
+<a href="img/viewer-start.png"><img src="img/viewer-start.png" width="1300" height="747" loading="lazy" alt="The ControlSnack viewer window just after the start. The top bar shows the session id, openai and the model name, the badges WHPX, VISION, NET OFF and REMOTE LLM, the state Working, a timer, turn and action counters, and a red KILL button. On the left is the guest desktop: an empty XFCE desktop with a panel at the top and a dock at the bottom. On the right are Pause, Stop task and Step mode, the chat and the list of actions, both empty, and the audit log with its first line. A yellow bar at the bottom says the model runs on openrouter.ai."></a>
+<figcaption>The start, three seconds in. The model has not done anything yet; the audit log already has its first line (you logged in to the viewer).</figcaption>
+</figure>
+<ul>
+  <li><strong>The top bar.</strong> The session, the backend and the model; <strong>WHPX</strong> says the machine is hardware accelerated (it says <strong>TCG</strong> when it is not); <strong>VISION</strong> says the model sees pictures (it says <strong>TEXT-ONLY</strong> otherwise); <strong>NET OFF</strong> says the little computer has no internet (<strong>NET ON</strong> with <code>--allow-net</code>); <strong>REMOTE LLM</strong> appears when the model is not on your machine. Then the state, the time used out of the time allowed, the turns and actions used, and how fast pictures and the model are going.</li>
+  <li><strong>KILL</strong> ends the virtual machine at once.</li>
+  <li><strong>The screen</strong> is the little computer's screen, live. This is what the model sees too.</li>
+  <li><strong>Pause</strong> holds the model's task and <strong>Resume</strong> continues it; <strong>Stop task</strong> ends the task and leaves the machine up for the next; <strong>Step mode</strong> asks you before every action.</li>
+  <li><strong>Chat.</strong> Type a task here if you did not give one on the command line. The model's own words appear here as it works, and your answers to its questions.</li>
+  <li><strong>Actions</strong> lists what the model did: the tool, whether the rules allowed it, and how it went. <strong>Audit log</strong> is the tail of the session's audit log: one line for each record as it is written, the same lines <code>audit show</code> prints afterwards.</li>
+</ul>
+<figure>
+<a href="img/viewer-working.png"><img src="img/viewer-working.png" width="1300" height="704" loading="lazy" alt="The viewer seven seconds in. A terminal window has opened on the guest desktop and is empty. The actions list shows one click_element action, allowed and done, clicking element a7. The audit log at the bottom right shows the model's response and the decision to open the terminal emulator from the dock, allowed. The state is Working, turn 1 of 100."></a>
+<figcaption>Seven seconds in. The model found the terminal launcher in the dock and clicked it, and a terminal opened. The action appears in the list, and the audit log shows the decision about it: <code>click_element -&gt; allowed</code>.</figcaption>
+</figure>
+<figure>
+<a href="img/viewer-done.png"><img src="img/viewer-done.png" width="1300" height="704" loading="lazy" alt="The viewer at the end of the task. Two terminal windows are open; the one in front shows the command uname -r and its output, 6.12.111+deb13-amd64. The state is Ready. The chat shows the model's final messages saying the kernel version has been printed, and the actions list ends with a done action. A blue bar at the bottom says the task finished in 4 turns."></a>
+<figcaption>The end, 33 seconds after the desktop was ready. The front terminal shows the command and its output, the chat has the model's summary, and the state went back to <strong>Ready</strong>: the session waits for your next task and does not end by itself. (The model clicked the launcher a second time before the first window had appeared, so two terminals opened. Models make small slips like this, which is one reason you can watch.)</figcaption>
+</figure>
+<p>To end the session, press <strong>KILL</strong>, press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal, or run <code>controlsnack kill</code> in another one. The little computer is deleted. More ways to stop it are in <a href="#stopping">Stopping a session</a>.</p>
+
+<h4>A longer task</h4>
+<p>The same model, asked to open the text editor, type a line and save it as <code>hello.txt</code> in the home folder:</p>
+<figure>
+<a href="img/viewer-editor.png"><img src="img/viewer-editor.png" width="1300" height="704" loading="lazy" alt="The viewer at the end of a longer task. The text editor Mousepad is open with the title ~/hello.txt and the line hello from controlsnack. The chat shows the model's final summary: it opened Mousepad, typed the line, saved it as /home/cs/hello.txt through File, Save As, and verified on disk that the 23-byte file exists with the right content. The actions list ends with set_text, key, a click_element that failed, an exec and done. A blue bar says the task finished in 10 turns. The audit log shows the last records."></a>
+<figcaption>Done in 10 turns, 1 minute 22 seconds after the desktop was ready (the timer at the top). The title bar says the file is saved as <code>~/hello.txt</code>, and the model checked it from the command line before it said it was done. One action in the list says <strong>failed</strong>: the model clicked a Save button that had already gone because the dialog had closed. A failed action is not an error of the program; the model is told what happened, reads the screen again and goes on.</figcaption>
+</figure>
+
+<h4>Look at what happened afterwards</h4>
+<p>Every session leaves an audit log, whether or not you kept anything else:</p>
+<p>The session id is in the top bar of the viewer and in the terminal (<code>s_651fec0b</code> here). <code>audit show</code> takes it; <code>audit verify</code> takes the path of the log file, which <code>audit ls</code> names and which is in the audit folder (<a href="#files">where</a>).</p>
+<pre class="cmd" data-copy><code>controlsnack audit show s_651fec0b
+controlsnack audit verify "$env:LOCALAPPDATA\ControlSnack\audit\20261019-s_651fec0b.jsonl"</code></pre>
+<figure>
+<a href="img/terminal-audit.png"><img src="img/terminal-audit.png" width="1302" height="722" loading="lazy" alt="A PowerShell window showing the audit log of the editor session: 37 numbered records with times, the kind (lifecycle, config, llm, user, action), the actor, and for each action the decision, for example exec allowed Open the text editor (Mousepad), then type_text, key, click_element, set_text and a final done. The last two records are a kill and the end of the session. Below, audit verify says ok, 37 records, complete, and prints the last hash."></a>
+<figcaption>The audit log of the editor session: what the model asked for, what the rules decided, in order, with the reason the model gave for each action. Every action here was allowed. The <code>kill</code> near the end is from <code>controlsnack kill</code>, which ended the session after the task was done. <code>audit verify</code> checks that no record was changed, removed or reordered.</figcaption>
+</figure>
+
+<h3 id="new-stuck">If something goes wrong</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">What you see</th><th scope="col">What to do</th></tr></thead>
+<tbody>
+<tr><td><code>no local model server answered</code></td><td>Start LM Studio's server (step A3) or Ollama, or name another server with <code>--llm</code>, <code>--base-url</code> and <code>--model</code>.</td></tr>
+<tr><td><code>the environment variable OPENROUTER_API_KEY is empty or not set</code></td><td>Do step B2 again in <em>this</em> terminal window. A variable set in another window is not here.</td></tr>
+<tr><td><code>cannot run a VM</code> or exit code 3</td><td>Run <code>controlsnack doctor</code>; it lists the fixes. Most often QEMU is not installed or not found (<code>--qemu</code> points to it).</td></tr>
+<tr><td>Exit code 4, no base image</td><td>Do setup step 4: <code>controlsnack image build</code>, or <code>image import</code>.</td></tr>
+<tr><td>It is very slow</td><td>The verdict of <code>doctor</code> was <code>tcg</code>. Hardware acceleration needs virtualization turned on in the firmware, and on Windows the “Windows Hypervisor Platform” feature may help. <code>doctor</code> says what applies.</td></tr>
+<tr><td>No window opened</td><td>No Edge, Chrome, Chromium or Brave was found, so the viewer opened in your default browser instead, or its address was printed. <code>--viewer browser</code> asks for the browser on purpose.</td></tr>
+<tr><td>The model repeats itself, or the task pauses</td><td>Run <code>controlsnack llm probe</code>. Usual causes: a context that is too short (load the model with 8192 or more), or a model that cannot see. Press <strong>Resume</strong>, or <strong>Stop task</strong> and give a smaller task.</td></tr>
+<tr><td>The model asks you something, or a box asks you to approve an action</td><td>The rules want your say. Answer in the chat, or press approve or reject. An action nobody answers within two minutes counts as rejected.</td></tr>
+<tr><td>Another session is running</td><td>Only one runs at a time per user. <code>controlsnack kill</code> ends it.</td></tr>
+</tbody>
+</table>
+</div>
+<p>When you are ready for more: <a href="#recipes">Recipes</a> has commands for other models, for letting the guest browse a site, for scripts and for keeping a machine between sessions, and <a href="#policy">The policy file</a> says how to change what the model may do. If you find something that does not work, the <a href="./#test">test form</a> on the home page builds a report you can send.</p>
+</section>
+
+<section id="overview">
+<h2>How to read this page</h2>
+<p><code>controlsnack</code> is one program. On Windows it is <code>controlsnack.exe</code>; after <code>go run ./tools/dev build</code> it is in the <code>dist</code> folder, so the examples below that start with <code>controlsnack</code> become <code>.\dist\controlsnack.exe</code> in PowerShell and <code>./dist/controlsnack</code> elsewhere unless you put it on your PATH.</p>
+
+<p>Every flag is described the same way:</p>
+<ul>
+  <li><strong>Its form:</strong> <code>--cpus <var>N</var></code> takes a number, <code>--task <var>TEXT</var></code> takes text, a flag with no value (<code>--step</code>) is a switch. Quote values that contain spaces.</li>
+  <li><strong>Its default:</strong> what you get when you do not set it.</li>
+  <li><strong>Its configuration key:</strong> the same setting for the config file, like <code>vm.cpus</code>. See <a href="#configuration">Configuration</a> for the file and for the environment variable every key has.</li>
+</ul>
+
+<p><strong>Where a setting comes from.</strong> From strongest to weakest: a flag on the command line, then an environment variable, then the config file, then the built-in default. <code>controlsnack config show</code> prints what is in force.</p>
+
+<div class="callout">
+  <p><strong>Three rules that hold everywhere.</strong></p>
+  <ul>
+    <li>The VM never has a network device. <code>--allow-net</code> opens a bridge that the host checks; it does not add a network card.</li>
+    <li><code>--unsafe</code> exists only as a flag. No config file or environment variable can switch it on (<a href="#run-unsafe">details</a>).</li>
+    <li>An API key is never typed on the command line. You give the <em>name</em> of an environment variable that holds it (<a href="#api-keys">details</a>).</li>
+  </ul>
+</div>
+
+<p>Everything below was checked against the program: a test that runs with every change walks the real command tree and fails if a command, a flag, a configuration key, an exit code, a built-in rule or a tool of the program is missing from this page. It cannot judge whether a sentence is right. If the program does something this page does not say, the program is right, and the mismatch is a bug in the page that we want to hear about.</p>
+</section>
+
+<section id="commands">
+<h2>All commands</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Command</th><th scope="col">What it does</th></tr></thead>
+<tbody>
+<tr><td><a href="#cmd-run"><code>controlsnack run</code></a></td><td>Boots the VM, opens the viewer and lets the model work on a task.</td></tr>
+<tr><td><a href="#cmd-doctor"><code>controlsnack doctor</code></a></td><td>Reports what this machine can run and which accelerator a session would use. Changes nothing.</td></tr>
+<tr><td><a href="#cmd-image-build"><code>controlsnack image build</code></a></td><td>Downloads Debian, builds the desktop image once and seals it.</td></tr>
+<tr><td><a href="#cmd-image-import"><code>controlsnack image import</code></a></td><td>Brings in an image built on another machine.</td></tr>
+<tr><td><a href="#cmd-image-ls"><code>controlsnack image ls</code></a></td><td>Lists the images you have.</td></tr>
+<tr><td><a href="#cmd-image-path"><code>controlsnack image path</code></a></td><td>Prints where an image file is.</td></tr>
+<tr><td><a href="#cmd-image-verify"><code>controlsnack image verify</code></a></td><td>Checks an image against its manifest.</td></tr>
+<tr><td><a href="#cmd-image-rm"><code>controlsnack image rm</code></a></td><td>Deletes an image.</td></tr>
+<tr><td><a href="#cmd-llm-models"><code>controlsnack llm models</code></a></td><td>Lists the models a backend offers.</td></tr>
+<tr><td><a href="#cmd-llm-probe"><code>controlsnack llm probe</code></a></td><td>Tests what a model can do: see, take WebP, call tools, answer in JSON.</td></tr>
+<tr><td><a href="#cmd-kill"><code>controlsnack kill</code></a></td><td>Ends the running session from any terminal.</td></tr>
+<tr><td><a href="#cmd-audit-ls"><code>controlsnack audit ls</code></a></td><td>Lists the audit logs.</td></tr>
+<tr><td><a href="#cmd-audit-show"><code>controlsnack audit show</code></a></td><td>Prints one audit log.</td></tr>
+<tr><td><a href="#cmd-audit-verify"><code>controlsnack audit verify</code></a></td><td>Checks a log's hash chain for edits, deletions, reordering and truncation.</td></tr>
+<tr><td><a href="#cmd-audit-prune"><code>controlsnack audit prune</code></a></td><td>Deletes logs older than the retention period.</td></tr>
+<tr><td><a href="#cmd-vm-ls"><code>controlsnack vm ls</code></a></td><td>Lists kept VMs (made with <code>run --keep-vm</code>).</td></tr>
+<tr><td><a href="#cmd-vm-rm"><code>controlsnack vm rm</code></a></td><td>Deletes a kept VM.</td></tr>
+<tr><td><a href="#cmd-config-show"><code>controlsnack config show</code></a></td><td>Prints the configuration in force, with secrets masked.</td></tr>
+<tr><td><a href="#cmd-config-path"><code>controlsnack config path</code></a></td><td>Prints where the config file is, and whether it exists.</td></tr>
+<tr><td><a href="#cmd-schema"><code>controlsnack schema</code></a></td><td>Prints the tool schema in the format of a backend.</td></tr>
+<tr><td><a href="#cmd-version"><code>controlsnack version</code></a></td><td>Prints the version, commit, Go version and platform.</td></tr>
+<tr><td><a href="#cmd-completion"><code>controlsnack completion</code></a></td><td>Prints the completion script for bash, zsh, fish or PowerShell.</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>controlsnack help <var>COMMAND</var></code> and <code>controlsnack <var>COMMAND</var> --help</code> print the built-in help of a command. Run with no command, <code>controlsnack</code> prints the top-level help.</p>
+</section>
+
+<section id="cmd-global">
+<h2>Global flags</h2>
+<p>These flags work on every command. They come before or after the command name.</p>
+
+<div class="flag" id="flag-config">
+<h4><code>--config <var>FILE</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>config.yaml</code> in the configuration folder of your system (<a href="#files">where</a>)</span><span><b>Config key:</b> none</span></p>
+<p>The YAML file to read settings from. If you do not give this flag and the default file does not exist, that is fine: the built-in defaults are used. If you do give it, the file must exist, and an unreadable or malformed file is an error that names the file. Unknown keys in the file are errors too, so a typo cannot silently do nothing. The file may not contain <code>safety.unsafe</code>. <code>controlsnack kill</code> ignores a broken config file on purpose, so a mistake in the file can never stop you from ending a session.</p>
+</div>
+
+<div class="flag" id="flag-log-level">
+<h4><code>--log-level <var>LEVEL</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>info</code></span><span><b>Accepts:</b> <code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code></span><span><b>Config key:</b> <code>log.level</code></span></p>
+<p>How much the program writes about itself on standard error. <code>debug</code> is for finding out why something does not work. This is not the audit log: the audit log is always written and has its own commands (<a href="#cmd-audit">audit</a>).</p>
+</div>
+
+<div class="flag" id="flag-log-format">
+<h4><code>--log-format <var>FORMAT</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>text</code></span><span><b>Accepts:</b> <code>text</code>, <code>json</code></span><span><b>Config key:</b> <code>log.format</code></span></p>
+<p>The shape of those diagnostic lines: readable text, or one JSON object per line for a program to read.</p>
+</div>
+
+<div class="flag" id="flag-help">
+<h4><code>-h</code>, <code>--help</code></h4>
+<p>Prints the built-in help of the command and stops. It works even when the configuration is broken.</p>
+</div>
+
+<div class="flag" id="flag-version">
+<h4><code>-v</code>, <code>--version</code></h4>
+<p>On the program itself (<code>controlsnack --version</code>): prints <code>controlsnack</code> and the version, then stops. <a href="#cmd-version"><code>controlsnack version</code></a> prints more.</p>
+</div>
+</section>
+
+<section id="cmd-run">
+<h2><code>controlsnack run</code></h2>
+<p>Boots a throwaway Linux VM, opens the viewer, and runs the loop in which the model looks at the screen and acts. This is the command you use. Everything else prepares for it or looks at what it left.</p>
+
+<pre class="cmd" data-copy><code>controlsnack run --task "Open a terminal and print the kernel version"</code></pre>
+
+<h3>What happens, in order</h3>
+<ol>
+  <li><strong>The settings are checked.</strong> All mistakes are listed at once, each with the flag, the configuration key and what is allowed. Exit code 2.</li>
+  <li><strong>The session lock is taken.</strong> Only one session runs per user. A lock left behind by a crash is cleaned up, together with a QEMU it orphaned.</li>
+  <li><strong>The accelerator is chosen</strong> by trying QEMU, the same decision <a href="#cmd-doctor"><code>doctor</code></a> reports. If a hardware accelerator fails to launch, <code>run</code> retries once with software emulation and says so in the terminal, in the viewer and in the audit log.</li>
+  <li><strong>The model is found and probed.</strong> With a remote model you are told that screenshots, screen text and command output go to it.</li>
+  <li><strong>The VM boots,</strong> the desktop comes up, the guest agent is installed and answers. The terminal prints <code>Ready</code> with the time each step took.</li>
+  <li><strong>The viewer opens</strong> (unless <code>--viewer none</code>).</li>
+  <li><strong>The task loop runs.</strong> Each turn the model gets an observation, answers with actions, and every action is checked, judged by the policy, written to the audit log, and only then run in the VM. The result goes back to the model.</li>
+  <li><strong>The session ends</strong> when the model says it is done, when you stop it, or when a limit is reached. The VM disk is deleted unless you kept it, and the terminal prints one summary line with the path of the audit log.</li>
+</ol>
+
+<h3>What the terminal prints</h3>
+<p>A real session, abridged (a remote model on Windows with hardware acceleration):</p>
+<pre class="out"><code>Model: qwen/qwen3.8-omni-flash (VISION)
+NOTE: The model runs on openrouter.ai, not on this machine: screenshots, screen text and command output are sent to it.
+Starting a session (s_45359cad): image 7264dc721451, x86_64
+  accelerator: whpx
+  QEMU is running with whpx (10.39s)
+  waiting for the desktop to start (up to 3m0s)
+  agent: connected
+Ready: agent e865101 running as cs, screen 1280x800.
+Boot with whpx: QEMU running after 10.39s, desktop up after 11s, agent connected after 12s.
+Running the task: Open a terminal and print the kernel version
+model: I'll open the terminal from the dock.
+  turn 1, click_element t1a1 (done): clicked a7 (pointer)
+  turn 3, type_text t3a1 (done): typed 9 characters
+  turn 4, done t4a1 (done): the task is finished
+NOTE: Task finished in 4 turns: Opened the Xfce terminal and ran `uname -r`.
+Session s_45359cad ended (task done) after 16s: 4 turns, 4 actions (4 allowed). Accelerator: whpx. Audit log: ...\audit\20261018-s_45359cad.jsonl</code></pre>
+
+<div class="callout">
+  <p><strong>Headless runs.</strong> With <code>--viewer none</code> nothing is shown and the terminal carries everything. A task that pauses (a model that cannot be understood, a screen that cannot be read) cannot be resumed by anyone, so the run ends with exit code 1 and says why. The model finishing with success ends the run with exit code 0; the model giving up ends it with 1.</p>
+</div>
+
+<h3 id="run-session">Task and session</h3>
+
+<div class="flag" id="flag-task">
+<h4><code>--task <var>TEXT</var></code></h4>
+<p class="meta"><span><b>Default:</b> none</span><span><b>Limit:</b> 8000 characters</span><span><b>Config key:</b> <code>session.task</code></span></p>
+<p>What you want done, in your own words. Without it the viewer opens and you type the task in its chat box, and you can give the next task when one is done. With <code>--viewer none</code> there is no chat, so <code>--task</code> is required. It cannot be combined with <code>--no-llm</code>.</p>
+</div>
+
+<div class="flag" id="flag-timeout">
+<h4><code>--timeout <var>DURATION</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>1h</code></span><span><b>Range:</b> 1m to 1h (8h with <code>--unsafe</code>)</span><span><b>Config key:</b> <code>safety.timeout</code></span></p>
+<p>The longest the whole session may last, written like <code>90s</code>, <code>45m</code> or <code>2h</code>. When it runs out the session ends with exit code 6. The idle timeout (<code>safety.idle_timeout</code>, default 15 minutes, config file only) ends a session in which nobody has done anything while it was ready or paused, and it may not be longer than this timeout: to set <code>--timeout</code> below 15 minutes, lower <code>safety.idle_timeout</code> in the config file as well.</p>
+</div>
+
+<div class="flag" id="flag-max-turns">
+<h4><code>--max-turns <var>N</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>100</code></span><span><b>Range:</b> 1 to 100 (500 with <code>--unsafe</code>)</span><span><b>Config key:</b> <code>safety.max_turns</code></span></p>
+<p>How many times the model may be asked per task before the task stops for a check-in. A turn is one question to the model and the answer with its actions. Raise it for long tasks; lower it to bound the cost of a remote model.</p>
+</div>
+
+<div class="flag" id="flag-step">
+<h4><code>--step</code></h4>
+<p class="meta"><span><b>Default:</b> off</span><span><b>Config key:</b> <code>safety.step</code></span></p>
+<p>Asks you before every action, in the viewer, and runs the action only if you approve. Use it when you want to watch a model's first steps on something that matters. It wins over everything else, <code>--unsafe</code> included. Questions that nobody answers within <code>safety.confirm_timeout</code> (default 2 minutes) count as rejected.</p>
+</div>
+
+<div class="flag" id="flag-keep">
+<h4><code>--keep</code></h4>
+<p class="meta"><span><b>Default:</b> off</span><span><b>Config key:</b> <code>session.keep</code></span></p>
+<p>Keeps what the model was shown, after the session, in a folder named after the session under <code>kept</code> in the state folder (<a href="#files">where</a>). It holds <code>transcript.jsonl</code> (the conversation), <code>shots/</code> (the pictures the model was given, one per turn), <code>requests/turn-NNNN.txt</code> (the text of what the model was asked each turn, the observation and the earlier results), and <code>ready.png</code>. Without <code>--keep</code> nothing of this is left behind. This is the way to find out why a model did what it did.</p>
+</div>
+
+<div class="flag" id="flag-keep-vm">
+<h4><code>--keep-vm[=<var>NAME</var>]</code></h4>
+<p class="meta"><span><b>Default:</b> off (the VM disk is deleted)</span><span><b>Name:</b> lowercase letters, digits, <code>-</code> and <code>_</code>, at most 32, starting with a letter or digit</span><span><b>Config key:</b> <code>session.keep_vm</code></span></p>
+<p>Keeps the VM's disk when the session ends, so the next session can pick up where this one left off: files, installed programs, settings. The guest is powered off cleanly first (about 4 to 5 seconds), so what was written in the session is on the disk. Give a name with an equals sign, <code>--keep-vm=work</code>; a bare <code>--keep-vm</code> names it <code>vm-</code> followed by the session's id. A VM that never got as far as booting is not kept. List kept VMs with <a href="#cmd-vm-ls"><code>vm ls</code></a>, delete one with <a href="#cmd-vm-rm"><code>vm rm</code></a>. Cannot be combined with <code>--vm</code>.</p>
+</div>
+
+<div class="flag" id="flag-vm">
+<h4><code>--vm <var>NAME</var></code></h4>
+<p class="meta"><span><b>Default:</b> none (start from the base image)</span><span><b>Config key:</b> <code>session.vm</code></span></p>
+<p>Resumes a kept VM instead of starting from the base image. The VM stays where it is, with what this session did to it, until you delete it with <code>vm rm</code>. Only one session can use a kept VM at a time. Cannot be combined with <code>--keep-vm</code>.</p>
+</div>
+
+<div class="flag" id="flag-no-llm">
+<h4><code>--no-llm</code></h4>
+<p class="meta"><span><b>Default:</b> off</span><span><b>Needs:</b> <code>--viewer none</code></span><span><b>Config key:</b> <code>session.no_llm</code></span></p>
+<p>Boots the VM, checks that the agent answers and a screenshot works, and holds the machine without a model, until you stop it or the timeout ends it. For testing the sandbox and the accelerator without a model server. No model is looked for and no API key is needed. Cannot be combined with <code>--task</code>.</p>
+</div>
+
+<h3 id="run-model">The model</h3>
+<p>ControlSnack talks to a model server you already run, or to a hosted API. <a href="./#models">Which models were tested</a> is listed on the home page; <a href="#cmd-llm-probe"><code>llm probe</code></a> tells you what your own model can do.</p>
+
+<div class="flag" id="flag-llm">
+<h4><code>--llm <var>BACKEND</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>auto</code></span><span><b>Accepts:</b> <code>auto</code>, <code>ollama</code>, <code>lmstudio</code>, <code>llamacpp</code>, <code>openai</code>, <code>anthropic</code></span><span><b>Config key:</b> <code>llm.backend</code></span></p>
+<p><code>auto</code> looks for a server on your own machine: Ollama on port 11434, LM Studio on port 1234 (and on the port its own status file names, if you changed it) and llama.cpp on port 8080, and picks the first model that can see pictures. It never looks anywhere but <code>127.0.0.1</code>. If it finds none it says how to start one. The others name the protocol to speak: <code>ollama</code>; <code>lmstudio</code> and <code>llamacpp</code> (both OpenAI-compatible, with their usual addresses); <code>openai</code>, for OpenAI itself and for anything with an OpenAI-compatible API such as OpenRouter; <code>anthropic</code> for the Anthropic API.</p>
+</div>
+
+<div class="flag" id="flag-model">
+<h4><code>--model <var>NAME</var></code></h4>
+<p class="meta"><span><b>Default:</b> the first local model that can see pictures</span><span><b>Config key:</b> <code>llm.model</code></span></p>
+<p>The model's name exactly as the backend lists it (<a href="#cmd-llm-models"><code>llm models</code></a> prints the names). Required for the hosted backends, for example <code>qwen/qwen3.8-omni-flash</code> on OpenRouter. A model that cannot see pictures runs in a degraded text-only mode, in which it reads the screen as the accessibility tree and recognized text; you are told when that happens.</p>
+</div>
+
+<div class="flag" id="flag-base-url">
+<h4><code>--base-url <var>URL</var></code></h4>
+<p class="meta"><span><b>Default:</b> the usual address of the backend</span><span><b>Needs:</b> an explicit <code>--llm</code></span><span><b>Config key:</b> <code>llm.base_url</code></span></p>
+<p>Where the backend is, for a server on another port or another machine, or for a hosted service: <code>https://openrouter.ai/api/v1</code>. The usual addresses are <code>http://127.0.0.1:11434</code> (Ollama), <code>http://127.0.0.1:1234/v1</code> (LM Studio), <code>http://127.0.0.1:8080/v1</code> (llama.cpp), <code>https://api.openai.com/v1</code> and <code>https://api.anthropic.com</code>. The URL must be <code>http://</code> or <code>https://</code>, may not contain a user name or password (the key goes through <code>--api-key-env</code>), and a host that is not on your machine must use <code>https://</code> unless you pass <code>--unsafe</code>. A non-local host counts as remote: the session says so and the audit log records it.</p>
+</div>
+
+<div class="flag" id="flag-api-key-env">
+<h4><code>--api-key-env <var>NAME</var></code></h4>
+<p class="meta"><span><b>Default:</b> none</span><span><b>Config key:</b> <code>llm.api_key_env</code></span></p>
+<p>The <em>name</em> of the environment variable that holds the API key, for example <code>OPENROUTER_API_KEY</code>. Not the key. A value that does not look like a variable name is refused. If the variable is empty or unset, the run stops before anything starts, and says which variable. Other places the key may come from are in <a href="#api-keys">API keys</a>.</p>
+</div>
+
+<div class="flag" id="flag-tools">
+<h4><code>--tools <var>PROFILE</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>auto</code></span><span><b>Accepts:</b> <code>auto</code>, <code>full</code>, <code>compact</code></span><span><b>Config key:</b> <code>llm.tools</code></span></p>
+<p>Which <a href="#tools">tools</a> the model is offered. <code>full</code> offers all fifteen. <code>compact</code> offers nine (it leaves out <code>screenshot</code>, <code>set_text</code>, <code>read_screen_text</code>, <code>browser</code>, <code>scroll</code> and <code>window</code>): fewer choices help a small model. <code>auto</code> picks <code>compact</code> for a model on your machine and for text-only mode, and <code>full</code> for a remote one.</p>
+</div>
+
+<div class="flag" id="flag-obs-format">
+<h4><code>--obs-format <var>FORMAT</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>text</code></span><span><b>Accepts:</b> <code>text</code>, <code>json</code></span><span><b>Config key:</b> <code>llm.obs_format</code></span></p>
+<p>How the observation that goes with each screenshot is written: as plain labeled lines (the default), or as a JSON object. The content is the same.</p>
+</div>
+
+<div class="flag" id="flag-marks">
+<h4><code>--marks <var>MODE</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>auto</code></span><span><b>Accepts:</b> <code>auto</code>, <code>on</code>, <code>off</code></span><span><b>Config key:</b> <code>llm.marks</code></span></p>
+<p>Draws numbered boxes over the elements the accessibility tree found, on the picture the model is shown, so a model can name an element instead of guessing coordinates. <code>auto</code> is on for a model on your machine that can see, and off otherwise. Marks need the accessibility tree and a model that sees pictures.</p>
+</div>
+<p>Four more model settings have no flag, only a configuration key: <code>llm.image_max</code> (the longest edge of the pictures sent, default 1280 pixels), <code>llm.num_ctx</code> (the context length requested from Ollama, default 16384), <code>llm.first_timeout</code> (how long the first answer may take while a model loads, default 10 minutes) and <code>llm.timeout</code> (later answers, default 3 minutes). See <a href="#config-keys">every key</a>.</p>
+
+<h3 id="run-guest">The guest machine</h3>
+
+<div class="flag" id="flag-accel">
+<h4><code>--accel <var>ACCEL</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>auto</code></span><span><b>Accepts:</b> <code>auto</code>, <code>kvm</code> (Linux), <code>whpx</code> (Windows), <code>hvf</code> (macOS), <code>tcg</code> (software)</span><span><b>Config key:</b> <code>vm.accel</code></span></p>
+<p>The way QEMU runs the guest. <code>auto</code> tries the hardware accelerator of your system and falls back to <code>tcg</code>. A hardware accelerator that does not belong to your system is an error. Hardware is several times faster than <code>tcg</code>: a desktop was ready in 12 seconds with WHPX and in 61 to 75 seconds with software emulation on the author's machine. Also accepted by <a href="#cmd-doctor"><code>doctor</code></a> and <a href="#cmd-image-build"><code>image build</code></a>.</p>
+</div>
+
+<div class="flag" id="flag-slow">
+<h4><code>--slow</code></h4>
+<p class="meta"><span><b>Default:</b> off</span><span><b>Config key:</b> <code>vm.slow</code></span></p>
+<p>Shorthand for <code>--accel tcg</code>: software emulation, which works on every machine. Combined with a hardware accelerator it is an error. Also accepted by <code>doctor</code> and <code>image build</code>.</p>
+</div>
+
+<div class="flag" id="flag-qemu">
+<h4><code>--qemu <var>DIR</var></code></h4>
+<p class="meta"><span><b>Default:</b> the PATH, then the usual install folders</span><span><b>Config key:</b> <code>vm.qemu_dir</code></span></p>
+<p>The folder that holds <code>qemu-system-x86_64</code> (or the one for your guest) and <code>qemu-img</code>. Needed only when QEMU is installed somewhere unusual. Also accepted by <code>doctor</code> and <code>image build</code>.</p>
+</div>
+
+<div class="flag" id="flag-cpus">
+<h4><code>--cpus <var>N</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>2</code></span><span><b>Range:</b> 1 to 16</span><span><b>Config key:</b> <code>vm.cpus</code></span></p>
+<p>How many virtual processors the guest has.</p>
+</div>
+
+<div class="flag" id="flag-memory">
+<h4><code>--memory <var>MIB</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>2048</code> (MiB)</span><span><b>Range:</b> 1024 to 16384</span><span><b>Config key:</b> <code>vm.memory_mib</code></span></p>
+<p>The guest's memory in mebibytes. A browser with many tabs wants more than the default.</p>
+</div>
+
+<div class="flag" id="flag-resolution">
+<h4><code>--resolution <var>WIDTHxHEIGHT</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>1280x800</code></span><span><b>Range:</b> 640x480 up to 1920x1080</span><span><b>Config key:</b> <code>vm.resolution</code></span></p>
+<p>The guest's screen. A bigger screen shows more but makes every picture the model gets larger and slower to read; the picture is scaled down to <code>llm.image_max</code> before it is sent.</p>
+</div>
+
+<div class="flag" id="flag-image">
+<h4><code>--image <var>ID_OR_PATH</var></code></h4>
+<p class="meta"><span><b>Default:</b> the newest image you have</span><span><b>Config key:</b> <code>vm.image</code></span></p>
+<p>Which base image to start from: an id from <a href="#cmd-image-ls"><code>image ls</code></a>, or the path of an image file. If there is none, the run stops with exit code 4 and tells you to build or import one.</p>
+</div>
+
+<h3 id="run-viewer">The viewer</h3>
+<p>The viewer is a page served by the program on <code>127.0.0.1</code> only. It shows the guest's screen, the model's actions as they happen, a chat box, the buttons to pause, resume and approve, and the <strong>Kill</strong> button. You open it through a single-use link, which sets a cookie; nothing else on your machine can use the page without it.</p>
+
+<div class="flag" id="flag-viewer">
+<h4><code>--viewer <var>MODE</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>window</code></span><span><b>Accepts:</b> <code>window</code>, <code>browser</code>, <code>none</code>, <code>webview</code></span><span><b>Config key:</b> <code>viewer.mode</code></span></p>
+<p><code>window</code> opens the viewer in a window of its own, using Edge, Chrome, Chromium or Brave in app mode (no tabs, no address bar). If none of them is found it opens your default browser in a tab, and if even that fails it prints the address. <code>browser</code> asks for the default browser's tab on purpose, for any browser. <code>none</code> shows nothing and is for scripts and tests: it needs <code>--task</code>, and with a model it also needs <code>--unsafe</code>, because nobody is watching and nobody can approve anything. <code>webview</code> is reserved for a native window that is not built yet; it opens the <code>window</code> mode and says so. Three more settings of the viewer have no flag: <code>viewer.fps_active</code>, <code>viewer.fps_idle</code> and <code>viewer.webp_quality</code> (<a href="#config-keys">every key</a>).</p>
+</div>
+
+<h3 id="run-net">Network</h3>
+<p>The VM has no network card. Without <code>--allow-net</code> the guest cannot reach anything, and its browser says so. With it, the guest's HTTP and HTTPS requests go through a proxy to the host, which dials only after checking the policy below. The host always refuses loopback, private, link-local, metadata and other non-public addresses, and judges every address a name resolves to, so a name that points inside your network does not get through.</p>
+
+<div class="flag" id="flag-allow-net">
+<h4><code>--allow-net</code></h4>
+<p class="meta"><span><b>Default:</b> off</span><span><b>Config key:</b> <code>net.allow</code></span></p>
+<p>Lets the guest reach the public web over that bridge. Web only: no LAN, no raw sockets, no other protocols. It lets a model cause real effects in the world (posting, buying, sending), even though the VM is isolated, so narrow it with <code>--allow-domain</code>. The rules that ask your approval for network actions stay on.</p>
+</div>
+
+<div class="flag" id="flag-allow-domain">
+<h4><code>--allow-domain <var>DOMAIN</var></code></h4>
+<p class="meta"><span><b>Default:</b> any public domain</span><span><b>Needs:</b> <code>--allow-net</code></span><span><b>Config key:</b> <code>net.allow_domains</code></span></p>
+<p>Only these domains, and their subdomains, can be reached. Repeat the flag or separate with commas: <code>--allow-domain example.com --allow-domain openrouter.ai</code>. A plain name only: no scheme, port, path or wildcard, and no IP address (addresses are always checked against the blocklist). The config key <code>net.deny_domains</code> is the opposite list and has no flag.</p>
+</div>
+
+<div class="flag" id="flag-allow-port">
+<h4><code>--allow-port <var>PORT</var></code></h4>
+<p class="meta"><span><b>Default:</b> 80 and 443 only</span><span><b>Needs:</b> <code>--allow-net</code></span><span><b>Config key:</b> <code>net.allow_ports</code></span></p>
+<p>Allows one more TCP port, 1 to 65535, besides 80 and 443. Repeat for more. Giving it (or <code>--allow-domain</code>) without <code>--allow-net</code> is an error.</p>
+</div>
+
+<h3 id="run-safety">Safety and limits</h3>
+
+<div class="flag" id="flag-policy">
+<h4><code>--policy <var>FILE</var></code></h4>
+<p class="meta"><span><b>Default:</b> none (the built-in rules only)</span><span><b>Config key:</b> <code>safety.policy</code></span></p>
+<p>A YAML file of your own rules, merged over the built-in ones. It can add rules, change how a built-in rule is treated, and switch to a strict allowlist. It can never weaken the rules that keep the analysis sound. Unknown keys are errors. The format is in <a href="#policy">The policy file</a>.</p>
+</div>
+
+<div class="flag" id="flag-actions-per-sec">
+<h4><code>--actions-per-sec <var>RATE</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>2</code></span><span><b>Range:</b> above 0 up to 2 (10 with <code>--unsafe</code>)</span><span><b>Config key:</b> <code>safety.actions_per_sec</code></span></p>
+<p>The most actions that run per second. An action that comes sooner is held back until it is its turn; if it would have to wait more than 2 seconds it is refused with the error <code>rate_limited</code> and the model is told, and it costs nothing against the budgets.</p>
+</div>
+
+<div class="flag" id="flag-actions-per-response">
+<h4><code>--actions-per-response <var>N</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>3</code></span><span><b>Range:</b> 1 to 3 (10 with <code>--unsafe</code>)</span><span><b>Config key:</b> <code>safety.actions_per_response</code></span></p>
+<p>How many actions from one answer of the model are run. Actions beyond this are not run and the model is told so.</p>
+</div>
+
+<div class="flag" id="flag-actions-per-task">
+<h4><code>--actions-per-task <var>N</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>60</code></span><span><b>Range:</b> 1 to 60 (500 with <code>--unsafe</code>)</span><span><b>Config key:</b> <code>safety.actions_per_task</code></span></p>
+<p>How many actions one task may run before it stops for a check-in. A task that needs more than that should be split, or run with a higher limit under <code>--unsafe</code>.</p>
+</div>
+
+<div class="flag" id="flag-unsafe">
+<h4><code>--unsafe</code></h4>
+<p class="meta"><span><b>Default:</b> off</span><span><b>Config key:</b> none, on purpose</span></p>
+<p>Relaxes the limits and the confirmations. It is a flag and nothing else: a config file that contains <code>safety.unsafe</code>, or an environment variable <code>CONTROLSNACK_SAFETY_UNSAFE</code>, is an error and the program refuses to start. Exactly what it changes, and what it never changes, is in the next part.</p>
+</div>
+
+<h3 id="run-unsafe">What <code>--unsafe</code> changes</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Setting</th><th scope="col">Normal</th><th scope="col">With <code>--unsafe</code></th></tr></thead>
+<tbody>
+<tr><td>Actions per second</td><td>up to 2</td><td>up to 10</td></tr>
+<tr><td>Actions per response</td><td>up to 3</td><td>up to 10</td></tr>
+<tr><td>Actions per task</td><td>up to 60</td><td>up to 500</td></tr>
+<tr><td>Turns per task</td><td>up to 100</td><td>up to 500</td></tr>
+<tr><td>Session time</td><td>up to 1 hour</td><td>up to 8 hours</td></tr>
+<tr><td>A rule that says <em>confirm</em></td><td>asks you</td><td>allows, and still records it</td></tr>
+<tr><td>A rule that says <em>deny</em></td><td>refuses</td><td>asks you instead</td></tr>
+<tr><td>A model with <code>--viewer none</code></td><td>not allowed</td><td>allowed (nobody can approve anything, so an action that needs approval is not run)</td></tr>
+<tr><td>A model endpoint on another host over <code>http://</code></td><td>refused</td><td>allowed</td></tr>
+</tbody>
+</table>
+</div>
+<p>The viewer shows an <strong>UNSAFE</strong> badge and the audit log records it. <code>--step</code> still wins: with both flags every action asks you. What <code>--unsafe</code> never relaxes is listed in <a href="#guarantees">Guarantees in every mode</a>.</p>
+</section>
+
+<section id="cmd-doctor">
+<h2><code>controlsnack doctor</code></h2>
+<p>A read-only report on your machine: the system, its virtualization support, QEMU, and the accelerator a session would use. It changes nothing and never asks for administrator rights. Run it first, and again whenever something is slow or will not start.</p>
+<pre class="cmd" data-copy><code>controlsnack doctor</code></pre>
+<p>On the author's Windows 10 machine (abridged):</p>
+<pre class="out"><code>Host
+  system                 Windows 10 Pro 22H2 (build 19045), amd64
+  Hypervisor Platform    disabled
+  WHvGetCapability       hypervisor present: yes
+
+QEMU
+  version                QEMU emulator version 11.1.0
+  accelerators           tcg, whpx
+
+Accelerators
+  whpx   usable
+
+Notes
+  [ok] whpx works: a session will be hardware accelerated
+  [info] the optional feature "Windows Hypervisor Platform" reads "disabled", but QEMU started with WHPX, so there is nothing to fix
+
+Verdict
+  will use whpx</code></pre>
+<p>The last line is the verdict a run would act on: <code>will use kvm</code>, <code>will use whpx</code> or <code>will use hvf</code>; <code>will use tcg (slow)</code> when only software emulation works; or <code>cannot run a VM</code>, with numbered steps to fix it. <code>doctor</code> decides by trying QEMU, not by reading a setting, which is why it can say that WHPX works although a Windows feature reads <code>disabled</code>.</p>
+<p><strong>Exit code:</strong> 0 when a VM can run, 3 when it cannot.</p>
+
+<div class="flag" id="doctor-json">
+<h4><code>--json</code></h4>
+<p class="meta"><span><b>Default:</b> off</span></p>
+<p>Prints the same report as JSON, for a script.</p>
+</div>
+<p><code>doctor</code> also accepts <a href="#flag-accel"><code>--accel</code></a>, <a href="#flag-slow"><code>--slow</code></a> and <a href="#flag-qemu"><code>--qemu</code></a>, with the meaning they have for <code>run</code>: ask what would happen with a given accelerator, or point it at a QEMU in an unusual place.</p>
+</section>
+
+<section id="cmd-image">
+<h2><code>controlsnack image</code></h2>
+<p>The base image is the Debian desktop every session starts from. You build it once (or import one built elsewhere); each session works on a throwaway copy, so the base image is never changed. <code>image</code> by itself prints its help; the work is done by its subcommands.</p>
+<div class="callout">
+  <p><strong>The one time a VM has a network.</strong> Building the image is the only time ControlSnack gives a VM a network connection, so that it can download Debian packages. No model is involved in that boot, and it is a separate code path that <code>run</code> cannot select.</p>
+</div>
+</section>
+
+<section id="cmd-image-build">
+<h3><code>controlsnack image build</code></h3>
+<p>Downloads the official Debian generic cloud image (its checksum is verified), installs the desktop (XFCE), the browser (Chromium) and the guest agent in a one-off provisioning boot, and seals the result with a manifest.</p>
+<pre class="cmd" data-copy><code>controlsnack image build</code></pre>
+<p>With hardware acceleration this takes minutes. With software emulation it took 10 minutes 35 seconds on the author's machine, and on slower hardware it can take more than 30 minutes. The image is about 765 MiB. The program asks before it downloads.</p>
+<div class="flag" id="image-force">
+<h4><code>--force</code></h4>
+<p class="meta"><span><b>Default:</b> off</span></p>
+<p>Builds again even if an image made from the same recipe already exists.</p>
+</div>
+<div class="flag" id="image-yes">
+<h4><code>--yes</code></h4>
+<p class="meta"><span><b>Default:</b> off (asks first)</span></p>
+<p>Does not ask before downloading. For scripts.</p>
+</div>
+<p>Also accepts <a href="#flag-accel"><code>--accel</code></a>, <a href="#flag-slow"><code>--slow</code></a> and <a href="#flag-qemu"><code>--qemu</code></a>. The build needs HTTPS access to <code>cloud.debian.org</code> and the Debian mirrors; behind a proxy or offline, build on another machine and use <code>image import</code>.</p>
+</section>
+
+<section id="cmd-image-import">
+<h3><code>controlsnack image import <var>QCOW2</var> --manifest <var>FILE</var></code></h3>
+<p>Brings in an image that was built on another machine (for an offline computer, or to save the build time). It takes the path of the <code>.qcow2</code> file and the <code>manifest.json</code> that was made with it. Before storing anything it checks that the manifest is valid, that the file is a qcow2 image of the size the manifest records, and that its SHA-256 is the recorded one; an image that is already in the store is refused.</p>
+<pre class="cmd" data-copy><code>controlsnack image import base-7264dc721451.qcow2 --manifest manifest.json</code></pre>
+<div class="flag" id="image-manifest">
+<h4><code>--manifest <var>FILE</var></code></h4>
+<p class="meta"><span><b>Default:</b> none</span><span><b>Required</b></span></p>
+<p>The manifest of the image. Without it the command stops with a usage error. Importing took 7 seconds for the 765 MiB image on the author's machine.</p>
+</div>
+</section>
+
+<section id="cmd-image-ls">
+<h3><code>controlsnack image ls</code></h3>
+<p>Lists the images you have.</p>
+<pre class="out"><code>ID            ARCH    CREATED           SIZE       UPSTREAM                                          RECIPE
+7264dc721451  x86_64  2026-10-14 08:14  763.8 MiB  debian-13-generic-amd64.qcow2 (sha512 6f0f9333…)  96701ff6cb42</code></pre>
+<p>The id is what <a href="#flag-image"><code>run --image</code></a> takes. The upstream column names the Debian image it was built from, the recipe column the version of the build recipe.</p>
+</section>
+
+<section id="cmd-image-path">
+<h3><code>controlsnack image path [<var>ID</var>]</code></h3>
+<p>Prints the path of the image file. Without an id it is the newest image.</p>
+</section>
+
+<section id="cmd-image-verify">
+<h3><code>controlsnack image verify [<var>ID</var>]</code></h3>
+<p>Checks an image file against its manifest (the newest one if you give no id), so you know it is the one that was built and that nothing damaged it.</p>
+<pre class="out"><code>ok      7264dc721451  ...\images\base-7264dc721451.qcow2</code></pre>
+</section>
+
+<section id="cmd-image-rm">
+<h3><code>controlsnack image rm <var>ID</var></code></h3>
+<p>Deletes an image. A kept VM is made from a base image and needs it to be resumed, so keep the image for as long as you want those VMs.</p>
+</section>
+
+<section id="cmd-llm">
+<h2><code>controlsnack llm</code></h2>
+<p>Finds and tests model backends, without starting a VM. It has four flags of its own, and they are the same four that <code>run</code> has, with the same meaning and defaults: <a href="#flag-llm"><code>--llm</code></a>, <a href="#flag-model"><code>--model</code></a>, <a href="#flag-base-url"><code>--base-url</code></a> and <a href="#flag-api-key-env"><code>--api-key-env</code></a>. Give them before or after the subcommand. The settings come from the config file and environment too, so if you have set them there, <code>controlsnack llm probe</code> tests what <code>run</code> would use.</p>
+</section>
+
+<section id="cmd-llm-models">
+<h3><code>controlsnack llm models</code></h3>
+<p>Lists the models the backend offers, and which of them can see pictures and call tools.</p>
+<pre class="out"><code>Backend  lmstudio at http://127.0.0.1:1234/v1 (this machine)
+
+MODEL                  VISION  TOOLS  CONTEXT  LOADED
+qwen3-vl-4b-instruct   yes     yes    8192     yes
+gemma-4-e4b-it         no      yes    131072
+llama-3.2-3b-instruct  no      ?      131072
+
+Without --model, a session would use qwen3-vl-4b-instruct.</code></pre>
+<p>With <code>--llm auto</code> (the default) it looks for Ollama, LM Studio and llama.cpp on your machine, and says "no model server found" with the steps to start one if there is none. The context column is the length of the conversation the model can hold: for a model that is loaded, the length it was loaded with. A small one (4096 or 8192) is the usual reason a long task goes wrong.</p>
+</section>
+
+<section id="cmd-llm-probe">
+<h3><code>controlsnack llm probe</code></h3>
+<p>Tests what a model can really do, with a few small requests, and prints how a session would use it. Run it for any new model.</p>
+<pre class="cmd" data-copy><code>controlsnack llm probe --llm openai --base-url https://openrouter.ai/api/v1 --model qwen/qwen3.8-omni-flash --api-key-env OPENROUTER_API_KEY</code></pre>
+<pre class="out"><code>Backend  openai at https://openrouter.ai/api/v1 (NOT this machine)
+         The model runs on openrouter.ai, not on this machine: screenshots, screen text and command output are sent to it.
+Model    qwen/qwen3.8-omni-flash
+
+  vision        ok  2.7s  answered {"color":"red"}
+  webp          ok  1.9s  answered {"color":"red"}
+  pointing      ok  4.6s  pointed at (460, 140): pixels
+  native_tools  ok  2.3s  called done as asked (native)
+  structured    ok  3.1s  called done as asked (json)
+  json          ok  1.7s  called done as asked (json)
+
+Screenshots      webp
+Coordinates      pixels of the picture
+Actions          native tool calls</code></pre>
+<ul>
+  <li><strong>vision:</strong> can the model tell the color of a picture it is shown? If not, the session runs in text-only mode.</li>
+  <li><strong>webp:</strong> does it accept WebP pictures (smaller and faster)? If not, JPEG is sent.</li>
+  <li><strong>pointing:</strong> where does it say a point is, in pixels of the picture, or on a 0 to 1000 scale (some models, such as Qwen3-VL in LM Studio, do)? The probe finds out, and sessions convert correctly.</li>
+  <li><strong>native_tools:</strong> can it call tools the way the API intends? This is the best way to drive a session.</li>
+  <li><strong>structured, json:</strong> if it cannot, can it answer in JSON held to a schema, or in JSON asked for in the prompt? A model that can do none of the three cannot be used, and the probe says so.</li>
+</ul>
+<p>The result is remembered (in the cache folder) so a session does not repeat the tests. Against a hosted API the probe costs a few small requests.</p>
+</section>
+
+<section id="cmd-kill">
+<h2><code>controlsnack kill</code></h2>
+<p>Ends the session that is running as your user, from any terminal. It ends the VM's QEMU process at once and closes the viewer. It needs no configuration: it works even if the config file is broken, and if the session does not answer within a second it ends QEMU and the controller directly. If nothing is running it says <code>no session is running</code>.</p>
+<pre class="cmd" data-copy><code>controlsnack kill</code></pre>
+<p>On the author's machine the VM was gone 118 to 140 milliseconds after the signal on Windows, and 8 to 17 on Linux. Other ways to stop a session are in <a href="#stopping">Stopping a session</a>. The command has no flags of its own.</p>
+</section>
+
+<section id="cmd-audit">
+<h2><code>controlsnack audit</code></h2>
+<p>Every session writes an audit log: one JSON record per line, each carrying the hash of the one before it, so a change anywhere in the file is detectable. What a record holds: a sequence number, a time, the session, a <em>kind</em> (<code>lifecycle</code>, <code>config</code>, <code>llm</code>, <code>action</code>), an <em>event</em>, who did it (<code>system</code>, <code>llm</code> or you), the data, the previous hash and its own hash. The decision about an action is written <em>before</em> the action runs; if a record cannot be written, the session ends. The logs are in the state folder (<a href="#files">where</a>), and the model's arguments are in them with secrets redacted. <code>audit</code> by itself prints its help.</p>
+</section>
+
+<section id="cmd-audit-ls">
+<h3><code>controlsnack audit ls</code></h3>
+<p>Lists the logs: the date, the session id, how many records, the size, whether the log is <code>complete</code> (it ends with the session's end record) or was cut short (a crash, a power cut), and the file name.</p>
+<pre class="out"><code>DATE        SESSION     RECORDS  SIZE      STATE     FILE
+2026-10-18  s_45359cad  17       9.0 KiB   complete  20261018-s_45359cad.jsonl</code></pre>
+</section>
+
+<section id="cmd-audit-show">
+<h3><code>controlsnack audit show <var>REF</var></code></h3>
+<p>Prints a log, as one readable line per record. <var>REF</var> is a file path or a session id.</p>
+<pre class="out"><code>   7 2026-10-18T18:54:22.199774Z action    decision [llm] exec -> allowed "Launch the text editor (mousepad)"
+   8 2026-10-18T18:54:24.218240Z action    result [llm] exec -> allowed
+  10 2026-10-18T18:54:26.858280Z action    decision [llm] type_text -> allowed "Type the required line into the document"</code></pre>
+<div class="flag" id="audit-raw">
+<h4><code>--raw</code></h4>
+<p class="meta"><span><b>Default:</b> off</span></p>
+<p>Prints the lines as they are stored, in full, instead of one readable line per record. Use it to see the arguments of an action, the rules that decided, and the hashes.</p>
+</div>
+</section>
+
+<section id="cmd-audit-verify">
+<h3><code>controlsnack audit verify <var>FILE</var></code></h3>
+<p>Checks the hash chain of a log file for edits, deleted records, reordered records and a truncated end.</p>
+<pre class="out"><code>20261018-s_fc58bbe7.jsonl: ok, 32 record(s), session s_fc58bbe7, complete
+  last hash 4121b0bf7bd7cb33c3baeba935335f4dabe4d6a52f8cd6c4fc426035d0999a7c</code></pre>
+<p>Keep the last hash somewhere else if you want to be able to prove later that the end of a log was not cut. The command takes a path, not a session id.</p>
+</section>
+
+<section id="cmd-audit-prune">
+<h3><code>controlsnack audit prune</code></h3>
+<p>Deletes the logs older than the retention period. Nothing is deleted automatically.</p>
+<div class="flag" id="audit-older-than">
+<h4><code>--older-than <var>AGE</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>audit.retention_days</code> (30 days)</span></p>
+<p>An age written like <code>30d</code>, <code>2w</code> or <code>36h</code>.</p>
+</div>
+</section>
+
+<section id="cmd-vm">
+<h2><code>controlsnack vm</code></h2>
+<p>Manages the VMs you kept with <a href="#flag-keep-vm"><code>run --keep-vm</code></a>. A kept VM is a disk that holds what a session did, to be resumed with <a href="#flag-vm"><code>run --vm</code></a>. <code>vm</code> by itself prints its help.</p>
+</section>
+
+<section id="cmd-vm-ls">
+<h3><code>controlsnack vm ls</code></h3>
+<p>Lists the kept VMs. With none it says <code>No kept VMs. Start one with: controlsnack run --keep-vm=NAME</code>.</p>
+</section>
+
+<section id="cmd-vm-rm">
+<h3><code>controlsnack vm rm <var>NAME</var></code></h3>
+<p>Deletes a kept VM and its disk. A VM that a session is using now cannot be deleted.</p>
+</section>
+
+<section id="cmd-config">
+<h2><code>controlsnack config</code></h2>
+<p>Shows how the program is configured, and where each part comes from. <code>config</code> by itself prints its help. The file and its keys are described in <a href="#configuration">Configuration</a>.</p>
+</section>
+
+<section id="cmd-config-show">
+<h3><code>controlsnack config show</code></h3>
+<p>Prints the configuration in force: flags, then the environment, then the file, then the defaults, already merged. Secrets are masked. The first line says which file was read, or that none was.</p>
+<pre class="cmd" data-copy><code>controlsnack config show --llm openai --model qwen/qwen3.8-omni-flash</code></pre>
+<div class="flag" id="config-json">
+<h4><code>--json</code></h4>
+<p class="meta"><span><b>Default:</b> off (YAML)</span></p>
+<p>Prints it as JSON.</p>
+</div>
+</section>
+
+<section id="cmd-config-path">
+<h3><code>controlsnack config path</code></h3>
+<p>Prints the path where the config file is expected, and says whether it exists yet: <code>...\controlsnack\config.yaml (does not exist yet)</code>. The program never creates it for you.</p>
+</section>
+
+<section id="cmd-schema">
+<h2><code>controlsnack schema</code></h2>
+<p>Prints the JSON description of the model's tools, in the format a given backend wants. For developers who connect a model of their own and for anyone curious about exactly what the model is offered. The tools are listed in <a href="#tools">The model's tools</a>.</p>
+<pre class="cmd" data-copy><code>controlsnack schema --format openai --tools compact</code></pre>
+<div class="flag" id="schema-format">
+<h4><code>--format <var>FORMAT</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>jsonmode</code></span><span><b>Accepts:</b> <code>jsonmode</code>, <code>openai</code>, <code>anthropic</code>, <code>ollama</code></span></p>
+<p>Whose tool format to print. <code>jsonmode</code> is one schema for a model that answers in JSON without native tool calls.</p>
+</div>
+<div class="flag" id="schema-tools">
+<h4><code>--tools <var>PROFILE</var></code></h4>
+<p class="meta"><span><b>Default:</b> <code>full</code></span><span><b>Accepts:</b> <code>full</code>, <code>compact</code></span></p>
+<p>Which tools to print; see <a href="#flag-tools"><code>run --tools</code></a>. Here <code>auto</code> does not exist, because there is no model to decide it for.</p>
+</div>
+</section>
+
+<section id="cmd-version">
+<h2><code>controlsnack version</code></h2>
+<p>Prints the version, the commit, the build time, the Go version and the platform it was built for.</p>
+<pre class="out"><code>controlsnack e865101
+  commit:  e865101
+  built:   2026-10-18T20:47:04+02:00
+  go:      go1.26.9
+  os/arch: windows/amd64</code></pre>
+<p>Put this in a bug report or in the test form's version field.</p>
+<div class="flag" id="version-json">
+<h4><code>--json</code></h4>
+<p class="meta"><span><b>Default:</b> off</span></p>
+<p>Prints the same facts as a JSON object.</p>
+</div>
+</section>
+
+<section id="cmd-completion">
+<h2><code>controlsnack completion</code></h2>
+<p>Prints a script that lets your shell complete command and flag names with the Tab key. Each subcommand prints the script for one shell, and has one flag, <code>--no-descriptions</code>, which leaves the explanations out of the suggestions.</p>
+</section>
+
+<section id="cmd-completion-bash">
+<h3><code>controlsnack completion bash</code></h3>
+<p>Needs the <code>bash-completion</code> package. For this session: <code>source &lt;(controlsnack completion bash)</code>. For every session, once: on Linux <code>controlsnack completion bash &gt; /etc/bash_completion.d/controlsnack</code>, on macOS <code>controlsnack completion bash &gt; $(brew --prefix)/etc/bash_completion.d/controlsnack</code>. Start a new shell afterwards. Flag: <code>--no-descriptions</code>.</p>
+</section>
+
+<section id="cmd-completion-zsh">
+<h3><code>controlsnack completion zsh</code></h3>
+<p>If completion is not enabled in your zsh yet, run once <code>echo "autoload -U compinit; compinit" &gt;&gt; ~/.zshrc</code>. For this session: <code>source &lt;(controlsnack completion zsh)</code>. For every session, once: on Linux <code>controlsnack completion zsh &gt; "${fpath[1]}/_controlsnack"</code>, on macOS <code>controlsnack completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_controlsnack</code>. Flag: <code>--no-descriptions</code>.</p>
+</section>
+
+<section id="cmd-completion-fish">
+<h3><code>controlsnack completion fish</code></h3>
+<p>For this session: <code>controlsnack completion fish | source</code>. For every session, once: <code>controlsnack completion fish &gt; ~/.config/fish/completions/controlsnack.fish</code>. Flag: <code>--no-descriptions</code>.</p>
+</section>
+
+<section id="cmd-completion-powershell">
+<h3><code>controlsnack completion powershell</code></h3>
+<p>For this session: <code>controlsnack completion powershell | Out-String | Invoke-Expression</code>. For every session, add that line to your PowerShell profile (<code>notepad $PROFILE</code>). Flag: <code>--no-descriptions</code>.</p>
+</section>
+
+<section id="configuration">
+<h2>Configuration file and environment</h2>
+<p>You never have to write a config file. Every setting has a default and most have a flag. A file is for settings you always want, so you do not type them each time.</p>
+
+<h3>The file</h3>
+<p>A YAML file named <code>config.yaml</code> in the configuration folder (<a href="#files">where it is on your system</a>). <code>controlsnack config path</code> prints the exact path and says whether it exists. It is never created for you. Use another file with <a href="#flag-config"><code>--config</code></a>. Keys are grouped in sections, so <code>vm.memory_mib</code> is the key <code>memory_mib</code> in the section <code>vm</code>:</p>
+<pre class="out" id="config-example"><code>vm:
+  memory_mib: 4096
+  cpus: 4
+llm:
+  backend: lmstudio
+  model: qwen3-vl-4b-instruct
+safety:
+  timeout: 30m
+  idle_timeout: 10m
+net:
+  allow_domains: [example.com, openrouter.ai]</code></pre>
+<p>Durations are written like <code>90s</code>, <code>15m</code> or <code>2h</code>. Lists are YAML lists. A key that does not exist, or a value out of range, is an error that names the key, so a typo can never be silently ignored. The key <code>safety.unsafe</code> is not allowed in the file.</p>
+
+<h3>The environment</h3>
+<p>Every configuration key can be set with an environment variable: <code>CONTROLSNACK_</code> followed by the key in capitals with the dots turned into underscores. <code>vm.memory_mib</code> is <code>CONTROLSNACK_VM_MEMORY_MIB</code>, <code>llm.backend</code> is <code>CONTROLSNACK_LLM_BACKEND</code>, <code>net.allow_domains</code> is <code>CONTROLSNACK_NET_ALLOW_DOMAINS</code> (a list is written with commas: <code>example.com,openrouter.ai</code>). An empty variable counts as not set.</p>
+<pre class="cmd" data-copy><code>$env:CONTROLSNACK_VM_MEMORY_MIB = "4096"      # PowerShell
+export CONTROLSNACK_VM_MEMORY_MIB=4096         # bash, zsh</code></pre>
+<p><code>CONTROLSNACK_SAFETY_UNSAFE</code> is refused on purpose: if it is set at all, the program stops and says <code>--unsafe</code> is a flag only.</p>
+
+<h3>Precedence</h3>
+<ol>
+  <li>A flag you typed.</li>
+  <li>An environment variable.</li>
+  <li>The config file.</li>
+  <li>The built-in default.</li>
+</ol>
+<p>A flag you did not type never overrides the file or the environment. <code>controlsnack config show</code> prints the result, with secrets masked, and says which file it read.</p>
+</section>
+
+<section id="config-keys">
+<h2>Every configuration key</h2>
+<p>The “Flag” column is the command-line flag that sets the same thing; “none” means the key can be set only in the file or the environment. “Safe limit” is the range without <code>--unsafe</code>; the wider range under <code>--unsafe</code> is in <a href="#run-unsafe">what <code>--unsafe</code> changes</a>.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Key</th><th scope="col">Default</th><th scope="col">Allowed</th><th scope="col">Flag</th></tr></thead>
+<tbody>
+<tr><td><code>log.level</code></td><td><code>info</code></td><td><code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code></td><td><code>--log-level</code></td></tr>
+<tr><td><code>log.format</code></td><td><code>text</code></td><td><code>text</code>, <code>json</code></td><td><code>--log-format</code></td></tr>
+<tr><td><code>vm.qemu_dir</code></td><td>empty (PATH, then usual folders)</td><td>a folder</td><td><code>--qemu</code></td></tr>
+<tr><td><code>vm.image</code></td><td>empty (the newest image)</td><td>an image id or a path</td><td><code>--image</code></td></tr>
+<tr><td><code>vm.memory_mib</code></td><td><code>2048</code></td><td>1024 to 16384</td><td><code>--memory</code></td></tr>
+<tr><td><code>vm.cpus</code></td><td><code>2</code></td><td>1 to 16</td><td><code>--cpus</code></td></tr>
+<tr><td><code>vm.resolution</code></td><td><code>1280x800</code></td><td>640x480 up to 1920x1080</td><td><code>--resolution</code></td></tr>
+<tr><td><code>vm.accel</code></td><td><code>auto</code></td><td><code>auto</code>, <code>kvm</code>, <code>whpx</code>, <code>hvf</code>, <code>tcg</code> (only the one of your system)</td><td><code>--accel</code></td></tr>
+<tr><td><code>vm.slow</code></td><td><code>false</code></td><td><code>true</code>, <code>false</code></td><td><code>--slow</code></td></tr>
+<tr><td><code>llm.backend</code></td><td><code>auto</code></td><td><code>auto</code>, <code>ollama</code>, <code>lmstudio</code>, <code>llamacpp</code>, <code>openai</code>, <code>anthropic</code></td><td><code>--llm</code></td></tr>
+<tr><td><code>llm.base_url</code></td><td>empty (the usual address)</td><td>an <code>http://</code> or <code>https://</code> URL without credentials; needs a backend other than <code>auto</code></td><td><code>--base-url</code></td></tr>
+<tr><td><code>llm.model</code></td><td>empty (the first local model that sees)</td><td>a model name</td><td><code>--model</code></td></tr>
+<tr><td><code>llm.api_key_env</code></td><td>empty</td><td>the name of an environment variable</td><td><code>--api-key-env</code></td></tr>
+<tr><td><code>llm.api_key</code></td><td>empty</td><td>a key; masked in every output; prefer the environment</td><td>none</td></tr>
+<tr><td><code>llm.tools</code></td><td><code>auto</code></td><td><code>auto</code>, <code>full</code>, <code>compact</code></td><td><code>--tools</code></td></tr>
+<tr><td><code>llm.obs_format</code></td><td><code>text</code></td><td><code>text</code>, <code>json</code></td><td><code>--obs-format</code></td></tr>
+<tr><td><code>llm.marks</code></td><td><code>auto</code></td><td><code>auto</code>, <code>on</code>, <code>off</code></td><td><code>--marks</code></td></tr>
+<tr><td><code>llm.image_max</code></td><td><code>1280</code> (pixels)</td><td>256 to 2048</td><td>none</td></tr>
+<tr><td><code>llm.num_ctx</code></td><td><code>16384</code> (tokens)</td><td>2048 to 1048576</td><td>none</td></tr>
+<tr><td><code>llm.first_timeout</code></td><td><code>10m</code></td><td>10s to 60m</td><td>none</td></tr>
+<tr><td><code>llm.timeout</code></td><td><code>3m</code></td><td>5s to 30m</td><td>none</td></tr>
+<tr><td><code>net.allow</code></td><td><code>false</code></td><td><code>true</code>, <code>false</code></td><td><code>--allow-net</code></td></tr>
+<tr><td><code>net.allow_domains</code></td><td>empty (any public domain)</td><td>plain domain names</td><td><code>--allow-domain</code></td></tr>
+<tr><td><code>net.deny_domains</code></td><td>empty</td><td>plain domain names</td><td>none</td></tr>
+<tr><td><code>net.allow_ports</code></td><td>empty (80 and 443)</td><td>ports 1 to 65535</td><td><code>--allow-port</code></td></tr>
+<tr><td><code>safety.step</code></td><td><code>false</code></td><td><code>true</code>, <code>false</code></td><td><code>--step</code></td></tr>
+<tr><td><code>safety.policy</code></td><td>empty</td><td>the path of a policy file</td><td><code>--policy</code></td></tr>
+<tr><td><code>safety.actions_per_sec</code></td><td><code>2</code></td><td>above 0 up to 2</td><td><code>--actions-per-sec</code></td></tr>
+<tr><td><code>safety.actions_per_response</code></td><td><code>3</code></td><td>1 to 3</td><td><code>--actions-per-response</code></td></tr>
+<tr><td><code>safety.actions_per_task</code></td><td><code>60</code></td><td>1 to 60</td><td><code>--actions-per-task</code></td></tr>
+<tr><td><code>safety.max_turns</code></td><td><code>100</code></td><td>1 to 100</td><td><code>--max-turns</code></td></tr>
+<tr><td><code>safety.timeout</code></td><td><code>1h</code></td><td>1m to 1h</td><td><code>--timeout</code></td></tr>
+<tr><td><code>safety.idle_timeout</code></td><td><code>15m</code></td><td>1m up to <code>safety.timeout</code></td><td>none</td></tr>
+<tr><td><code>safety.confirm_timeout</code></td><td><code>2m</code></td><td>5s to 10m</td><td>none</td></tr>
+<tr><td><code>viewer.mode</code></td><td><code>window</code></td><td><code>window</code>, <code>browser</code>, <code>none</code>, <code>webview</code></td><td><code>--viewer</code></td></tr>
+<tr><td><code>viewer.fps_active</code></td><td><code>5</code></td><td>1 to 10</td><td>none</td></tr>
+<tr><td><code>viewer.fps_idle</code></td><td><code>2</code></td><td>1 to 10</td><td>none</td></tr>
+<tr><td><code>viewer.webp_quality</code></td><td><code>70</code></td><td>30 to 95</td><td>none</td></tr>
+<tr><td><code>session.task</code></td><td>empty</td><td>up to 8000 characters</td><td><code>--task</code></td></tr>
+<tr><td><code>session.keep</code></td><td><code>false</code></td><td><code>true</code>, <code>false</code></td><td><code>--keep</code></td></tr>
+<tr><td><code>session.keep_vm</code></td><td>empty</td><td>a VM name, or <code>auto</code></td><td><code>--keep-vm</code></td></tr>
+<tr><td><code>session.vm</code></td><td>empty</td><td>the name of a kept VM</td><td><code>--vm</code></td></tr>
+<tr><td><code>session.no_llm</code></td><td><code>false</code></td><td><code>true</code>, <code>false</code></td><td><code>--no-llm</code></td></tr>
+<tr><td><code>audit.retention_days</code></td><td><code>30</code></td><td>1 to 3650</td><td><code>audit prune --older-than</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>What the keys without a flag do: <code>llm.image_max</code> is the longest edge of the pictures sent to the model; <code>llm.num_ctx</code> is the context length asked of Ollama; <code>llm.first_timeout</code> is how long the first answer of a session may take (a model may have to load) and <code>llm.timeout</code> how long later ones may; <code>net.deny_domains</code> are domains the guest may never reach, even with <code>--allow-net</code>; <code>safety.idle_timeout</code> ends a session in which nobody has done anything while it was ready or paused, and <code>safety.confirm_timeout</code> is how long a question to you stays open before it counts as rejected; <code>viewer.fps_active</code> is the most pictures per second sent to the viewer during an action and just after it, <code>viewer.fps_idle</code> the rate otherwise, and <code>viewer.webp_quality</code> their quality; <code>audit.retention_days</code> is the age <code>audit prune</code> uses when you give none.</p>
+</section>
+
+<section id="api-keys">
+<h2>API keys</h2>
+<p>A key is a secret. ControlSnack never asks you to type it on the command line, never writes it to the audit log, the viewer, the transcript or <code>config show</code> (the audit log records only the <em>name</em> of the variable), and sends it only to the model endpoint you chose. Where it looks, in this order:</p>
+<ol>
+  <li><strong>The variable you named</strong> with <code>--api-key-env</code> (or <code>llm.api_key_env</code>). If you name one, it is the only place looked at: an empty variable is an error, not a reason to try the next.</li>
+  <li><code>CONTROLSNACK_LLM_API_KEY</code>.</li>
+  <li>The usual variable of the backend: <code>OPENAI_API_KEY</code> for <code>openai</code>, <code>ANTHROPIC_API_KEY</code> for <code>anthropic</code>.</li>
+  <li><code>llm.api_key</code> in the config file. Avoid this one: on Linux and macOS the program warns if the file can be read by other users, and a file is easy to commit by mistake.</li>
+</ol>
+<p>Local backends (Ollama, LM Studio, llama.cpp) need no key. A run that needs a key and finds none stops before anything starts and says which variable it looked for. To set a key for the current PowerShell window without it appearing on screen or in your history:</p>
+<pre class="cmd" data-copy><code>$k = Read-Host "API key" -AsSecureString
+$env:OPENROUTER_API_KEY = [System.Net.NetworkCredential]::new("", $k).Password</code></pre>
+<p>In bash, <code>read -rs OPENROUTER_API_KEY; export OPENROUTER_API_KEY</code>. The variable lives only in that window. To keep it for every window on Windows, store it as a user variable instead (<code>[Environment]::SetEnvironmentVariable('OPENROUTER_API_KEY', $value, 'User')</code>), knowing that it is then stored in your user profile.</p>
+<div class="callout warn">
+  <p><strong>If a key has been pasted anywhere</strong> (a chat, an issue, a screenshot, a file in a repository), treat it as published: revoke it at the provider and make a new one.</p>
+</div>
+</section>
+
+<section id="exit-codes">
+<h2>Exit codes</h2>
+<p>Every command ends with one of these, so a script can tell what happened. A message on standard error says why.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td>ok</td><td>It worked. For <code>run</code> with <code>--viewer none</code>: the model said the task succeeded.</td></tr>
+<tr><td><code>1</code></td><td>error</td><td>Any other failure. For a headless <code>run</code>: the model gave up, or the task paused with nobody to resume it.</td></tr>
+<tr><td><code>2</code></td><td>usage</td><td>A wrong flag, a wrong argument, or a configuration that is not valid. The message lists every problem at once.</td></tr>
+<tr><td><code>3</code></td><td>environment</td><td>QEMU is missing or cannot run a VM here. <code>doctor</code> says what to do.</td></tr>
+<tr><td><code>4</code></td><td>image missing</td><td>There is no base image. Run <code>image build</code> or <code>image import</code>.</td></tr>
+<tr><td><code>5</code></td><td>killed or interrupted</td><td>The kill switch fired (the button, the keys, <code>controlsnack kill</code>, the dead-man switch, a failed audit write) or you pressed <kbd>Ctrl</kbd>+<kbd>C</kbd>.</td></tr>
+<tr><td><code>6</code></td><td>timeout</td><td>The session timeout (<code>--timeout</code>) ran out.</td></tr>
+<tr><td><code>70</code></td><td>not implemented</td><td>The command exists and its implementation has not landed yet.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="policy">
+<h2>The policy file</h2>
+<p>Before any action runs, the policy judges it: <em>allow</em>, <em>confirm</em> (ask you) or <em>deny</em>. The built-in rules are in the program; a file passed with <a href="#flag-policy"><code>--policy</code></a> is merged over them. A command is analyzed as shell syntax, including what is behind <code>env</code>, <code>nohup</code>, <code>timeout</code>, <code>xargs</code> and <code>bash -c</code>, up to three levels of nesting. A command the analysis cannot understand is refused rather than guessed at.</p>
+<div class="callout warn">
+  <p><strong>A guardrail, not a wall.</strong> The policy stops mistakes and the obvious attacks. Code in another language run by an interpreter (<code>python3 -c ...</code>, <code>perl -e ...</code>) is not analyzed and can do anything the guest account can. The wall is the VM, which has no network device, shares nothing with your computer, and is deleted when the session ends. The same rules also judge a command <em>typed</em> into a terminal window with the keyboard (each line that is ended, and what was typed before Return); a line meant for a program that reads it, such as an editor or a language's prompt, is not shell and is let through.</p>
+</div>
+
+<h3>The built-in rules</h3>
+<p>A rule marked <em>fixed</em> keeps the analysis sound or defends the guest's own isolation layers, and no policy file can change or switch it off.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Rule</th><th scope="col">Class</th><th scope="col">What it is about</th></tr></thead>
+<tbody>
+<tr><td><code>DENY-UNPARSEABLE</code></td><td>deny, fixed</td><td>The command could not be parsed or reviewed (a syntax error, shells nested deeper than 3 levels, a script too large or unreadable, or too complex). Rewrite it more simply.</td></tr>
+<tr><td><code>DENY-DYNAMIC-CMD</code></td><td>deny, fixed</td><td>The name of the command to run comes from an expansion (<code>$var</code>, <code>$(...)</code>, a glob), so it cannot be reviewed. Write the name out.</td></tr>
+<tr><td><code>DENY-NOT-ALLOWLISTED</code></td><td>deny, fixed</td><td>The policy is in strict mode and this command is not on its allowlist.</td></tr>
+<tr><td><code>DENY-FORK-BOMB</code></td><td>deny</td><td>A function that calls itself in a pipeline or in the background.</td></tr>
+<tr><td><code>DENY-ROOT-WIPE</code></td><td>deny</td><td>Recursively deleting <code>/</code>, the home directory or a system directory (<code>/etc</code>, <code>/usr</code>, <code>/var</code>, <code>/boot</code>, <code>/bin</code>, <code>/lib*</code>, <code>/opt</code>, <code>/root</code>, <code>/srv</code>, ...).</td></tr>
+<tr><td><code>DENY-DISK</code></td><td>deny</td><td>Creating, wiping or repartitioning file systems and disks.</td></tr>
+<tr><td><code>DENY-RAW-DEV-WRITE</code></td><td>deny, fixed</td><td>Writing to a block device or to raw memory (<code>/dev/sd*</code>, <code>/dev/vd*</code>, <code>/dev/nvme*</code>, <code>/dev/mapper/*</code>, <code>/dev/mem</code>, ...), by <code>dd</code>, a redirect, <code>tee</code>, <code>cp</code> or <code>shred</code>.</td></tr>
+<tr><td><code>DENY-POWER</code></td><td>deny</td><td>Shutting down, rebooting or suspending the VM would end the session.</td></tr>
+<tr><td><code>DENY-ACCOUNTS</code></td><td>deny</td><td>Creating or changing user accounts, passwords or sudo configuration.</td></tr>
+<tr><td><code>DENY-PRIV-ESC</code></td><td>deny, fixed</td><td>Privilege escalation (<code>sudo</code>, <code>su</code>, <code>doas</code>, <code>pkexec</code>, <code>setcap</code>, setuid or setgid bits): the agent and everything it runs stay an unprivileged user.</td></tr>
+<tr><td><code>DENY-KERNEL</code></td><td>deny, fixed</td><td>Loading kernel modules, changing kernel parameters, or writing to <code>/proc/sys</code>, <code>/sys</code> or sysrq.</td></tr>
+<tr><td><code>DENY-PIPE-TO-SHELL</code></td><td>deny, fixed</td><td>Running code that was not reviewed: piping into a shell or interpreter, <code>eval</code>, sourcing a process substitution or a dynamic path, or a <code>shell -c</code> string built from an expansion. Save the code to a file, read it, then run the file.</td></tr>
+<tr><td><code>DENY-FIREWALL</code></td><td>deny, fixed</td><td>Changing the guest's firewall, which is a defense-in-depth layer.</td></tr>
+<tr><td><code>DENY-MASS-KILL</code></td><td>deny</td><td>Killing every process, or process 1, would take the session down.</td></tr>
+<tr><td><code>CONFIRM-DELETE</code></td><td>confirm</td><td>Deleting files or directories; a deleted file cannot be recovered inside the VM.</td></tr>
+<tr><td><code>CONFIRM-OVERWRITE</code></td><td>confirm</td><td>Anything that can overwrite existing files (<code>cp</code>, <code>mv</code>, <code>install</code>, <code>rsync</code>, <code>dd</code>, <code>tee</code>, <code>sed -i</code>, <code>perl -i</code>, a <code>&gt;</code> redirect outside <code>/tmp</code>).</td></tr>
+<tr><td><code>CONFIRM-NET-EXPOSE</code></td><td>confirm</td><td>Starting a network listener or tunnel, or binding to <code>0.0.0.0</code>.</td></tr>
+<tr><td><code>CONFIRM-NET-EGRESS</code></td><td>confirm</td><td>Sending data out to the internet (upload, POST, PUT, DELETE, push, mail). Applies only with <code>--allow-net</code>.</td></tr>
+<tr><td><code>CONFIRM-PERMS</code></td><td>confirm</td><td>Changing permissions or ownership recursively, or changing file attributes.</td></tr>
+<tr><td><code>CONFIRM-PERSIST</code></td><td>confirm</td><td>Making something run later or at every login (cron, <code>at</code>, user services, shell profile, autostart).</td></tr>
+<tr><td><code>CONFIRM-GUI-DESTRUCTIVE</code></td><td>confirm</td><td>Acting on something labeled delete, remove, erase, discard, format, overwrite, replace all, empty trash or uninstall, or pressing <kbd>Shift</kbd>+<kbd>Delete</kbd> (which deletes permanently).</td></tr>
+<tr><td><code>CONFIRM-GUI-NET-ACTION</code></td><td>confirm</td><td>Acting on something labeled send, submit, post, publish, pay, purchase, buy, order, checkout, transfer, subscribe, sign up, log in or sign in, which can have real effects when the guest has network access. Applies only with <code>--allow-net</code>.</td></tr>
+<tr><td><code>CONFIRM-PASSWORD-FIELD</code></td><td>confirm</td><td>Typing into a password field. The text is hidden in the viewer and in the audit log; only its length and a short hash are kept.</td></tr>
+<tr><td><code>DENY-BROWSER-URL</code></td><td>deny</td><td>Only <code>http</code>, <code>https</code> and <code>file</code> addresses may be opened in the browser. <code>javascript:</code>, <code>data:</code>, <code>chrome:</code>, <code>devtools:</code> and other schemes are refused.</td></tr>
+</tbody>
+</table>
+</div>
+<p>A denied action is never run and is recorded with the rule that refused it, and the model is told which rule and why, so it can try something else. An action that needs your approval waits in the viewer, with the rule's explanation, until you answer or <code>safety.confirm_timeout</code> passes (rejected).</p>
+
+<h3>Writing your own</h3>
+<p>The file is YAML, and unknown keys are errors. Four top-level keys do something; all are optional.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Key</th><th scope="col">What it does</th></tr></thead>
+<tbody>
+<tr><td><code>version</code></td><td>The file format. Use <code>1</code>.</td></tr>
+<tr><td><code>mode</code></td><td><code>normal</code> (the default) or <code>strict</code>. In strict mode only commands on the allowlist run; every rule still applies on top.</td></tr>
+<tr><td><code>allowlist</code></td><td>The commands strict mode allows. If you leave it out, a built-in list is used (<code>ls</code>, <code>cat</code>, <code>echo</code>, <code>grep</code>, <code>python3</code>, <code>git</code>, the editor, the terminal and the browser among others).</td></tr>
+<tr><td><code>override</code></td><td>Changes how a built-in rule is treated: <code>RULE-ID: {class: allow}</code>, <code>confirm</code> or <code>deny</code>. A rule marked <em>fixed</em> cannot be changed; naming it, or a rule that does not exist, is an error.</td></tr>
+<tr><td><code>rules</code></td><td>Your own rules, at most 200. Each has an <code>id</code>, a <code>class</code> (<code>deny</code>, <code>confirm</code> or <code>allow</code>), an <code>explain</code> text the model and you are shown, and a <code>match</code> list <em>or</em> a <code>regex</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The id of a rule of yours must start with <code>USER-</code> (a rule built from <code>match</code>), or with <code>CONFIRM-REGEX-</code> or <code>DENY-REGEX-</code> (a rule that is a regular expression, up to 500 characters, matched against the whole command line). A <code>match</code> entry matches when <em>all</em> the conditions it sets hold, and a rule matches when <em>any</em> of its entries does:</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Condition</th><th scope="col">Holds when</th></tr></thead>
+<tbody>
+<tr><td><code>command</code></td><td>the command name (after unwrapping <code>env</code>, <code>nohup</code>, <code>timeout</code>, <code>xargs</code>, <code>bash -c</code> and the like) is one of these; wildcards <code>*</code> <code>?</code> <code>[..]</code> work</td></tr>
+<tr><td><code>flags</code></td><td>any of these flags is present (short letters, bundled or not; long names without the dashes)</td></tr>
+<tr><td><code>without_flags</code></td><td>none of these flags is present</td></tr>
+<tr><td><code>args</code></td><td>any positional argument equals one of these</td></tr>
+<tr><td><code>arg_regex</code></td><td>any argument matches one of these regular expressions</td></tr>
+<tr><td><code>writes_to</code></td><td>the command writes a file in one of these named sets: <code>block_devices</code>, <code>account_files</code>, <code>kernel_paths</code>, <code>persist_files</code> (redirects count)</td></tr>
+<tr><td><code>detect</code></td><td>a named check built into the program: <code>root-wipe</code>, <code>mass-kill</code>, <code>chmod-setuid</code>, <code>truncate-redirect</code>, <code>pipe-to-shell</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>An example that refuses <code>curl</code> and <code>wget</code>, asks about any command that removes something from <code>/tmp</code>, and switches off the built-in confirmation for changing permissions:</p>
+<pre class="out" id="policy-example"><code>version: 1
+override:
+  CONFIRM-PERMS: {class: allow}
+rules:
+  - id: USER-NO-CURL
+    class: deny
+    explain: Download with the browser instead, so it can be seen.
+    match:
+      - command: [curl, wget]
+  - id: CONFIRM-REGEX-TMP-RM
+    class: confirm
+    explain: Even temporary files may matter.
+    regex: '\brm\b.*\s/tmp/'</code></pre>
+<p>Run <code>controlsnack run --policy my-policy.yaml --step</code> and watch what it asks. The built-in rules are in the source file <code>internal/safety/policy/default.yaml</code>; it is the best set of examples.</p>
+</section>
+
+<section id="tools">
+<h2>The model's tools</h2>
+<p>A model does not run anything itself. Each turn it answers with calls to these tools; ControlSnack checks each call against the tool's schema, then the policy, writes the decision to the audit log, and only then does it in the VM. Every tool also takes an optional <code>reason</code>, a short note the viewer shows to you. <code>controlsnack schema</code> prints the exact schemas. Ids starting with <code>a</code> are desktop elements from the accessibility tree, <code>w</code> are elements of a web page, <code>o</code> are lines of recognized text.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Tool</th><th scope="col">What it does</th><th scope="col">Compact</th></tr></thead>
+<tbody>
+<tr><td><code>screenshot</code></td><td>Takes a fresh screenshot. Ends the model's batch of actions, so the next observation carries the new picture.</td><td>no</td></tr>
+<tr><td><code>read_accessibility_tree</code></td><td>Reads the windows, buttons, text fields and other elements, with ids, names, states, positions and the actions they offer. Parameters: <code>scope</code> (<code>active_window</code>, <code>desktop</code> or <code>browser</code>), <code>query</code>, <code>max_nodes</code>. An id is valid only for the generation of the tree it came from.</td><td>yes</td></tr>
+<tr><td><code>click_element</code></td><td>Clicks an element by id (<code>a17</code>, <code>w3</code>, <code>o12</code>). Parameters: <code>id</code>, <code>button</code>, <code>double</code>. A stale id is refused.</td><td>yes</td></tr>
+<tr><td><code>set_text</code></td><td>Replaces the contents of a text field. Parameters: <code>id</code>, <code>text</code>, <code>submit</code> (press Enter afterwards).</td><td>no</td></tr>
+<tr><td><code>read_screen_text</code></td><td>Recognizes the text on the screen or in a region, with ids and positions; for applications that give no accessibility information.</td><td>no</td></tr>
+<tr><td><code>exec</code></td><td>Runs a shell command in the VM as the user <code>cs</code> (<code>bash -lc</code>). Parameters: <code>command</code>, <code>cwd</code>, <code>stdin</code>, <code>timeout_s</code>. Judged by the policy first.</td><td>yes</td></tr>
+<tr><td><code>browser</code></td><td>Controls Chromium: <code>open</code>, <code>navigate</code>, <code>back</code>, <code>forward</code>, <code>reload</code>, <code>click</code>, <code>type</code>, <code>read</code>, <code>ax_tree</code>, <code>tabs</code>, <code>switch_tab</code>. Only http, https and file addresses.</td><td>no</td></tr>
+<tr><td><code>mouse</code></td><td>Moves, clicks, double-clicks, right-clicks, drags, presses and releases at a point of the screenshot. Parameters: <code>op</code>, <code>x</code>, <code>y</code>, <code>to_x</code>, <code>to_y</code>.</td><td>yes</td></tr>
+<tr><td><code>scroll</code></td><td>Turns the mouse wheel at a point. Parameters: <code>x</code>, <code>y</code>, <code>dy</code>, <code>dx</code>.</td><td>no</td></tr>
+<tr><td><code>key</code></td><td>Presses one key or combination (<code>Return</code>, <code>ctrl+l</code>, <code>alt+F4</code>). Parameters: <code>keys</code>, <code>repeat</code>.</td><td>yes</td></tr>
+<tr><td><code>type_text</code></td><td>Types text into the element that has the keyboard focus, as a person would.</td><td>yes</td></tr>
+<tr><td><code>window</code></td><td>Lists the windows, focuses one, or maximizes one. Parameters: <code>op</code> (<code>list</code>, <code>focus</code>, <code>maximize</code>), <code>window_id</code>.</td><td>no</td></tr>
+<tr><td><code>wait_for</code></td><td>Waits inside the VM, without spending turns, until some seconds pass, the screen changes or goes quiet, a text appears, a window title contains a text, or an element appears. Parameters: <code>condition</code>, <code>value</code>, <code>timeout_s</code>.</td><td>yes</td></tr>
+<tr><td><code>ask_user</code></td><td>Asks you a question and waits for your answer in the viewer's chat. With <code>--viewer none</code> there is nobody to ask, and it says so.</td><td>yes</td></tr>
+<tr><td><code>done</code></td><td>Ends the task, saying whether it succeeded and giving a short summary.</td><td>yes</td></tr>
+</tbody>
+</table>
+</div>
+<p>Everything that comes back from the VM (screen text, command output, window titles, the contents of files) reaches the model inside a fence with a random mark that the content cannot forge, and the model is told that fenced text is data, never an instruction. That is a defense against a page or a file that tries to give the model orders; it is not a cure for a model that is convinced of something false by what it sees, which is why the viewer shows every action and <code>--step</code> exists.</p>
+</section>
+
+<section id="stopping">
+<h2>Stopping a session</h2>
+<p>The kill switch ends the VM, not politely: it ends the QEMU process directly. It works from all of these, it cannot be turned off, and no setting, <code>--unsafe</code> included, relaxes it.</p>
+<ul>
+  <li>The <strong>Kill</strong> button in the viewer.</li>
+  <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd> in the viewer, or <kbd>Esc</kbd> pressed three times.</li>
+  <li><code>controlsnack kill</code> in another terminal (<a href="#cmd-kill">details</a>).</li>
+  <li><kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal that runs the session.</li>
+  <li><strong>The dead-man switch.</strong> If the viewer goes away (you close the window, the page crashes), the model's task pauses after about 3 seconds and the session ends after about 60. In a headless run there is no viewer to lose.</li>
+  <li>An audit log that cannot be written ends the session.</li>
+  <li>The timeouts: <code>--timeout</code> for the whole session (exit code 6) and <code>safety.idle_timeout</code> for a session in which nobody has done anything.</li>
+</ul>
+<p>Everything here except the timeouts ends the session with exit code 5. A session that ends by itself, because the task is done, also deletes the VM, unless you asked to keep it.</p>
+</section>
+
+<section id="guarantees">
+<h2>Guarantees in every mode</h2>
+<p>These nine hold with <code>--unsafe</code> too. None has a setting that switches it off, and each has a test.</p>
+<ol>
+  <li><strong>Loopback only.</strong> Every listener the program opens (the viewer, the control endpoint) is on <code>127.0.0.1</code>. Startup stops otherwise.</li>
+  <li><strong>Nothing shared with your computer.</strong> The command line of QEMU is built by code that has no way to add a shared folder, clipboard, USB or other host-sharing device, or a network device. The list of allowed options is closed.</li>
+  <li><strong>No network card.</strong> The VM has none. Egress exists only through the bridge the host checks, which always refuses non-public addresses.</li>
+  <li><strong>No tool runs on your computer.</strong> The model's tools are requests to an agent inside the VM and nothing else. The model has no access to a file or the clipboard of the host.</li>
+  <li><strong>The kill switch</strong> works from every trigger and cannot be disabled.</li>
+  <li><strong>The audit log</strong> is always written and hash-chained.</li>
+  <li><strong>Untrusted text is fenced,</strong> and the viewer shows text only, built with <code>textContent</code>, never as markup.</li>
+  <li><strong>Only you can use the viewer.</strong> A single-use link sets a cookie; every request needs the exact host header; the socket and the kill button also need the cookie, a CSRF value and the right origin.</li>
+  <li><strong>Schema first.</strong> Every action is validated against the tool's schema before the policy sees it.</li>
+</ol>
+<p>On Windows any program running as your user can connect to a loopback port, which is why the viewer's link, cookie and CSRF value, and the control endpoint's token, exist. The README's “Sandbox guarantees” table names the test of each guarantee.</p>
+</section>
+
+<section id="files">
+<h2>Where things live</h2>
+<p>These are the folders ControlSnack keeps its files in, created private to your user. The model's work happens inside the VM, so nothing it does is written to your own files.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">What</th><th scope="col">Linux</th><th scope="col">macOS</th><th scope="col">Windows</th></tr></thead>
+<tbody>
+<tr><td>Configuration (<code>config.yaml</code>)</td><td><code>~/.config/controlsnack</code></td><td><code>~/Library/Application Support/controlsnack</code></td><td><code>%AppData%\controlsnack</code></td></tr>
+<tr><td>Cache: <code>images/</code> (base images), <code>probe/</code> (what <code>llm probe</code> found)</td><td><code>~/.cache/controlsnack</code></td><td><code>~/Library/Caches/controlsnack</code></td><td><code>%LocalAppData%\controlsnack</code></td></tr>
+<tr><td>State: <code>audit/</code>, <code>kept/</code>, <code>vms/</code>, <code>sessions/</code>, <code>run/</code></td><td><code>$XDG_STATE_HOME/controlsnack</code> (default <code>~/.local/state/controlsnack</code>)</td><td><code>~/Library/Application Support/ControlSnack</code></td><td><code>%LocalAppData%\ControlSnack</code></td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+  <li><code>audit/</code> holds one <code>.jsonl</code> file per session, kept 30 days (<code>audit.retention_days</code>; nothing deletes them until you run <code>audit prune</code>).</li>
+  <li><code>kept/&lt;session id&gt;/</code> holds what <code>--keep</code> saved; <code>vms/</code> holds the VMs you kept with <code>--keep-vm</code>.</li>
+  <li><code>sessions/</code> holds the lock that lets only one session run per user, and tells <code>kill</code> where to find it. <code>run/&lt;session id&gt;/</code> holds the working files of a session while it runs (the temporary disk and the sockets); the next session sweeps away what a crashed one left.</li>
+  <li>Delete any of it whenever you like. Deleting the cache means building or importing the image again.</li>
+</ul>
+<p>What leaves your machine: your task, the screenshots, the accessibility tree, recognized text and command output go to the model endpoint you chose, every turn, and nowhere else. With a model on your machine, nothing leaves it. <code>image build</code> downloads Debian; with <code>--allow-net</code> the guest reaches the domains you allow. There is no telemetry, no crash report and no update check.</p>
+</section>
+
+<section id="recipes">
+<h2>Recipes</h2>
+<p>Each of these is a complete command. Replace the model names with your own (<code>controlsnack llm models</code> lists them).</p>
+
+<h3>A model on your machine, found automatically</h3>
+<pre class="cmd" data-copy><code>controlsnack run --task "Open the text editor, type hello and save it as hello.txt"</code></pre>
+
+<h3>LM Studio, named explicitly</h3>
+<pre class="cmd" data-copy><code>controlsnack run --llm lmstudio --model qwen3-vl-4b-instruct --task "Open a terminal and print the kernel version"</code></pre>
+
+<h3>Ollama, asking before every action</h3>
+<pre class="cmd" data-copy><code>controlsnack run --llm ollama --model qwen2.5vl --step</code></pre>
+
+<h3>A hosted model through OpenRouter</h3>
+<pre class="cmd" data-copy><code>controlsnack run --llm openai --base-url https://openrouter.ai/api/v1 --model qwen/qwen3.8-omni-flash --api-key-env OPENROUTER_API_KEY --task "Open a terminal and print the kernel version"</code></pre>
+
+<h3>A hosted model from Anthropic</h3>
+<pre class="cmd" data-copy><code>controlsnack run --llm anthropic --model YOUR-CLAUDE-MODEL --api-key-env ANTHROPIC_API_KEY --task "Open a terminal and print the kernel version"</code></pre>
+
+<h3>Let the guest browse, but only one site</h3>
+<pre class="cmd" data-copy><code>controlsnack run --allow-net --allow-domain wikipedia.org --task "Open the browser, go to wikipedia.org and tell me the first sentence of the main page"</code></pre>
+
+<h3>A script: no window, keep what happened</h3>
+<pre class="cmd" data-copy><code>controlsnack run --viewer none --unsafe --keep --max-turns 25 --task "Open a terminal and print the kernel version"</code></pre>
+<p>Exit code 0 means the model said it succeeded. <code>--keep</code> saves the pictures and the transcript; <code>controlsnack audit show <var>SESSION</var></code> prints what was done.</p>
+
+<h3>Work that continues the next day</h3>
+<pre class="cmd" data-copy><code>controlsnack run --keep-vm=notes --task "Create a file called todo.txt in the home folder"
+controlsnack run --vm notes --task "Add a second line to todo.txt"
+controlsnack vm ls
+controlsnack vm rm notes</code></pre>
+
+<h3>No hardware acceleration, on purpose</h3>
+<pre class="cmd" data-copy><code>controlsnack run --slow --task "Print the date"</code></pre>
+
+<h3>Check a log</h3>
+<pre class="cmd" data-copy><code>controlsnack audit ls
+controlsnack audit show s_45359cad
+controlsnack audit verify "$env:LOCALAPPDATA\ControlSnack\audit\20261018-s_45359cad.jsonl"</code></pre>
+
+<p class="back"><a href="#main">Back to the top of this page</a> · <a href="./">Home</a> · <a href="./#test">Test it on your machine</a></p>
+</section>
+
+</article>
+</div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <p><strong>ControlSnack</strong> · Computer Use with any multimodal AI</p>
+    <p>Free software, AGPL-3.0-only. Copyright Dr. Manuel Herrador. Source: <a href="https://github.com/PacifAIst/controlsnack">github.com/PacifAIst/controlsnack</a> · <a href="./">Home</a></p>
+    <p class="fine">This page sets no cookies, loads nothing from other sites and collects nothing.</p>
+  </div>
+</footer>
+</body>
+</html>
