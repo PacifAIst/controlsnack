@@ -106,7 +106,8 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] Native viewer window (-tags webview), tile-diff streaming, manual takeover, system-wide kill hotkey, robotgo backend, MessagePack, recording/replay, policy editor UI
 
 ## Discovered
-- [ ] D-114: after the first release exists, make README (Quick start) and the home page's easy steps say "download the archive for your system" before "build from source", and say that the programs are unsigned.
+- [x] D-115: README (Quick start), `site/docs.html` and `docs/GETTING-STARTED.md` say "download the archive for your system" before "build from source", with the releases page and the note that the programs are unsigned.
+- [ ] D-115: the home page's easy steps (`site/index.html`, three tabs) still say "Until there are downloads, step 2 builds the program from source"; make them say download first, build second (mind the test that counts the copy buttons: 15), once the first release exists. When a release that is not a pre-release exists, `/releases/latest` becomes a right link.
 - [ ] D-113: macOS on a real Mac: the tests pass on GitHub's macOS runner (the job blocks like the others since the seventh CI run), but `doctor`, HVF, a session and the viewer window have not been tried on a Mac.
 - [ ] D-112: add real screenshots of LM Studio and of a local-model session to the guide (the service did not start from the assistant's session; the user's own LM Studio window may show chats: crop it).
 - [ ] D-112: `--timeout` shorter than `safety.idle_timeout` (15 m) is refused with a message about a key that has no flag; either clamp the default idle timeout to the session timeout or give it a flag.

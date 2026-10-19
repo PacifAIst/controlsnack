@@ -65,8 +65,12 @@ var (
 
 func TestTheSiteLoadsNothingFromElsewhereAndHasNoInlineCode(t *testing.T) {
 	for _, name := range []string{"index.html", "docs.html", "404.html"} {
-		// The one address the pages may link to is the source of the program; nothing is ever loaded from there or anywhere else.
-		html := strings.ReplaceAll(read(t, name), `<a href="https://github.com/PacifAIst/controlsnack">`, "<a>")
+		// The pages may link to two addresses, the source of the program and the page of its releases (where the downloads are);
+		// nothing is ever loaded from there or anywhere else.
+		html := read(t, name)
+		for _, allowed := range []string{`<a href="https://github.com/PacifAIst/controlsnack">`, `<a href="https://github.com/PacifAIst/controlsnack/releases">`} {
+			html = strings.ReplaceAll(html, allowed, "<a>")
+		}
 		if reAttrURL.MatchString(html) {
 			t.Errorf("%s loads or links to another site by an attribute: %s", name, reAttrURL.FindString(html))
 		}

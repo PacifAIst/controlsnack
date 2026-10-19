@@ -4,7 +4,7 @@ ControlSnack Local boots a throwaway Debian desktop (XFCE) in a local QEMU virtu
 
 It is one program, written in Go with no cgo, that runs on Linux, macOS and Windows.
 
-> **Status: pre-release.** Everything described here is built and tested, but there are no release binaries yet (build from source, see Quick start), and some paths have been run only on one machine (see [What has and has not been run](#what-has-and-has-not-been-run)). Read that section before you rely on a claim made elsewhere in this file.
+> **Status: pre-release.** Everything described here is built and tested, but the programs on the [releases page](https://github.com/PacifAIst/controlsnack/releases) are not signed (see Quick start), and some paths have been run only on one machine (see [What has and has not been run](#what-has-and-has-not-been-run)). Read that section before you rely on a claim made elsewhere in this file.
 
 **New here?** The [getting-started guide](docs/GETTING-STARTED.md) goes from nothing to a first task, with a model on your own computer or through an API, with screenshots of the real program. Every command, flag and setting is in the [documentation](site/docs.html) (the site's copy of it is at <https://controlsnack.smartcityjaen.workers.dev/docs>).
 
@@ -21,11 +21,27 @@ It is one program, written in Go with no cgo, that runs on Linux, macOS and Wind
 
 You need: QEMU, about 2 GB of disk for the image, a Chromium-based browser for the viewer window (Edge, Chrome, Chromium or Brave; any browser works in a tab with `--viewer browser`), and a model server.
 
-**Build from source** (Go 1.26 or newer; the toolchain line in `go.mod` is fetched automatically):
+**Get the program: download the archive for your system** from the [releases page](https://github.com/PacifAIst/controlsnack/releases) (open the newest release, the one at the top, and look under *Assets*):
+
+| Your system | The file to download |
+|---|---|
+| Windows 10 or 11, 64-bit | `controlsnack_<version>_windows_amd64.zip` |
+| macOS, Apple silicon (M1 and later) | `controlsnack_<version>_darwin_arm64.tar.gz` |
+| macOS, Intel | `controlsnack_<version>_darwin_amd64.tar.gz` |
+| Linux, 64-bit Intel or AMD | `controlsnack_<version>_linux_amd64.tar.gz` |
+| Linux, 64-bit ARM | `controlsnack_<version>_linux_arm64.tar.gz` |
+
+`<version>` is the release, for example `v0.1.0-alpha.1`. Unpack the file (Windows: `Expand-Archive <file> -DestinationPath .` in PowerShell, or Extract All in the file manager; macOS and Linux: `tar -xzf <file>`). It makes a folder of the same name with the program inside (`controlsnack.exe` on Windows, `controlsnack` elsewhere), the license and the notices of the libraries it uses. There is nothing to install. In the commands below, type `.\controlsnack.exe` (Windows) or `./controlsnack` while you are in that folder, or put the folder on your PATH and type `controlsnack`.
+
+Each release also has a `SHA256SUMS` file with the checksum of every archive (`sha256sum -c SHA256SUMS --ignore-missing`, or `shasum -a 256 -c` on macOS; on Windows `Get-FileHash <file>` and compare). **The programs are not signed**, so your system may object the first time: Windows may say the publisher is unknown (choose *More info*, then *Run anyway*), and macOS puts a downloaded program in quarantine (`xattr -d com.apple.quarantine ./controlsnack`). The archives are built by GitHub Actions from the tagged commit with `go run ./tools/dev release`; the same commit gives the same files.
+
+**Or build from source** (Go 1.26 or newer; the toolchain line in `go.mod` is fetched automatically):
 
 ```
 go run ./tools/dev build        # builds the guest agents, then dist/controlsnack
 ```
+
+The program is then `dist/controlsnack` (`dist\controlsnack.exe` on Windows).
 
 **1. Install QEMU.**
 

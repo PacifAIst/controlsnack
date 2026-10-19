@@ -26,26 +26,60 @@ If you only want to see it work, take path B for the first run. If privacy or co
 
 ## Setup, once (both paths)
 
-These steps are in a terminal: PowerShell on Windows, any terminal on macOS and Linux. The screenshots show the command as `controlsnack`. If you did not put the program on your PATH, type `.\dist\controlsnack.exe` (Windows) or `./dist/controlsnack` instead.
+These steps are in a terminal: PowerShell on Windows, any terminal on macOS and Linux. The screenshots show the command as `controlsnack`. If you did not put the program on your PATH, type where it is instead: `.\controlsnack.exe` (Windows) or `./controlsnack` inside the folder you unpacked in step 2, or `.\dist\controlsnack.exe` or `./dist/controlsnack` if you built it yourself.
 
-### 1. Install QEMU, Git and Go
+### 1. Install QEMU
 
-QEMU is the program that runs the virtual machine; Git and Go are needed to get and build ControlSnack until there are downloads to use instead.
+QEMU is the program that runs the virtual machine.
 
 ```powershell
-winget install SoftwareFreedomConservancy.QEMU     # Windows (PowerShell), one line each
-winget install Git.Git
+winget install SoftwareFreedomConservancy.QEMU     # Windows (PowerShell)
+```
+
+```sh
+brew install qemu                                   # macOS
+sudo apt install qemu-system-x86 qemu-utils         # Debian, Ubuntu
+```
+
+Open a new terminal afterwards so it can find it. On Linux, hardware acceleration also needs access to `/dev/kvm`: `sudo usermod -aG kvm $USER`, then log in again.
+
+### 2. Get ControlSnack
+
+Download the archive for your system from the [releases page](https://github.com/PacifAIst/controlsnack/releases) on GitHub. Open the newest release (the one at the top) and look under *Assets*:
+
+| Your system | The file to download |
+|---|---|
+| Windows 10 or 11, 64-bit | `controlsnack_<version>_windows_amd64.zip` |
+| macOS, Apple silicon (M1 and later) | `controlsnack_<version>_darwin_arm64.tar.gz` |
+| macOS, Intel | `controlsnack_<version>_darwin_amd64.tar.gz` |
+| Linux, 64-bit Intel or AMD | `controlsnack_<version>_linux_amd64.tar.gz` |
+| Linux, 64-bit ARM | `controlsnack_<version>_linux_arm64.tar.gz` |
+
+The version is part of the file name; the examples here use `v0.1.0-alpha.1`, the first release. Unpack the file you downloaded, in the folder where you saved it. That makes a folder of the same name with the program inside, `controlsnack.exe` on Windows and `controlsnack` elsewhere, next to the license and the notices of the libraries it uses. There is nothing to install.
+
+```powershell
+Expand-Archive .\controlsnack_v0.1.0-alpha.1_windows_amd64.zip -DestinationPath .       # Windows (PowerShell)
+```
+
+```sh
+tar -xzf controlsnack_v0.1.0-alpha.1_darwin_arm64.tar.gz                                # macOS; the Linux files unpack the same way
+```
+
+Then `cd` into the new folder (`cd controlsnack_v0.1.0-alpha.1_windows_amd64` on Windows) so that the program is in the folder you are in.
+
+Each release also has a file `SHA256SUMS` with the checksum of every archive, if you want to check that what you downloaded is what was published. The programs are **not signed**, so your system may object the first time. Windows may say the publisher is unknown: choose *More info*, then *Run anyway*. macOS puts a downloaded program in quarantine; lift it with `xattr -d com.apple.quarantine ./controlsnack`.
+
+**Or build it from source**, if you would rather, or if there is no archive for your system. That needs Git and Go (1.26 or newer; the exact toolchain is fetched for you):
+
+```powershell
+winget install Git.Git                    # Windows (PowerShell), one line each
 winget install GoLang.Go
 ```
 
 ```sh
-brew install qemu git go                                      # macOS
-sudo apt install qemu-system-x86 qemu-utils git golang-go     # Debian, Ubuntu
+brew install git go                       # macOS
+sudo apt install git golang-go            # Debian, Ubuntu
 ```
-
-Open a new terminal afterwards so it can find them. On Linux, hardware acceleration also needs access to `/dev/kvm`: `sudo usermod -aG kvm $USER`, then log in again.
-
-### 2. Get and build ControlSnack
 
 ```sh
 git clone https://github.com/PacifAIst/controlsnack

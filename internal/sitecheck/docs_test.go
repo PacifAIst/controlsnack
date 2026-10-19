@@ -522,3 +522,43 @@ func TestTheReadingMatterNamesTheAddressOfTheSiteAndNotTheOnesGivenUp(t *testing
 		}
 	}
 }
+
+// A newcomer is told to download the archive for their system before being told to build from source (D-115), and every archive the
+// release makes is named, with the releases page to get it from.
+func TestEveryGuideSaysToDownloadTheArchiveBeforeBuildingFromSource(t *testing.T) {
+	const releases = "https://github.com/PacifAIst/controlsnack/releases"
+	archives := []string{"windows_amd64.zip", "darwin_arm64.tar.gz", "darwin_amd64.tar.gz", "linux_amd64.tar.gz", "linux_arm64.tar.gz"}
+	for _, c := range []struct{ name, download, build string }{
+		{"../../README.md", "download the archive for your system", "Or build from source"},
+		{"../../docs/GETTING-STARTED.md", "Download the archive for your system", "Or build it from source"},
+		{"../../site/docs.html", "Download the archive for your system", "Or build it from source"},
+	} {
+		data, err := os.ReadFile(c.name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(data)
+		d, b := strings.Index(text, c.download), strings.Index(text, c.build)
+		if d < 0 || b < 0 || d > b {
+			t.Errorf("%s: %q must come before %q (at %d and %d)", c.name, c.download, c.build, d, b)
+		}
+		if !strings.Contains(text, releases) {
+			t.Errorf("%s does not link to %s", c.name, releases)
+		}
+		for _, a := range archives {
+			if !strings.Contains(text, a) {
+				t.Errorf("%s does not name the archive for %s", c.name, a)
+			}
+		}
+		if !strings.Contains(text, "not signed") || !strings.Contains(text, "com.apple.quarantine") {
+			t.Errorf("%s does not say that the programs are not signed and what that means on each system", c.name)
+		}
+	}
+	// /releases/latest does not show a pre-release, which every release is for now: the pages must not rely on it.
+	for _, name := range []string{"../../README.md", "../../docs/GETTING-STARTED.md", "../../site/docs.html", "../../site/index.html"} {
+		data, _ := os.ReadFile(name)
+		if strings.Contains(string(data), releases+"/latest") {
+			t.Errorf("%s links to %s/latest, which does not show a pre-release", name, releases)
+		}
+	}
+}

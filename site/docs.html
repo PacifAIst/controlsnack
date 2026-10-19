@@ -153,18 +153,39 @@
 <p>If you only want to see it work, take path B for the first run. If privacy or cost matters more, take path A and start with the simplest task.</p>
 
 <h3 id="new-before">Setup, once (both paths)</h3>
-<p>These steps are in a terminal: PowerShell on Windows, any terminal on macOS and Linux. The screenshots show the command as <code>controlsnack</code>. If you did not put the program on your PATH, type <code>.\dist\controlsnack.exe</code> (Windows) or <code>./dist/controlsnack</code> instead.</p>
+<p>These steps are in a terminal: PowerShell on Windows, any terminal on macOS and Linux. The screenshots show the command as <code>controlsnack</code>. If you did not put the program on your PATH, type where it is instead: <code>.\controlsnack.exe</code> (Windows) or <code>./controlsnack</code> inside the folder you unpacked in step 2, or <code>.\dist\controlsnack.exe</code> or <code>./dist/controlsnack</code> if you built it yourself.</p>
 
-<h4>1. Install QEMU, Git and Go</h4>
-<p>QEMU is the program that runs the virtual machine; Git and Go are needed to get and build ControlSnack until there are downloads to use instead.</p>
-<pre class="cmd" data-copy><code>winget install SoftwareFreedomConservancy.QEMU     # Windows (PowerShell), one line each
-winget install Git.Git
+<h4>1. Install QEMU</h4>
+<p>QEMU is the program that runs the virtual machine.</p>
+<pre class="cmd" data-copy><code>winget install SoftwareFreedomConservancy.QEMU     # Windows (PowerShell)
+brew install qemu                                   # macOS
+sudo apt install qemu-system-x86 qemu-utils         # Debian, Ubuntu</code></pre>
+<p>Open a new terminal afterwards so it can find it. On Linux, hardware acceleration also needs access to <code>/dev/kvm</code>: <code>sudo usermod -aG kvm $USER</code>, then log in again.</p>
+
+<h4>2. Get ControlSnack</h4>
+<p>Download the archive for your system from the <a href="https://github.com/PacifAIst/controlsnack/releases">releases page</a> on GitHub. Open the newest release (the one at the top) and look under <em>Assets</em>:</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Your system</th><th scope="col">The file to download</th></tr></thead>
+<tbody>
+<tr><th scope="row">Windows 10 or 11, 64-bit</th><td><code>controlsnack_&lt;version&gt;_windows_amd64.zip</code></td></tr>
+<tr><th scope="row">macOS, Apple silicon (M1 and later)</th><td><code>controlsnack_&lt;version&gt;_darwin_arm64.tar.gz</code></td></tr>
+<tr><th scope="row">macOS, Intel</th><td><code>controlsnack_&lt;version&gt;_darwin_amd64.tar.gz</code></td></tr>
+<tr><th scope="row">Linux, 64-bit Intel or AMD</th><td><code>controlsnack_&lt;version&gt;_linux_amd64.tar.gz</code></td></tr>
+<tr><th scope="row">Linux, 64-bit ARM</th><td><code>controlsnack_&lt;version&gt;_linux_arm64.tar.gz</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The version is part of the file name; the examples here use <code>v0.1.0-alpha.1</code>, the first release. Unpack the file you downloaded, in the folder where you saved it. That makes a folder of the same name with the program inside, <code>controlsnack.exe</code> on Windows and <code>controlsnack</code> elsewhere, next to the license and the notices of the libraries it uses. There is nothing to install.</p>
+<pre class="cmd" data-copy><code>Expand-Archive .\controlsnack_v0.1.0-alpha.1_windows_amd64.zip -DestinationPath .       # Windows (PowerShell)
+tar -xzf controlsnack_v0.1.0-alpha.1_darwin_arm64.tar.gz                                # macOS; the Linux files unpack the same way</code></pre>
+<p>Then <code>cd</code> into the new folder (<code>cd controlsnack_v0.1.0-alpha.1_windows_amd64</code> on Windows) so that the program is in the folder you are in.</p>
+<p>Each release also has a file <code>SHA256SUMS</code> with the checksum of every archive, if you want to check that what you downloaded is what was published. The programs are <strong>not signed</strong>, so your system may object the first time. Windows may say the publisher is unknown: choose <em>More info</em>, then <em>Run anyway</em>. macOS puts a downloaded program in quarantine; lift it with <code>xattr -d com.apple.quarantine ./controlsnack</code>.</p>
+<p><strong>Or build it from source</strong>, if you would rather, or if there is no archive for your system. That needs Git and Go (1.26 or newer; the exact toolchain is fetched for you):</p>
+<pre class="cmd" data-copy><code>winget install Git.Git                    # Windows (PowerShell), one line each
 winget install GoLang.Go
-brew install qemu git go                            # macOS
-sudo apt install qemu-system-x86 qemu-utils git golang-go     # Debian, Ubuntu</code></pre>
-<p>Open a new terminal afterwards so it can find them. On Linux, hardware acceleration also needs access to <code>/dev/kvm</code>: <code>sudo usermod -aG kvm $USER</code>, then log in again.</p>
-
-<h4>2. Get and build ControlSnack</h4>
+brew install git go                       # macOS
+sudo apt install git golang-go            # Debian, Ubuntu</code></pre>
 <pre class="cmd" data-copy><code>git clone https://github.com/PacifAIst/controlsnack
 cd controlsnack
 go run ./tools/dev build</code></pre>
@@ -313,7 +334,7 @@ controlsnack audit verify "$env:LOCALAPPDATA\ControlSnack\audit\20261019-s_651fe
 <h2>How to read this page</h2>
 <p>This documentation is at <code>https://controlsnack.smartcityjaen.workers.dev/docs</code>. The same page is <code>site/docs.html</code> in the source, at <code>https://github.com/PacifAIst/controlsnack</code>, together with the guide for newcomers as <code>docs/GETTING-STARTED.md</code>.</p>
 
-<p><code>controlsnack</code> is one program. On Windows it is <code>controlsnack.exe</code>; after <code>go run ./tools/dev build</code> it is in the <code>dist</code> folder, so the examples below that start with <code>controlsnack</code> become <code>.\dist\controlsnack.exe</code> in PowerShell and <code>./dist/controlsnack</code> elsewhere unless you put it on your PATH.</p>
+<p><code>controlsnack</code> is one program. On Windows it is <code>controlsnack.exe</code>. It is in the folder a downloaded archive unpacks to, or in the <code>dist</code> folder after <code>go run ./tools/dev build</code>, so the examples below that start with <code>controlsnack</code> become <code>.\controlsnack.exe</code> in PowerShell and <code>./controlsnack</code> elsewhere in the first case, and <code>.\dist\controlsnack.exe</code> and <code>./dist/controlsnack</code> in the second, unless you put it on your PATH.</p>
 
 <p>Every flag is described the same way:</p>
 <ul>
