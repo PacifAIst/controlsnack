@@ -6,7 +6,7 @@ It is one program, written in Go with no cgo, that runs on Linux, macOS and Wind
 
 > **Status: pre-release.** Everything described here is built and tested, but there are no release binaries yet (build from source, see Quick start), and some paths have been run only on one machine (see [What has and has not been run](#what-has-and-has-not-been-run)). Read that section before you rely on a claim made elsewhere in this file.
 
-**New here?** The [getting-started guide](docs/GETTING-STARTED.md) goes from nothing to a first task, with a model on your own computer or through an API, with screenshots of the real program. Every command, flag and setting is in the [documentation](site/docs.html) ([the site's copy of it is here](https://controlsnack.smartcityjaen.workers.dev/docs))
+**New here?** The [getting-started guide](docs/GETTING-STARTED.md) goes from nothing to a first task, with a model on your own computer or through an API, with screenshots of the real program. Every command, flag and setting is in the [documentation](site/docs.html) 
 
 ![The ControlSnack viewer at the end of a task: the guest's desktop with a terminal that printed the kernel version, the model's summary in the chat, and the list of actions it took, each allowed.](site/img/viewer-done.png)
 
