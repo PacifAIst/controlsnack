@@ -21,16 +21,9 @@ or from a terminal, with Node:
 npx wrangler pages deploy site --project-name controlsnack
 ```
 
-## The domain `www.controlsnack.com`
+## The address
 
-1. The domain must be on Cloudflare (its name servers set to Cloudflare's), or you add a `CNAME` for `www` to `controlsnack.pages.dev` where its DNS is.
-2. Pages project → **Custom domains** → **Set up a custom domain** → `www.controlsnack.com`.
-3. For the bare `controlsnack.com`: add it as a custom domain too (Cloudflare DNS flattens the apex), and in **Rules → Redirect Rules** send `controlsnack.com/*` to `https://www.controlsnack.com/$1` (301).
-4. SSL/TLS mode **Full (strict)**; turn on **Always use HTTPS**.
-
-## When the repository exists (later)
-
-Pages → **Connect to Git** → pick `PacifAIst/controlsnack`, then: **Framework preset** None, **Build command** empty, **Build output directory** `site`. Every push to `main` then publishes. (`_headers` and `404.html` are read by Pages as they are.)
+The site lives at `https://controlsnack.pages.dev` and is uploaded by hand, as above, when its owner decides (D-114). There is no custom domain, no build step and no workflow in this repository that publishes it: the README, the guide and the documentation name that address, and a test (`internal/sitecheck`) fails if the old `.com` address comes back into them. If the project name `controlsnack` were ever taken on Cloudflare, the address would be different and those three would have to say so.
 
 ## What the site does and does not do
 
