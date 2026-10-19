@@ -226,7 +226,8 @@ func (rg *rig) auditLog() (*audit.Report, []string) {
 
 func eventually(t *testing.T, what string, cond func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
+	// A test that passes returns at once; the time is for a slow machine (the race detector on a shared runner is ten times slower).
+	deadline := time.Now().Add(30 * time.Second)
 	for !cond() {
 		if time.Now().After(deadline) {
 			t.Fatalf("gave up waiting for %s", what)

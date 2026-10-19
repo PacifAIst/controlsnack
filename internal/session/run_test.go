@@ -414,7 +414,7 @@ func (p *page) send(v any) {
 // waitFor waits for a message that the predicate accepts, and returns it.
 func (p *page) waitFor(what string, pred func(map[string]any) bool) map[string]any {
 	p.t.Helper()
-	return p.waitWithin(10*time.Second, what, pred)
+	return p.waitWithin(30*time.Second, what, pred)
 }
 
 // waitWithin is waitFor with the time to wait given: a real guest is slow.

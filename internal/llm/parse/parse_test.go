@@ -314,7 +314,8 @@ func TestParsingIsBounded(t *testing.T) {
 	if res.Usable() {
 		t.Error("a pile of unclosed braces hides the action: only the first braces are tried")
 	}
-	if took := time.Since(begin); took > 5*time.Second {
+	// Linear it takes a moment (seconds under the race detector on a busy machine); the quadratic way took a minute without it.
+	if took := time.Since(begin); took > 30*time.Second {
 		t.Errorf("a pile of braces took %s", took)
 	}
 	res = Parse(full, Reply{Text: strings.Repeat(`{"a":1} `, 100000) + `{"actions":[{"tool":"screenshot"}]}`}, 3)

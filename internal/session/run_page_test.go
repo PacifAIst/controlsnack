@@ -185,7 +185,8 @@ func TestTheHeaderFiguresCountTheActionsOnceAndTimeTheModel(t *testing.T) {
 		return m["type"] == "notice" && strings.Contains(m["text"].(string), "Task finished")
 	})
 	// Stats come every two seconds; the one after the task counts one action (the other, done, is not run by the guest).
-	st := pg.waitFor("the figures after the task", func(m map[string]any) bool {
+	// They follow a look at the screen, which a WebP encoder under the race detector takes seconds over.
+	st := pg.waitWithin(60*time.Second, "the figures after the task", func(m map[string]any) bool {
 		a, _ := m["actions"].(float64)
 		return m["type"] == "stats" && a >= 1
 	})
