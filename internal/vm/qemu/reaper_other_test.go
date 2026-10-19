@@ -13,6 +13,9 @@ import (
 // reaperHelper does not exist where the reaper is not used; the mode is unreachable in the tests there.
 func reaperHelper([]string) {}
 
+// dispatchReaper has nothing to do where there is no reaper.
+func dispatchReaper() {}
+
 func TestReaperIsNotUsedHere(t *testing.T) {
 	var report strings.Builder
 	if code := RunReaper(1, []string{"x"}, &report, nil, nil); code == 0 || !strings.Contains(report.String(), "error=") {

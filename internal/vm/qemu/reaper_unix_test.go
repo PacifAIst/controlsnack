@@ -24,6 +24,15 @@ func reaperHelper(args []string) {
 	os.Exit(code)
 }
 
+// dispatchReaper makes the test binary the reaper when it is started as one. On macOS every start goes through the reaper, as
+// `<this executable> __reaper --parent N -- argv...`, which in the program is the hidden command of that name; in a test binary
+// nothing answered to it, and every test that starts a process there failed.
+func dispatchReaper() {
+	if len(os.Args) > 1 && os.Args[1] == ReaperCommand {
+		reaperHelper(os.Args[2:])
+	}
+}
+
 func reaperOpts() StartOptions {
 	return StartOptions{ForceReaper: true, ReaperCmd: helperArgs("reaper")}
 }

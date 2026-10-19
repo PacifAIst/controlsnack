@@ -19,6 +19,7 @@ import (
 // loopback socket, in the way MODE says, and never runs the tests. (The run keeps no environment from the caller, so the mode
 // travels as an argument.)
 func TestMain(m *testing.M) {
+	dispatchReaper()
 	for _, a := range os.Args {
 		if mode, ok := strings.CutPrefix(a, "-fake-qemu="); ok {
 			os.Exit(fakeQEMU_(mode))

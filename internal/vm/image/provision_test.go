@@ -25,6 +25,7 @@ import (
 // TestMain lets the test binary play QEMU: RunProvision starts Install.System with a real QEMU command line, and a
 // command line that names the VM "controlsnack-provision" is answered by fakeQEMU instead of by the tests.
 func TestMain(m *testing.M) {
+	dispatchReaper()
 	if i := slices.Index(os.Args, "controlsnack-provision"); i > 0 && os.Args[i-1] == "-name" {
 		os.Exit(fakeQEMU(os.Args[1:]))
 	}
