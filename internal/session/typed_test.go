@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/vision"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/vision"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // focus puts the focus on a window of a class, as the model's last look saw it ("" for no window).

@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/anthropic"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/httpx"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/ollama"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/openai"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/anthropic"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/httpx"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/ollama"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/openai"
 )
 
 // Protocol is the API a backend speaks.

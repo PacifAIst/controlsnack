@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // TestMain lets the test binary play QEMU: RunProvision starts Install.System with a real QEMU command line, and a

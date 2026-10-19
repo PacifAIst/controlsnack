@@ -16,7 +16,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
 )
 
 // Scopes of a tree request.

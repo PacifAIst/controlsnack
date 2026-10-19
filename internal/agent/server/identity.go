@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // DefaultDisplay is what the agent reports until it reads the real screen size from X (Phase 4): the size the VM is

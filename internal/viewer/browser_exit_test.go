@@ -16,10 +16,10 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/kb"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
-	"github.com/PacifAIst/controlsnack-local/web"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
+	"github.com/PacifAIst/controlsnack/web"
 )
 
 // fakeSession is the other side of the viewer, as the session of Phase 7 will be: it takes what the person does and answers

@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/httpx"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/httpx"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
 )
 
 // server is a fake Ollama: it keeps the last request it was sent and answers with what the test says.

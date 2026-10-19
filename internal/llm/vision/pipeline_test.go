@@ -13,10 +13,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/imaging"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/imaging"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // fakeAgent answers screenshot requests like the agent does, and lets a test make it lie.

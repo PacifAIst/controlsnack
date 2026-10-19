@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
 )
 
 // The dead-man switch exists because the design assumes that someone is watching (D-20): an agent that acts for an hour with

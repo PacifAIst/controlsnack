@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 func TestTheTerminalIsToldWhatTheViewerWouldShow(t *testing.T) {

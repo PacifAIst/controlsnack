@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/untrusted"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/safety/untrusted"
 )
 
 // Defaults of the conversation.

@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // realRig finds the QEMU of this machine (the test is skipped without one) and builds a PrepareFunc that gives

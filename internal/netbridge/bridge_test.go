@@ -20,10 +20,10 @@ import (
 
 	"github.com/xtaci/smux"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/netproxy"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/egress"
+	"github.com/PacifAIst/controlsnack/internal/agent/netproxy"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack/internal/safety/egress"
 )
 
 func listenTCP(t *testing.T) net.Listener {

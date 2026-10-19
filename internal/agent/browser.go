@@ -7,9 +7,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/browser"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/browser"
+	"github.com/PacifAIst/controlsnack/internal/agent/server"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // Browser serves `browser` requests (PLAN.md section 8): the guest's Chromium, tab by tab.

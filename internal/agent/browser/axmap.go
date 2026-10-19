@@ -10,7 +10,7 @@ import (
 
 	"github.com/chromedp/cdproto/accessibility"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
 )
 
 // Bounds on what a page says about its elements: it is untrusted text.

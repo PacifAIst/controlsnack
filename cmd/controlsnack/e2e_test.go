@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/fakellm"
+	"github.com/PacifAIst/controlsnack/internal/llm/fakellm"
 )
 
 // The end-to-end tests of the program as a person runs it: the binary is built, then started as a process with flags, an

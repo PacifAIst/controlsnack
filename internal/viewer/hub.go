@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
 )
 
 // Inbound receives what the person does in the page, after it has been checked. The methods run on the goroutine that

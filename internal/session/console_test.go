@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/confirm"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/limits"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/secret"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety/confirm"
+	"github.com/PacifAIst/controlsnack/internal/safety/limits"
+	"github.com/PacifAIst/controlsnack/internal/safety/secret"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 type fakeStep struct {

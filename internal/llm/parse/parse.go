@@ -10,8 +10,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
 )
 
 // ToolCall is a native tool call as a backend reports it. Args is the arguments: a JSON object, or, as OpenAI-compatible

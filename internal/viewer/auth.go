@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/secret"
+	"github.com/PacifAIst/controlsnack/internal/safety/secret"
 )
 
 // CookieName is the session cookie of the viewer.

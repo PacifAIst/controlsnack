@@ -14,14 +14,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/untrusted"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety/untrusted"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 func TestTheObservationCarriesTheTurnTheTaskTheNetworkAndWhatIsLeft(t *testing.T) {

@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
-	"github.com/PacifAIst/controlsnack-local/web"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
+	"github.com/PacifAIst/controlsnack/web"
 )
 
 // machine is a fake computer: the files it has, its environment and the programs on its PATH.

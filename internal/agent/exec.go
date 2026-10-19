@@ -10,9 +10,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/execx"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/execx"
+	"github.com/PacifAIst/controlsnack/internal/agent/server"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // Limits of an `exec` request. The host's tool allows 4000 characters of command; the agent is more generous, because

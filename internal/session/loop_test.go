@@ -13,16 +13,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/vision"
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/limits"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/secret"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/untrusted"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/llm/vision"
+	"github.com/PacifAIst/controlsnack/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety/limits"
+	"github.com/PacifAIst/controlsnack/internal/safety/secret"
+	"github.com/PacifAIst/controlsnack/internal/safety/untrusted"
 )
 
 // reply is one answer of the scripted model: what it says, or how it fails.

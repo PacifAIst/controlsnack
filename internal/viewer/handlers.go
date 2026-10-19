@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/secret"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/safety/secret"
 )
 
 // maxLinkLen is the longest login token the server looks at; its own are 64 characters.

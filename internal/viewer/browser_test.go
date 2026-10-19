@@ -25,9 +25,9 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/kb"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
-	"github.com/PacifAIst/controlsnack-local/web"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
+	"github.com/PacifAIst/controlsnack/web"
 )
 
 // findBrowser looks for a Chromium-based browser on this machine, or says there is none.

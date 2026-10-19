@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/config"
 )
 
 func TestVerdictOrderingAndNames(t *testing.T) {

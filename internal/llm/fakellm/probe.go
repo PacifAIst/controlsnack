@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
+	"github.com/PacifAIst/controlsnack/internal/llm/detect"
 )
 
 const doneJSON = `{"thought":"checking","actions":[{"tool":"done","args":{"success":true,"summary":"ok"}}]}`

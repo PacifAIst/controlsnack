@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // TestE2EImageSmoke is the check of the finished image (PLAN.md P4-T13): it boots it and uses the desktop the way the

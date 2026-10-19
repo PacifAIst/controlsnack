@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
-	"github.com/PacifAIst/controlsnack-local/internal/vm"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentclient"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/overlay"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack/internal/vm"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentclient"
+	"github.com/PacifAIst/controlsnack/internal/vm/image"
+	"github.com/PacifAIst/controlsnack/internal/vm/overlay"
 )
 
 func (f *fullRig) library() overlay.Library { return testLibrary(f.dirs) }

@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/PacifAIst/controlsnack-local/schema"
+	"github.com/PacifAIst/controlsnack/schema"
 )
 
 // The renderings of a Set (PLAN.md section 5.3): what each kind of backend is given.

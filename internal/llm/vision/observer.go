@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/untrusted"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/safety/untrusted"
 )
 
 // ErrBlind means a text-only session has nothing to read the screen from: neither the accessibility tree nor recognized

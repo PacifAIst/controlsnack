@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/platform"
 )
 
 // fakeProcs is an in-memory process table.

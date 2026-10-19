@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
 )
 
 // A model that points on a scale of 0 to 1000 (the Qwen-VL family) is told that scale, and the size of the picture in

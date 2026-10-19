@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentclient"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentclient"
 )
 
 // TestE2EOCR reads the real guest's screen with tesseract through the agent: a terminal shows known text, and the lines

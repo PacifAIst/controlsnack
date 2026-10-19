@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/imaging"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/imaging"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
 )
 
 // The ways a model says where something is on a picture.

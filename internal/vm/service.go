@@ -7,7 +7,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/config"
 )
 
 // Doctor produces the read-only virtualization report behind `controlsnack doctor` (PLAN.md section 7.10);

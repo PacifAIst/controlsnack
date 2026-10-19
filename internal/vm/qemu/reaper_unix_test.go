@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/platform"
 )
 
 // reaperHelper is the `reaper` mode of TestProcessHelper: what the hidden `controlsnack __reaper` command does.

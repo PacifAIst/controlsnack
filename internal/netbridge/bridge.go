@@ -20,10 +20,10 @@ import (
 
 	"github.com/xtaci/smux"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/egress"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack/internal/safety/egress"
 )
 
 // Dialer connects to host:port after deciding whether it may; *egress.Policy is the real one. The Decision says what was

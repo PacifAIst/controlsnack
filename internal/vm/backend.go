@@ -9,8 +9,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qmp"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qmp"
 )
 
 // RealBackend starts the real QEMU through the supervisor and reaches its chardevs over unix sockets or loopback

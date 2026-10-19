@@ -9,7 +9,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 func TestTheMessagesOfThePageAreRead(t *testing.T) {

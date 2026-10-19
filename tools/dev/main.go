@@ -29,7 +29,7 @@ const (
 	hostPkg  = "./cmd/controlsnack"
 	agentPkg = "./cmd/controlsnack-agent"
 	// buildinfoPkg is the import path whose variables are stamped with -ldflags -X.
-	buildinfoPkg = "github.com/PacifAIst/controlsnack-local/internal/buildinfo"
+	buildinfoPkg = "github.com/PacifAIst/controlsnack/internal/buildinfo"
 	// agentbinDir is where `agent` writes the embedded guest binaries.
 	agentbinDir = "internal/vm/agentbin"
 	// allowedLicenses is the D-25 dependency license policy.

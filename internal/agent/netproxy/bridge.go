@@ -14,7 +14,7 @@ import (
 
 	"github.com/xtaci/smux"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // DisabledMessage is what a program in the guest is told when the session has no network: the sentence a model can act on.

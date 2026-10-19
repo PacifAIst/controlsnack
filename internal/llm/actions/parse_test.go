@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
 )
 
 func parse(t *testing.T, tool, args string) Action {

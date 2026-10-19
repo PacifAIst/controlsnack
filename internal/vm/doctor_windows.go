@@ -21,7 +21,7 @@ import (
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // pfVirtFirmwareEnabled is PF_VIRT_FIRMWARE_ENABLED for IsProcessorFeaturePresent.

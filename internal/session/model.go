@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/vision"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/detect"
+	"github.com/PacifAIst/controlsnack/internal/llm/vision"
 )
 
 // ModelFinder is the part of *detect.Detector that a session uses to find its model.

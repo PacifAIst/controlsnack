@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentbin"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentbin"
+	"github.com/PacifAIst/controlsnack/internal/vm/image"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // TestE2EBoot boots the real image with the real QEMU (P3-T11): the accelerator `run` detects, and software emulation

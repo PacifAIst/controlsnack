@@ -7,11 +7,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/detect"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 func TestPlanCarriesHowTheModelPoints(t *testing.T) {

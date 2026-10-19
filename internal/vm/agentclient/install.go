@@ -14,8 +14,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentbin"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentbin"
 )
 
 // InstallError means the guest stub refused the pushed agent (or answered something other than OK).

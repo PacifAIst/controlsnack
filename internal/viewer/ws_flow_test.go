@@ -13,8 +13,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 func TestWhatThePersonDoesReachesTheSession(t *testing.T) {

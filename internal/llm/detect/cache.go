@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/platform"
 )
 
 const (

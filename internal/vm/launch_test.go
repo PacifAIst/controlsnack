@@ -15,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qmp"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qmp"
 )
 
 // --- fakes -----------------------------------------------------------------------------------------------------

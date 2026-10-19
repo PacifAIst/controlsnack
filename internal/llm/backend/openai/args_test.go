@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
 )
 
 // An OpenAI-compatible server sends the arguments of a call as a string that holds the object, and that is how the call

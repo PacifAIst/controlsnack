@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 type answerFunc = func(n int, at time.Duration, req protocol.ScreenshotReq) (protocol.ScreenshotRes, []byte, error)

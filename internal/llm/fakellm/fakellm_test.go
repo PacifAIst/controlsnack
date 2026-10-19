@@ -15,17 +15,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/imaging"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/httpx"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/openai"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/fakellm"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/untrusted"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/imaging"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/httpx"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/openai"
+	"github.com/PacifAIst/controlsnack/internal/llm/detect"
+	"github.com/PacifAIst/controlsnack/internal/llm/fakellm"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/safety/untrusted"
 )
 
 func client(t testing.TB, s *fakellm.Server, key string) backend.Backend {

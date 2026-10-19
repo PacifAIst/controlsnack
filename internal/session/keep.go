@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 // Keeper saves what --keep asks to keep, and nothing else: the conversation as the person saw it (what was said, each action and

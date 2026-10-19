@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/image"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // PrepareOptions describe the files one VM launch needs. NewPrepare turns them into a PrepareFunc.

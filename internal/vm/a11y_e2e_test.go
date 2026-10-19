@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentclient"
+	"github.com/PacifAIst/controlsnack/internal/agent/a11y"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentclient"
 )
 
 // roleDump walks the accessibility tree of the whole desktop with gdbus, and prints one line "ROLE|number|name" for

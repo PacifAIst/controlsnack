@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/config"
 )
 
 func TestTheReferenceListsTheVisibleCommandsWithTheirOwnFlags(t *testing.T) {

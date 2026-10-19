@@ -19,8 +19,8 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/seed"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/vm/seed"
 )
 
 func TestEveryEmbeddedFileIsUsedAndEveryUseExists(t *testing.T) {

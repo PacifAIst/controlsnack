@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/guest"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentbin"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentclient"
+	"github.com/PacifAIst/controlsnack/guest"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentbin"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentclient"
 )
 
 // Timeouts of Boot that are not part of Launch; like the launch window they are multiplied by the accelerator's

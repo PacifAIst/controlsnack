@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // TestExploreGuest is a development harness, not a test: it boots the image once and then runs whatever it finds in the

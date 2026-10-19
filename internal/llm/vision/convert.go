@@ -4,8 +4,8 @@
 package vision
 
 import (
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // Window converts the active window to the picture's coordinates; nil stays nil.

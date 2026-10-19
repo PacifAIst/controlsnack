@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // Handler serves one request type. It returns the response body (nil for none) and an attachment (nil for none).

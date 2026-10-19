@@ -13,17 +13,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/vision"
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/confirm"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/limits"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/policy"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/secret"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/llm/vision"
+	"github.com/PacifAIst/controlsnack/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack/internal/safety/confirm"
+	"github.com/PacifAIst/controlsnack/internal/safety/limits"
+	"github.com/PacifAIst/controlsnack/internal/safety/policy"
+	"github.com/PacifAIst/controlsnack/internal/safety/secret"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 // Recorder is the audit log (*audit.Log).

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/execx"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/execx"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 func runnerReturning(res execx.Result, err error, seen *execx.Options) Runner {

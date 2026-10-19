@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 func TestThePageCanAskForTheCSRFValueBeforeTheSocketIsUp(t *testing.T) {

@@ -12,7 +12,7 @@ import (
 
 	"github.com/jezek/xgb/xproto"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
 )
 
 // Limits on text that comes from other programs' windows: titles and classes are whatever an application chose to

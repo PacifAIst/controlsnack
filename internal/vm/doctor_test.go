@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // --- parsers, fed with samples from real machines ---------------------------------------------------------------

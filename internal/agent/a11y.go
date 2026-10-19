@@ -9,9 +9,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/a11y"
+	"github.com/PacifAIst/controlsnack/internal/agent/server"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // maxTreeBytes bounds the encoded size of the nodes in one answer, well inside the protocol's header limit: names,

@@ -13,9 +13,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qmp"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qmp"
 )
 
 // Launch timings (PLAN.md section 7.9). Under tcg the window is multiplied by AccelResult.TimeoutFactor.

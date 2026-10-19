@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/browser"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/browser"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // stubBrowser is a backend that opens a page or fails; the other methods are not used by these tests.

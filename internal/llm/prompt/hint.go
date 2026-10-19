@@ -3,7 +3,7 @@
 
 package prompt
 
-import "github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+import "github.com/PacifAIst/controlsnack/internal/llm/actions"
 
 // Hint is the sentence that follows the host's words about a failed action, telling the model what to do instead. A small
 // model that is told only "not found" tries the same id again and again; one that is told where ids come from, and what

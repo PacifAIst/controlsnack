@@ -1,4 +1,4 @@
-module github.com/PacifAIst/controlsnack-local
+module github.com/PacifAIst/controlsnack
 
 go 1.26.0
 

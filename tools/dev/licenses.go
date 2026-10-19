@@ -10,7 +10,7 @@ import (
 )
 
 // ownModule is excluded from the report: it is our own AGPL code, not a dependency (D-00).
-const ownModule = "github.com/PacifAIst/controlsnack-local"
+const ownModule = "github.com/PacifAIst/controlsnack"
 
 func cmdLicenses(args []string) error {
 	fs := flag.NewFlagSet("licenses", flag.ContinueOnError)

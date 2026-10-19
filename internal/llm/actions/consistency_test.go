@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/schema"
+	"github.com/PacifAIst/controlsnack/schema"
 )
 
 // schemaOf reads a tool's schema file as a generic document.

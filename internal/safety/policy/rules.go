@@ -19,7 +19,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety"
 )
 
 //go:embed default.yaml

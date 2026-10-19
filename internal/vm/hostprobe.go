@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // errNotHere is what the checks of another OS's accelerator return.

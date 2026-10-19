@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 func TestNewPrepareChecksItsInput(t *testing.T) {

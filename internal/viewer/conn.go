@@ -14,7 +14,7 @@ import (
 	"github.com/coder/websocket"
 	"golang.org/x/time/rate"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
 )
 
 // The reasons a connection is ended by the host, each with the status the page is told.

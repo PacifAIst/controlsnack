@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
 )
 
 func TestTheViewerIsToldWhenAnActionStartsAndWhenItHasRun(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack/internal/safety/audit"
 )
 
 // Tally is a Recorder that counts what goes through it, for the summary at the end of a session: the model's answers, and the

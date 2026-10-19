@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
 )
 
 // ToolDocs describes the tools of a set in plain text, for a prompt of a mode where the tools are not passed to the

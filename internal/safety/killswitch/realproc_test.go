@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/platform"
 )
 
 // TestHelperProcess is the body of the child these tests start, standing in for QEMU.

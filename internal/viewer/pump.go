@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/imaging"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/imaging"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // Caller is the host's end of the agent protocol (agentclient.Client).

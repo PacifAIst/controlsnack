@@ -10,11 +10,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/PacifAIst/controlsnack-local/internal/buildinfo"
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
-	"github.com/PacifAIst/controlsnack-local/schema"
+	"github.com/PacifAIst/controlsnack/internal/buildinfo"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/vm/image"
+	"github.com/PacifAIst/controlsnack/schema"
 )
 
 func (a *app) newVersionCmd() *cobra.Command {

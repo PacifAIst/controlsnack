@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/imaging"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/detect"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/vision"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/untrusted"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/imaging"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/detect"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/llm/vision"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety/untrusted"
 )
 
 // guestAgent is a fake agent that behaves like a small desktop: a screen, a tree with one button, commands and files.

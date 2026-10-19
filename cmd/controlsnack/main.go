@@ -8,7 +8,7 @@ package main
 import (
 	"os"
 
-	"github.com/PacifAIst/controlsnack-local/internal/cli"
+	"github.com/PacifAIst/controlsnack/internal/cli"
 )
 
 func main() {

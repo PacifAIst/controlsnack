@@ -12,7 +12,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/PacifAIst/controlsnack-local/schema"
+	"github.com/PacifAIst/controlsnack/schema"
 )
 
 // Tool is one tool the model can use: its name, what it is for, the schema of its arguments and how to check them.

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // TestRealQEMU talks to the real program over a unix socket, where there is one: the greeting, the version, the

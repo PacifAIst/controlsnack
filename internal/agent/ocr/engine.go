@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
 )
 
 // Errors an Engine reports.

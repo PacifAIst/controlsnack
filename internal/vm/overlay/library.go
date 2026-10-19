@@ -14,8 +14,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/vm/image"
 )
 
 var (

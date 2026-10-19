@@ -8,10 +8,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
-	"github.com/PacifAIst/controlsnack-local/internal/vm"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/vm"
 )
 
 // Runner runs one session end to end: boot the VM, serve the viewer, drive the model.

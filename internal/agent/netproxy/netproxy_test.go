@@ -21,7 +21,7 @@ import (
 
 	"github.com/xtaci/smux"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // fakeHost plays the host's side of the bridge: it accepts streams, reads the request line, applies a policy, and

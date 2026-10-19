@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/web"
+	"github.com/PacifAIst/controlsnack/web"
 )
 
 func TestTheFrontEndHasItsPagesAtTheRoot(t *testing.T) {

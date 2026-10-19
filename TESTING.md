@@ -19,7 +19,7 @@ Your API key is a secret. Put it in an environment variable, as below, and nowhe
 
 ## Part A. Install and look around (about 15 minutes, once)
 
-Open **PowerShell** in the project folder (`C:\Users\pc\Projects\controlsnack-local`).
+Open **PowerShell** in the project folder (the folder you cloned from GitHub; it has `go.mod` in it).
 
 **1. Build the program.** ⏱
 

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
 )
 
 type nobody struct{}

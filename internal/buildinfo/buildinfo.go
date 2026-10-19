@@ -10,7 +10,7 @@ import (
 
 // Version, Commit and Date are stamped at link time by tools/dev:
 //
-//	-ldflags "-X github.com/PacifAIst/controlsnack-local/internal/buildinfo.Version=v0.1.0 ..."
+//	-ldflags "-X github.com/PacifAIst/controlsnack/internal/buildinfo.Version=v0.1.0 ..."
 //
 // A plain `go build` leaves the defaults.
 var (

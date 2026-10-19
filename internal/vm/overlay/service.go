@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/vm/image"
 )
 
 // Store is what the `controlsnack vm` commands use to manage kept VMs (D-26); all output goes to w.

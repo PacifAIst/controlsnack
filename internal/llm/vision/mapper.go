@@ -6,8 +6,8 @@ package vision
 import (
 	"fmt"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // maxScreen bounds a size this package accepts; the guest screen is at most 1920x1080 (the protocol allows 7680x4320).

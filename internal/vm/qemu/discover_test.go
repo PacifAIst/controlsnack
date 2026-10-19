@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // --- parsers, fed with what QEMU 8.2.2 really prints ----------------------------------------------------------

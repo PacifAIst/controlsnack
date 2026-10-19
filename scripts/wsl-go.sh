@@ -6,7 +6,7 @@
 # Used on Windows machines that have WSL but no Linux Go, to get what a Windows host cannot give: the race detector
 # (needs a C compiler) and the Linux-only code paths.
 #
-#   wsl -e bash /mnt/c/path/to/controlsnack-local/scripts/wsl-go.sh env CGO_ENABLED=1 go test -race ./internal/...
+#   wsl -e bash /mnt/c/path/to/controlsnack/scripts/wsl-go.sh env CGO_ENABLED=1 go test -race ./internal/...
 #
 # From Git Bash on Windows prefix the call with MSYS_NO_PATHCONV=1 so the /mnt/c path is not rewritten.
 # The toolchain is installed once under ~/.cache/controlsnack-dev; nothing outside that directory is touched and

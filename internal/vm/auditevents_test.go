@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack/internal/safety/audit"
 )
 
 func TestLaunchWritesTheAcceleratorDecisionsToARealAuditLog(t *testing.T) {

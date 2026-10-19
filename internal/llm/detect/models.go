@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/anthropic"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/httpx"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/anthropic"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/httpx"
 )
 
 // ModelInfo is a model a backend offers, with what the backend says about it.

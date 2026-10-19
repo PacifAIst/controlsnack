@@ -13,8 +13,8 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/kb"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 // The host's clock in these tests is the rig's pretend one, 2026-10-17 12:00:00 UTC, which is a day away from the browser's:

@@ -4,7 +4,7 @@
 package vm
 
 import (
-	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack/internal/safety/audit"
 )
 
 // Appender is the part of the audit log the launcher writes to; *audit.Log satisfies it.

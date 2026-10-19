@@ -19,9 +19,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/netbridge"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/egress"
+	"github.com/PacifAIst/controlsnack/internal/netbridge"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/safety/egress"
 )
 
 // TestE2ENetBridge runs a session started with --allow-net: the guest reaches the public internet through the host's

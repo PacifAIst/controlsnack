@@ -6,7 +6,7 @@ package safety
 import (
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/config"
 )
 
 // Profile is the resolved safety posture of one session: the budgets in force and how rule classes are treated.

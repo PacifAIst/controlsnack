@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
 )
 
 // Defaults and limits of a walk (PLAN.md section 8).

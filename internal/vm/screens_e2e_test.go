@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentbin"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qmp"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentbin"
+	"github.com/PacifAIst/controlsnack/internal/vm/image"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qmp"
 )
 
 // bootE2E boots the real image at the given resolution, or skips the test when something needed is missing.

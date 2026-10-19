@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/safety"
 )
 
 // The command-line builders are pure functions of their spec: no file system, no clock, no environment. Whatever

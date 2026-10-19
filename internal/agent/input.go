@@ -10,10 +10,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
-	"github.com/PacifAIst/controlsnack-local/internal/imaging"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/server"
+	"github.com/PacifAIst/controlsnack/internal/agent/x11"
+	"github.com/PacifAIst/controlsnack/internal/imaging"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // InputDevice is what the input handler needs from the display; *x11.Conn is the real one.

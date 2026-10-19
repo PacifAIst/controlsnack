@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/killswitch"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/safety/killswitch"
 )
 
 var _ killswitch.QEMU = (*Process)(nil) // the supervisor is what the kill switch kills

@@ -16,8 +16,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qmp"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qmp"
 )
 
 // Provisioning timeouts (PLAN.md section 7.5, step 5); under tcg they are multiplied by tcgFactor.

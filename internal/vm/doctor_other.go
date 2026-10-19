@@ -8,7 +8,7 @@ package vm
 import (
 	"context"
 
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // collectFacts knows nothing about this operating system beyond its name: there is no hardware accelerator to

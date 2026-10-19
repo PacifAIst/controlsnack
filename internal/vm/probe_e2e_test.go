@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // TestE2EProbe boots the real guest and runs a shell script in it, for exploring what the guest looks like while

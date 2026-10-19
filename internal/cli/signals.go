@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
 )
 
 // Main is the process entry point: it wires the real environment and signal handling and returns the exit code.

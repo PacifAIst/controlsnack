@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // TestE2ENetProxyWithoutANetwork checks the guest's proxy in a session started without --allow-net: it listens on the

@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
-	"github.com/PacifAIst/controlsnack-local/internal/imaging"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/server"
+	"github.com/PacifAIst/controlsnack/internal/agent/x11"
+	"github.com/PacifAIst/controlsnack/internal/imaging"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 type fakeInputDevice struct {

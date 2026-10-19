@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
 )
 
 // A call that reached the history with its arguments as a string that holds the object (as OpenAI-compatible servers send

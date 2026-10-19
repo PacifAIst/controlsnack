@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
 )
 
 // Word is one recognized word with its box, in the pixels of the picture that was read.

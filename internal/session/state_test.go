@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 // allowed is the diagram of PLAN.md section 3.4, written out once more, edge by edge, so that a change to the table in state.go

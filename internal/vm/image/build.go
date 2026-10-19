@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/guest"
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/seed"
+	"github.com/PacifAIst/controlsnack/guest"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/seed"
 )
 
 // MinFreeSpace is what a build needs on the disk that holds the image store (PLAN.md section 7.5, step 1): the

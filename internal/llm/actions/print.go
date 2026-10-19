@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/schema"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/schema"
 )
 
 // JSONMode is the document `controlsnack schema --format jsonmode` prints: the schema of a response ("response"), the

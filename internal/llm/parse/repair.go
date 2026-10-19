@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
 )
 
 func asError(err error, target **actions.Error) bool { return errors.As(err, target) }

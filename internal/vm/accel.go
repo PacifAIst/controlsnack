@@ -10,8 +10,8 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
 )
 
 // Accelerator names. AccelAuto is only ever a request.

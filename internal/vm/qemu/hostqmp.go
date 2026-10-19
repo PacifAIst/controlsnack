@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/platform"
 )
 
 // QEMU for Windows does not serve QMP on a standard input that is a pipe (QEMU 11.1.0 answers the greeting and the first command

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 var update = flag.Bool("update", false, "rewrite the golden command lines in testdata/argv")

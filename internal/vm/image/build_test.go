@@ -20,12 +20,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/guest"
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/qemu"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/seed"
+	"github.com/PacifAIst/controlsnack/guest"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/vm/qemu"
+	"github.com/PacifAIst/controlsnack/internal/vm/seed"
 )
 
 // buildRig is a Builder whose environment is entirely fake: a Debian mirror served from memory, no QEMU.

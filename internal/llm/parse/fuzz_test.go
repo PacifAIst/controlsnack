@@ -9,7 +9,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
 )
 
 // FuzzParse reads whatever a model might write. It must never panic or take long; the actions it finds are valid ones of

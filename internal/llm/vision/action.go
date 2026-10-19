@@ -6,7 +6,7 @@ package vision
 import (
 	"errors"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
 )
 
 // Guest returns the action with the coordinates the model gave, which are pixels of the picture it was shown, converted

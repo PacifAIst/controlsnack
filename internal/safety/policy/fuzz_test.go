@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety"
 	"mvdan.cc/sh/v3/syntax"
 )
 

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/safety"
 )
 
 func newLimits(t *testing.T, mutate func(*config.Config)) (*Limits, *FakeClock) {

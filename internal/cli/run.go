@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/PacifAIst/controlsnack-local/internal/config"
+	"github.com/PacifAIst/controlsnack/internal/config"
 )
 
 // addVMFlags registers the flags that choose how QEMU is found and accelerated; run, image build and doctor

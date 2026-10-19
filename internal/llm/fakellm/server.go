@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/platform"
 )
 
 // Profile is what the fake model can do. The probe is answered from it, and a request that asks for what the profile lacks

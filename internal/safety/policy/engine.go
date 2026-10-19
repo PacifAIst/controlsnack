@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety"
 )
 
 // structuralRules must exist in every rule set: the engine raises them itself.

@@ -15,9 +15,9 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/untrusted"
-	"github.com/PacifAIst/controlsnack-local/schema"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/safety/untrusted"
+	"github.com/PacifAIst/controlsnack/schema"
 )
 
 var update = flag.Bool("update", false, "rewrite the golden files in testdata/llm/prompt")

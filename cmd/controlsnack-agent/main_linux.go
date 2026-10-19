@@ -21,15 +21,15 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/browser"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/netproxy"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/ocr"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
-	"github.com/PacifAIst/controlsnack-local/internal/buildinfo"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent"
+	"github.com/PacifAIst/controlsnack/internal/agent/a11y"
+	"github.com/PacifAIst/controlsnack/internal/agent/browser"
+	"github.com/PacifAIst/controlsnack/internal/agent/netproxy"
+	"github.com/PacifAIst/controlsnack/internal/agent/ocr"
+	"github.com/PacifAIst/controlsnack/internal/agent/server"
+	"github.com/PacifAIst/controlsnack/internal/agent/x11"
+	"github.com/PacifAIst/controlsnack/internal/buildinfo"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 func main() { os.Exit(run()) }

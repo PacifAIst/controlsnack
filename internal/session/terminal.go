@@ -8,8 +8,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
 )
 
 // terminalSink writes to the terminal what the viewer would show. Without a viewer it is all the person sees of a session: what

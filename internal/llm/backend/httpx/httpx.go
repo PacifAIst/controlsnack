@@ -20,7 +20,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/textclean"
+	"github.com/PacifAIst/controlsnack/internal/agent/textclean"
 )
 
 // Kind says what went wrong with a call to a backend, in terms the session acts on.

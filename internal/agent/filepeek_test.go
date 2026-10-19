@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 func peek(t *testing.T, body any) (protocol.FilePeekRes, []byte, error) {

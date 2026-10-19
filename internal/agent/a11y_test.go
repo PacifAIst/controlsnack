@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/a11y"
+	"github.com/PacifAIst/controlsnack/internal/agent/x11"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // Role numbers of AT-SPI used here.

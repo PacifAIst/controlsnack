@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
-	guestrecipe "github.com/PacifAIst/controlsnack-local/guest"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/agentbin"
+	guestrecipe "github.com/PacifAIst/controlsnack/guest"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/vm/agentbin"
 )
 
 // These tests run the real guest stub (guest/files/bootstrap.sh) and a really compiled controlsnack-agent against the
@@ -53,7 +53,7 @@ func builtAgent(t *testing.T) agentbin.Agent {
 			return
 		}
 		out := filepath.Join(dir, "agent")
-		cmd := exec.CommandContext(context.Background(), "go", "build", "-trimpath", "-o", out, "github.com/PacifAIst/controlsnack-local/cmd/controlsnack-agent")
+		cmd := exec.CommandContext(context.Background(), "go", "build", "-trimpath", "-o", out, "github.com/PacifAIst/controlsnack/cmd/controlsnack-agent")
 		cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH="+runtime.GOARCH)
 		if msg, err := cmd.CombinedOutput(); err != nil {
 			agentErr = errors.New("building the agent: " + err.Error() + "\n" + string(msg))

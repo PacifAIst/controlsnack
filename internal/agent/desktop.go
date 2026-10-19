@@ -7,9 +7,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent/server"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/x11"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent/server"
+	"github.com/PacifAIst/controlsnack/internal/agent/x11"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // Desktop is what the window and monitor handlers need from the display; *x11.Conn is the real one.

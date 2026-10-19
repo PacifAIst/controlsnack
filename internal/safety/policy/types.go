@@ -7,7 +7,7 @@ import (
 	"context"
 	"regexp"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety"
 )
 
 // RuleHit is one rule that matched, with the invocation it matched on.

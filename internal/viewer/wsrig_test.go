@@ -15,8 +15,8 @@ import (
 	"github.com/coder/websocket"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/PacifAIst/controlsnack-local/internal/viewer"
-	"github.com/PacifAIst/controlsnack-local/schema"
+	"github.com/PacifAIst/controlsnack/internal/viewer"
+	"github.com/PacifAIst/controlsnack/schema"
 )
 
 // inbox records what the hub hands to the session.

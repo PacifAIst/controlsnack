@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
 )
 
 func TestEveryFailureCodeHasAdviceOrIsKnownToNeedNone(t *testing.T) {

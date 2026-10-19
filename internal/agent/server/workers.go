@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // The worker pools of PLAN.md section 8. A request waits in the queue of its pool and is served by one of the pool's

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend/openai"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend/openai"
 )
 
 // NoServerError is what `--llm auto` returns when no local model server answers. It carries what was tried and the steps

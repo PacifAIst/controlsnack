@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/llm/backend"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/parse"
+	"github.com/PacifAIst/controlsnack/internal/llm/backend"
+	"github.com/PacifAIst/controlsnack/internal/llm/parse"
 )
 
 func TestTheKeeperWritesWhatTheModelWasAskedWithoutTheSystemPrompt(t *testing.T) {

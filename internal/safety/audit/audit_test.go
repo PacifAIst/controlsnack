@@ -21,7 +21,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/PacifAIst/controlsnack-local/schema"
+	"github.com/PacifAIst/controlsnack/schema"
 )
 
 // stepClock returns a time that moves forward one second per call.

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
-	"github.com/PacifAIst/controlsnack-local/internal/safety/policy"
+	"github.com/PacifAIst/controlsnack/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety/policy"
 )
 
 // In a terminal the keyboard is a shell: what is typed there and ended with Return is a command, and typing it would be a way round

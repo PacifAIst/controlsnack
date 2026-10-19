@@ -12,12 +12,12 @@ import (
 	"image/png"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/agent"
-	"github.com/PacifAIst/controlsnack-local/internal/agent/a11y"
-	"github.com/PacifAIst/controlsnack-local/internal/imaging"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/actions"
-	"github.com/PacifAIst/controlsnack-local/internal/llm/prompt"
-	"github.com/PacifAIst/controlsnack-local/internal/protocol"
+	"github.com/PacifAIst/controlsnack/internal/agent"
+	"github.com/PacifAIst/controlsnack/internal/agent/a11y"
+	"github.com/PacifAIst/controlsnack/internal/imaging"
+	"github.com/PacifAIst/controlsnack/internal/llm/actions"
+	"github.com/PacifAIst/controlsnack/internal/llm/prompt"
+	"github.com/PacifAIst/controlsnack/internal/protocol"
 )
 
 // theRealAgent answers the pipeline with the agent's own screenshot handler on a fake display.

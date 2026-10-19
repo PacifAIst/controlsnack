@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety/audit"
+	"github.com/PacifAIst/controlsnack/internal/safety/audit"
 )
 
 // realLoop is the loop with the real dispatcher, rules, broker and executor (and a fake guest) under it.

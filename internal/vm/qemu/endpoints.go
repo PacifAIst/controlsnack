@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/PacifAIst/controlsnack-local/internal/platform"
+	"github.com/PacifAIst/controlsnack/internal/platform"
 )
 
 // NewSocketDir creates the private directory a VM's unix sockets live in. It is kept short because a unix socket

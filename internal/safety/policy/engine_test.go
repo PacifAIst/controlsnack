@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/safety"
+	"github.com/PacifAIst/controlsnack/internal/safety"
 )
 
 func mustEngine(t testing.TB, user string, o Options) *Engine {

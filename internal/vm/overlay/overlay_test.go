@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PacifAIst/controlsnack-local/internal/exitcode"
-	"github.com/PacifAIst/controlsnack-local/internal/vm/image"
+	"github.com/PacifAIst/controlsnack/internal/exitcode"
+	"github.com/PacifAIst/controlsnack/internal/vm/image"
 )
 
 // writeQCOW2 writes the start of a qcow2 file whose header names a backing file (none when backing is empty).
