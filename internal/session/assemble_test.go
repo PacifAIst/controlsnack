@@ -6,6 +6,7 @@ package session
 import (
 	"context"
 	"image"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -30,7 +31,13 @@ type guestAgent struct {
 	up bool
 	// blob is the last picture made; peeked the head of a file.
 	blob, peeked []byte
+	// shot serializes the screenshots: the viewer's pump and the model ask at once, and blob is the answer of the last.
+	shot sync.Mutex
 }
+
+// pictures keeps the pictures the fake guests have made, for all the tests of the package: the screen is always black, and a picture
+// of a whole screen takes seconds to encode under the race detector. The key is the size and what was asked for.
+var pictures sync.Map
 
 func (g *guestAgent) Up() bool { g.mu.Lock(); defer g.mu.Unlock(); return g.up }
 
@@ -57,14 +64,27 @@ func newGuestAgent(w, h int) *guestAgent {
 	})
 	a.on(protocol.TypeScreenshot, func(req any, out any) error {
 		r := req.(protocol.ScreenshotReq)
+		const hash = "0123456789abcdef" // the screen never changes
+		if r.IfChangedSince == hash {   // as the real agent answers: no picture
+			*out.(*protocol.ScreenshotRes) = protocol.ScreenshotRes{Hash: hash, Unchanged: true, Cursor: protocol.Point{X: 7, Y: 8}}
+			a.blob = nil
+			return nil
+		}
 		img := image.NewRGBA(image.Rect(0, 0, w, h))
 		scaled, sc := imaging.Scale(img, r.MaxLongEdge)
-		blob, err := imaging.Encode(scaled, imaging.Format(r.Format), r.Quality)
-		if err != nil {
-			return err
+		key := strings.Join([]string{strconv.Itoa(w), strconv.Itoa(h), r.Format, strconv.Itoa(r.Quality), strconv.Itoa(r.MaxLongEdge)}, "/")
+		var blob []byte
+		if v, ok := pictures.Load(key); ok {
+			blob = v.([]byte)
+		} else {
+			var err error
+			if blob, err = imaging.Encode(scaled, imaging.Format(r.Format), r.Quality); err != nil {
+				return err
+			}
+			pictures.Store(key, blob)
 		}
 		b := scaled.Bounds()
-		*out.(*protocol.ScreenshotRes) = protocol.ScreenshotRes{W: b.Dx(), H: b.Dy(), Format: r.Format, Hash: "0123456789abcdef", Cursor: protocol.Point{X: 7, Y: 8}, Scale: sc}
+		*out.(*protocol.ScreenshotRes) = protocol.ScreenshotRes{W: b.Dx(), H: b.Dy(), Format: r.Format, Hash: hash, Cursor: protocol.Point{X: 7, Y: 8}, Scale: sc}
 		a.blob = blob
 		return nil
 	})
@@ -74,6 +94,10 @@ func newGuestAgent(w, h int) *guestAgent {
 func (g *guestAgent) Call(ctx context.Context, typ string, req any, blob []byte, res any) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if typ == protocol.TypeScreenshot {
+		g.shot.Lock()
+		defer g.shot.Unlock()
 	}
 	_, err := g.fakeAgent.Call(ctx, typ, req, blob, res)
 	if err != nil {
