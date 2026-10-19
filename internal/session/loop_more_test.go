@@ -299,6 +299,12 @@ func TestTheGuardForgetsWhenTheBudgetIsRenewed(t *testing.T) {
 }
 
 // text is everything the viewer was sent, as one string.
+// waitNotice waits for a notice that says what is in want: the state changes to Paused a moment before the notice that says why is sent.
+func (g *lrig) waitNotice(want string) {
+	g.t.Helper()
+	eventually(g.t, "the notice "+want, func() bool { return strings.Contains(g.view.text(), want) })
+}
+
 func (e *events) text() string {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -311,9 +317,7 @@ func TestWhatTheViewerIsToldWhenTheScreenCannotBeReadOrTheConversationCannotFit(
 	g.model.replies = []reply{calls(doneOK)}
 	ch := g.runAsync(context.Background(), "t")
 	g.waitState(Paused)
-	if txt := g.view.text(); !strings.Contains(txt, "The screen could not be read: the agent did not answer. Resume to try again") {
-		t.Errorf("notices %s", txt)
-	}
+	g.waitNotice("The screen could not be read: the agent did not answer. Resume to try again")
 	_ = g.m.To(Running, "resumed")
 	wait(t, ch)
 
@@ -458,9 +462,7 @@ func TestWhatThePersonIsToldWhenAGuardPausesTheTask(t *testing.T) {
 	g.model.replies = []reply{calls(keyA("c1")), calls(doneOK)}
 	ch := g.runAsync(context.Background(), "t")
 	g.waitState(Paused)
-	if txt := g.view.text(); !strings.Contains(txt, "The same action three times. Resume to let the task go on, or Stop to end it.") {
-		t.Errorf("notices %s", txt)
-	}
+	g.waitNotice("The same action three times. Resume to let the task go on, or Stop to end it.")
 	_ = g.m.To(Running, "resumed")
 	wait(t, ch)
 }
@@ -639,9 +641,7 @@ func TestEachWayTheModelCanFailComesWithWhatThePersonCanDoAboutIt(t *testing.T) 
 	g.model.replies = []reply{{err: errors.New("something odd")}, calls(doneOK)}
 	ch := g.runAsync(context.Background(), "t")
 	g.waitState(Paused)
-	if txt := g.view.text(); !strings.Contains(txt, "The model did not answer: something odd. Resume to try again") {
-		t.Errorf("notices %s", txt)
-	}
+	g.waitNotice("The model did not answer: something odd. Resume to try again")
 	_ = g.m.To(Running, "resumed")
 	wait(t, ch)
 	if modelAdvice(backend.Kind(99)) != "" {
