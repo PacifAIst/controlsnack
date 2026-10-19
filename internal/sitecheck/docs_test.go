@@ -398,8 +398,14 @@ func TestTheDocumentationPageWorksInABrowserOnADesktop(t *testing.T) {
 	}
 	// A link in it goes to its section.
 	b.click(`.toc a[href="#cmd-run"]`)
-	time.Sleep(400 * time.Millisecond)
-	if got := b.run(`location.hash + ' ' + Math.round(document.getElementById('cmd-run').getBoundingClientRect().top < 200 && document.getElementById('cmd-run').getBoundingClientRect().top > -50)`); got != "#cmd-run 1" {
+	// The page scrolls smoothly, which takes longer on a slow machine: wait until it has arrived.
+	const arrived = `location.hash + ' ' + Math.round(document.getElementById('cmd-run').getBoundingClientRect().top < 200 && document.getElementById('cmd-run').getBoundingClientRect().top > -50)`
+	got := b.run(arrived)
+	for i := 0; got != "#cmd-run 1" && i < 50; i++ {
+		time.Sleep(100 * time.Millisecond)
+		got = b.run(arrived)
+	}
+	if got != "#cmd-run 1" {
 		t.Errorf("the contents link to the run section: %s", got)
 	}
 	// Every command in the examples can be copied.

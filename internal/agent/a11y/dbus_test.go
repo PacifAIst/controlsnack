@@ -451,7 +451,8 @@ func TestDBusElementThatWentAway(t *testing.T) {
 
 func TestDBusWalkAndServiceOnTheRealBus(t *testing.T) {
 	bus, app := dialFake(t)
-	svc := NewService(bus, &fakeDesktop{w: &Window{PID: os.Getpid(), Title: "Files"}}, &fakeDriver{})
+	pointer := &fakeDriver{}
+	svc := NewService(bus, &fakeDesktop{w: &Window{PID: os.Getpid(), Title: "Files"}}, pointer)
 	res, err := svc.Tree(context.Background(), "", Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -467,8 +468,22 @@ func TestDBusWalkAndServiceOnTheRealBus(t *testing.T) {
 		t.Errorf("bounds %+v", b)
 	}
 
-	if out, err := svc.Act(context.Background(), "a2", res.Generation, OpClick, ""); err != nil || out.Method != "action:click" {
+	// A button is pressed with the pointer, at the middle of its area (the action of a panel launcher answers "done" and starts
+	// nothing)...
+	if out, err := svc.Act(context.Background(), "a2", res.Generation, OpClick, ""); err != nil || out.Method != "pointer" {
 		t.Errorf("%+v %v", out, err)
+	}
+	if len(pointer.clicks) != 1 || pointer.clicks[0] != [2]int{40, 32} {
+		t.Errorf("the pointer clicked at %v", pointer.clicks)
+	}
+	// ...and with the button's own action when the pointer cannot.
+	failing := NewService(bus, &fakeDesktop{w: &Window{PID: os.Getpid(), Title: "Files"}}, &fakeDriver{err: errors.New("no pointer")})
+	again, err := failing.Tree(context.Background(), "", Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, err := failing.Act(context.Background(), "a2", again.Generation, OpClick, ""); err != nil || out.Method != "action:click" {
+		t.Errorf("without a pointer: %+v %v", out, err)
 	}
 	if out, err := svc.Act(context.Background(), "a3", res.Generation, OpSetText, "abc"); err != nil || out.Method != "editable_text" {
 		t.Errorf("%+v %v", out, err)

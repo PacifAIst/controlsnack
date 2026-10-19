@@ -189,10 +189,14 @@ func TestRealStubInstallsAndStartsTheRealAgent(t *testing.T) {
 	if _, err := c.Call(ctx, protocol.TypePing, nil, nil, nil); err != nil {
 		t.Errorf("ping: %v", err)
 	}
-	_, err = c.Call(ctx, protocol.TypeExec, protocol.ExecReq{Command: "id"}, nil, nil)
+	// The real agent runs commands (the stub only started it), and refuses a request type it does not have.
+	var ran protocol.ExecRes
+	if _, err := c.Call(ctx, protocol.TypeExec, protocol.ExecReq{Command: "id"}, nil, &ran); err != nil || ran.ExitCode != 0 || !strings.Contains(ran.Stdout, "uid=") {
+		t.Errorf("exec: %+v %v", ran, err)
+	}
 	var re *RemoteError
-	if !errors.As(err, &re) || re.Code != protocol.CodeUnknownType {
-		t.Errorf("the minimal agent serves nothing else yet: %v", err)
+	if _, err := c.Call(ctx, "no_such_request", nil, nil, nil); !errors.As(err, &re) || re.Code != protocol.CodeUnknownType {
+		t.Errorf("a request type the agent does not have: %v", err)
 	}
 
 	// Where the stub put it, and who may touch it.

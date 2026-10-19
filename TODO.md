@@ -106,6 +106,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] Native viewer window (-tags webview), tile-diff streaming, manual takeover, system-wide kill hotkey, robotgo backend, MessagePack, recording/replay, policy editor UI
 
 ## Discovered
+- [ ] D-113: macOS. `go test ./internal/vm/qemu ./internal/vm/image` fails there in the `__reaper` path ("the reaper did not report QEMU's pid"; 23 tests), and gofmt reports `internal/vm/image/serial_test.go` on macOS only. Needs a Mac (or a macOS runner with `go test -v` and the gofmt diff printed). The CI job is non-blocking until then.
 - [ ] D-112: add real screenshots of LM Studio and of a local-model session to the guide (the service did not start from the assistant's session; the user's own LM Studio window may show chats: crop it).
 - [ ] D-112: `--timeout` shorter than `safety.idle_timeout` (15 m) is refused with a message about a key that has no flag; either clamp the default idle timeout to the session timeout or give it a flag.
 - [ ] D-112: the model may click a dock launcher twice and open two windows; a wait for the window after a launcher click, or a hint in the prompt, would avoid it.

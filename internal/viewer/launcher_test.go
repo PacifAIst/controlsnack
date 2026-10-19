@@ -8,7 +8,9 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -312,13 +314,24 @@ func TestEndingAWindowSaysWhatWentWrong(t *testing.T) {
 	}
 }
 
+// realBrowser is the browser this test opens: Chrome or Chromium when there is one (the same on every Linux machine that has any), and
+// otherwise the one the launcher would choose.
+func realBrowser() string {
+	for _, name := range []string{"google-chrome", "google-chrome-stable", "chromium", "chromium-browser"} {
+		if p, err := exec.LookPath(name); err == nil && p != "" {
+			return p
+		}
+	}
+	return viewer.DefaultFinder().Browser()
+}
+
 // The viewer in a real browser, opened through the launcher, with no screen: the page loads, the socket connects, and the
 // window's end is the socket's end.
 func TestARealBrowserOpenedByTheLauncher(t *testing.T) {
 	if os.Getenv("CS_NO_BROWSER_TESTS") != "" {
 		t.Skip("CS_NO_BROWSER_TESTS is set")
 	}
-	exe := viewer.DefaultFinder().Browser()
+	exe := realBrowser()
 	if exe == "" {
 		t.Skip("no Chromium-based browser on this machine")
 	}
@@ -328,7 +341,13 @@ func TestARealBrowserOpenedByTheLauncher(t *testing.T) {
 		t.Fatal(err)
 	}
 	profile := filepath.Join(t.TempDir(), "viewer-profile")
-	w, err := viewer.Launch(viewer.LaunchOptions{Mode: viewer.ModeWindow, URL: link, ProfileDir: profile, ExtraArgs: []string{"--headless=new", "--disable-gpu"}})
+	args := []string{"--headless=new", "--disable-gpu"}
+	if runtime.GOOS == "linux" && os.Getenv("CI") != "" {
+		// GitHub's Ubuntu runners keep an unprivileged user out of the namespaces a browser's sandbox needs, except for the ones
+		// the image has a profile for.
+		args = append(args, "--no-sandbox")
+	}
+	w, err := viewer.Launch(viewer.LaunchOptions{Mode: viewer.ModeWindow, URL: link, ProfileDir: profile, Browser: exe, ExtraArgs: args})
 	if err != nil {
 		t.Fatal(err)
 	}

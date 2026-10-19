@@ -260,7 +260,9 @@ func TestAPageThatDoesNotReadCannotBlockTheSession(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if took := time.Since(start); took > 5*time.Second {
+	// Three hundred sends of a megabyte each take seconds to encode under the race detector on a busy machine. A session that was
+	// held up by a page that does not read would wait for the write timeout at every send (300 x 500 ms), or for ever.
+	if took := time.Since(start); took > 30*time.Second {
 		t.Errorf("the session was held up for %v", took)
 	}
 	// The page that cannot keep up is let go; the session goes on.
