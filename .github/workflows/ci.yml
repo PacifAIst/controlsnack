@@ -21,17 +21,10 @@ jobs:
   check:
     name: check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # macOS has never been run by the author, and its first run on GitHub failed in the code that supervises QEMU (TODO.md, D-113).
-    # It stays in the matrix, so the failure is visible on every push, but it does not fail the run until that is fixed.
-    continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-          - os: windows-latest
-          - os: macos-latest
-            experimental: true
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7

@@ -106,7 +106,7 @@ Legend: [ ] todo · [~] in progress · [x] done (date) · [!] blocked · [-] dro
 - [ ] Native viewer window (-tags webview), tile-diff streaming, manual takeover, system-wide kill hotkey, robotgo backend, MessagePack, recording/replay, policy editor UI
 
 ## Discovered
-- [ ] D-113: macOS. Its first CI runs failed on gofmt (an arm64 alignment quirk, fixed by separating the entries of a map: macOS then passed gofmt and lint) and on 14 tests that start a process (the test binaries did not answer to `__reaper`; fixed and verified on Linux by forcing the reaper). The macOS job of CI passed in the sixth run (2026-10-19): when it has passed again, remove `experimental: true` from the matrix of `.github/workflows/ci.yml` so that it blocks like the others. Nothing has been run on a real Mac.
+- [ ] D-113: macOS on a real Mac: the tests pass on GitHub's macOS runner (the job blocks like the others since the seventh CI run), but `doctor`, HVF, a session and the viewer window have not been tried on a Mac.
 - [ ] D-112: add real screenshots of LM Studio and of a local-model session to the guide (the service did not start from the assistant's session; the user's own LM Studio window may show chats: crop it).
 - [ ] D-112: `--timeout` shorter than `safety.idle_timeout` (15 m) is refused with a message about a key that has no flag; either clamp the default idle timeout to the session timeout or give it a flag.
 - [ ] D-112: the model may click a dock launcher twice and open two windows; a wait for the window after a launcher click, or a hint in the prompt, would avoid it.
