@@ -58,13 +58,11 @@ func cmdRelease(args []string) error {
 				files = append(files, extra)
 			}
 		}
-		base := fmt.Sprintf("controlsnack_%s_%s_%s", version, t.GOOS, t.GOARCH)
-		var archive string
+		base := archiveBase(version, t)
+		archive := filepath.Join(*out, archiveName(version, t))
 		if t.GOOS == "windows" {
-			archive = filepath.Join(*out, base+".zip")
 			err = writeZip(archive, base, files, mtime)
 		} else {
-			archive = filepath.Join(*out, base+".tar.gz")
 			err = writeTarGz(archive, base, files, mtime)
 		}
 		_ = os.RemoveAll(stage)
@@ -80,6 +78,19 @@ func cmdRelease(args []string) error {
 	}
 	sort.Strings(sums)
 	return os.WriteFile(filepath.Join(*out, "SHA256SUMS"), []byte(strings.Join(sums, "\n")+"\n"), 0o640)
+}
+
+// archiveBase is the name of the folder an archive unpacks to, and the name of the archive without its extension.
+func archiveBase(version string, t target) string {
+	return fmt.Sprintf("controlsnack_%s_%s_%s", version, t.GOOS, t.GOARCH)
+}
+
+// archiveName is the file name of the archive of a target: a .zip for Windows, a .tar.gz for everything else.
+func archiveName(version string, t target) string {
+	if t.GOOS == "windows" {
+		return archiveBase(version, t) + ".zip"
+	}
+	return archiveBase(version, t) + ".tar.gz"
 }
 
 func isExecutable(path string) bool {

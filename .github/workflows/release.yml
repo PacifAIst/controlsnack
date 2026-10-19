@@ -1,0 +1,90 @@
+name: release
+
+# A tag that starts with v publishes a release: the five archives of `go run ./tools/dev release` and their SHA256SUMS. A tag with a
+# hyphen in it (v0.1.0-alpha.1) is marked as a pre-release. Run by hand (the "Run workflow" button, or `gh workflow run release.yml`)
+# it builds and checks everything and publishes nothing; the archives are kept as an artifact of the run so that they can be looked at.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # to create the release
+  actions: read # to see that CI passed for the commit
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CI: "true"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the tag, and the history of main to see that the tag is on it
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: The tag is a version, on main, and CI passed for its commit
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::the tag $tag is not a version such as v0.1.0 or v0.1.0-alpha.1"; exit 1
+          fi
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::the tag $tag is not on main: a release is made from a commit of main"; exit 1
+          fi
+          passed=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --status success --json databaseId --jq 'length')
+          if [ "$passed" -lt 1 ]; then
+            echo "::error::CI has not passed for $GITHUB_SHA: wait for it (or fix it) and run this workflow again"; exit 1
+          fi
+
+      - name: Build the five archives
+        run: go run ./tools/dev release -o dist/release
+
+      - name: Check what was built
+        run: |
+          cd dist/release
+          sha256sum -c SHA256SUMS
+          [ "$(ls controlsnack_* | wc -l)" = 5 ] || { echo "::error::a release has five archives"; ls; exit 1; }
+          [ "$(wc -l < SHA256SUMS)" = 5 ] || { echo "::error::SHA256SUMS must list the five archives"; cat SHA256SUMS; exit 1; }
+          linux=$(ls controlsnack_*_linux_amd64.tar.gz)
+          tar -xzf "$linux"
+          out=$("${linux%.tar.gz}/controlsnack" --version)
+          echo "$out"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            case "$out" in
+              "controlsnack $GITHUB_REF_NAME "*) ;;
+              *) echo "::error::the program says it is not $GITHUB_REF_NAME"; exit 1 ;;
+            esac
+          fi
+          rm -rf "${linux%.tar.gz}"
+
+      - name: Publish the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          sed "s/{{TAG}}/$tag/g" .github/release-notes.md > release-notes.md
+          flags=""
+          case "$tag" in *-*) flags="--prerelease" ;; esac
+          gh release create "$tag" dist/release/controlsnack_* dist/release/SHA256SUMS \
+            --verify-tag --title "ControlSnack $tag" --notes-file release-notes.md --generate-notes $flags
+
+      - name: Keep the archives of a trial run
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-trial
+          path: dist/release
+          retention-days: 7
