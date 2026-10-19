@@ -648,3 +648,28 @@ func TestEachWayTheModelCanFailComesWithWhatThePersonCanDoAboutIt(t *testing.T) 
 		t.Error("advice for a kind of failure nobody has heard of")
 	}
 }
+
+func TestTheNoticeOfAPauseIsSentBeforeTheStateChanges(t *testing.T) {
+	g := newLrig(t)
+	g.model.replies = []reply{{text: "Hmm."}, {text: "Hmm."}, {text: "Hmm."}, calls(doneOK)}
+	seen := make(chan string, 1)
+	g.m.OnChange(func(c Change) {
+		if c.To == Paused {
+			select {
+			case seen <- g.view.text(): // what the person had been told when the task became paused
+			default:
+			}
+		}
+	})
+	ch := g.runAsync(context.Background(), "t")
+	select {
+	case txt := <-seen:
+		if !strings.Contains(txt, "could not be used 3 times in a row") {
+			t.Errorf("the task was paused before the person was told why: %s", txt)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("the task never paused")
+	}
+	_ = g.m.To(Running, "resumed")
+	wait(t, ch)
+}

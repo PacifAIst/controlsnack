@@ -175,8 +175,9 @@ func (l *Loop) notice(level, text string) { l.send(viewer.Notice{Level: level, T
 // pause stops the task where it is and tells the person why; the task goes on when they resume, and then first runs the
 // functions given, which forget what the pause was about.
 func (l *Loop) pause(reason, text string, onResume ...func()) {
-	l.Machine.ToIf([]State{Running}, Paused, reason)
+	// The notice goes first: whoever sees the task paused (the page, a test that waits for the state) has already been told why.
 	l.notice(viewer.LevelWarn, text)
+	l.Machine.ToIf([]State{Running}, Paused, reason)
 	l.onResume = append(l.onResume, onResume...)
 }
 
