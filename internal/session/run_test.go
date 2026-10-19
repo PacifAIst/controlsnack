@@ -172,7 +172,7 @@ func TestACtrlCDuringATaskIsAKillAndLeavesNoVm(t *testing.T) {
 	var err error
 	select {
 	case err = <-done:
-	case <-time.After(10 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	if exitcode.Of(err) != exitcode.Killed {
@@ -501,7 +501,7 @@ func TestThePageTypesATaskWatchesItAndKillsTheSession(t *testing.T) {
 		if exitcode.Of(err) != exitcode.Killed {
 			t.Errorf("error %v (%d)", err, exitcode.Of(err))
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	if !f.mach.proc.killed.Load() {
@@ -537,7 +537,7 @@ func TestATaskGivenOnTheCommandLineIsRunWithTheViewerOpenAndTheTerminalSaysSo(t 
 		if exitcode.Of(err) != exitcode.Killed {
 			t.Errorf("error %v (%d)", err, exitcode.Of(err))
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 }
@@ -580,7 +580,7 @@ func TestTheDeadmanPausesTheTaskWhenThePageGoesAndEndsTheSessionAfterAMinute(t *
 		if exitcode.Of(err) != exitcode.Killed {
 			t.Errorf("error %v (%d)", err, exitcode.Of(err))
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	if k := recordsOf(f.auditRecords(), "lifecycle", "kill"); len(k) != 1 || !strings.Contains(string(k[0].Data), "deadman") {

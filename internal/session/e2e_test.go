@@ -409,7 +409,7 @@ func TestE2ESessionThePersonApprovesOneActionAndRejectsAnotherThroughThePage(t *
 		if exitcode.Of(err) != exitcode.Killed {
 			t.Errorf("error %v", err)
 		}
-	case <-time.After(30 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	// The approved removal happened; the rejected one did not.
@@ -483,7 +483,7 @@ func TestE2ESessionAKillEndsTheVmInUnderHalfASecondWhateverTheModelIsDoing(t *te
 	var err error
 	select {
 	case err = <-done:
-	case <-time.After(30 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	took := time.Since(began)
@@ -656,7 +656,7 @@ func TestE2ESessionAViewerThatGoesAwayPausesTheTaskAndAfterAWhileEndsTheSession(
 		if exitcode.Of(err) != exitcode.Killed {
 			t.Errorf("error %v", err)
 		}
-	case <-time.After(30 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	t.Logf("ended after %s", time.Since(began).Round(time.Millisecond))

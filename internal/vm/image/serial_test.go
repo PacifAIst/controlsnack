@@ -18,14 +18,22 @@ import (
 func TestParseProgress(t *testing.T) {
 	for line, want := range map[string]Progress{
 		"CS-PROVISION: installing packages (31 requested)": {Text: "installing packages (31 requested)"},
-		"CS-PROVISION: done":                                               {Text: "done", Done: true},
-		"CS-PROVISION: done\r":                                             {Text: "done", Done: true},
-		"CS-PROVISION: FAILED at line 42: apt-get update":                  {Text: "FAILED at line 42: apt-get update", Failed: true},
+
+		"CS-PROVISION: done": {Text: "done", Done: true},
+
+		"CS-PROVISION: done\r": {Text: "done", Done: true},
+
+		"CS-PROVISION: FAILED at line 42: apt-get update": {Text: "FAILED at line 42: apt-get update", Failed: true},
+
 		"[   42.1] cloud-init[512]: CS-PROVISION: configuring the desktop": {Text: "configuring the desktop"},
-		"\x1b[0;32mCS-PROVISION: cleaning up\x1b[0m":                       {Text: "cleaning up"},
-		"CS-PROVISION:    start (x86_64, Debian GNU/Linux 13 (trixie))  ":  {Text: "start (x86_64, Debian GNU/Linux 13 (trixie))"},
-		"CS-PROVISION: doneness is not done":                               {Text: "doneness is not done"},
-		"CS-PROVISION: cloud-init finished":                                {Text: "cloud-init finished"},
+
+		"\x1b[0;32mCS-PROVISION: cleaning up\x1b[0m": {Text: "cleaning up"},
+
+		"CS-PROVISION:    start (x86_64, Debian GNU/Linux 13 (trixie))  ": {Text: "start (x86_64, Debian GNU/Linux 13 (trixie))"},
+
+		"CS-PROVISION: doneness is not done": {Text: "doneness is not done"},
+
+		"CS-PROVISION: cloud-init finished": {Text: "cloud-init finished"},
 	} {
 		got, ok := ParseProgress(line)
 		if !ok || got != want {

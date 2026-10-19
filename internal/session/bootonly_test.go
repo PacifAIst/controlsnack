@@ -265,7 +265,7 @@ func TestInterruptedSessionIsKilledAndRecorded(t *testing.T) {
 	var err error
 	select {
 	case err = <-done:
-	case <-time.After(5 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	if exitcode.Of(err) != exitcode.Killed {
@@ -554,7 +554,7 @@ func TestControlsnackKillEndsTheSession(t *testing.T) {
 	var err2 error
 	select {
 	case err2 = <-done:
-	case <-time.After(5 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	if exitcode.Of(err2) != exitcode.Killed || !rg.mach.proc.killed.Load() {

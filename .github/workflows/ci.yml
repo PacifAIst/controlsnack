@@ -48,12 +48,27 @@ jobs:
       # `doctor` must run on every host OS and always print a verdict (PLAN.md section 13.5). The macOS and Windows
       # runners get a QEMU first so the command can exit 0; what it reports there (WHPX, HVF, tcg) is the first
       # real-hardware evidence for those accelerators, so the JSON is kept as an artifact.
+      # A package feed that times out must not leave the step green with no QEMU installed (Chocolatey answered 504 once and the step
+      # went on): try again, and stop with a message if QEMU is still not there.
       - name: Install QEMU (macOS)
         if: runner.os == 'macOS'
-        run: brew install qemu
+        shell: bash
+        run: |
+          for i in 1 2 3 4; do
+            brew install qemu && command -v qemu-system-x86_64 && break
+            echo "QEMU is not installed after attempt $i; trying again in 30 s"; sleep 30
+          done
+          command -v qemu-system-x86_64 || { echo "QEMU could not be installed"; exit 1; }
       - name: Install QEMU (Windows)
         if: runner.os == 'Windows'
-        run: choco install qemu --no-progress -y
+        shell: pwsh
+        run: |
+          $exe = 'C:\Program Files\qemu\qemu-system-x86_64.exe'
+          for ($i = 1; $i -le 4 -and -not (Test-Path $exe); $i++) {
+            choco install qemu --no-progress -y
+            if (-not (Test-Path $exe)) { Write-Host "QEMU is not installed after attempt $i; trying again in 30 s"; Start-Sleep -Seconds 30 }
+          }
+          if (-not (Test-Path $exe)) { throw 'QEMU could not be installed' }
       - name: controlsnack doctor --json
         if: runner.os != 'Linux'
         shell: bash

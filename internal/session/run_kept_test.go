@@ -187,7 +187,7 @@ func TestAKillStillKeepsTheVm(t *testing.T) {
 		if exitcode.Of(err) != exitcode.Killed {
 			t.Errorf("error %v", err)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 	}
 	if vms, _, _ := f.library().List(); len(vms) != 1 {

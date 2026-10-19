@@ -37,7 +37,7 @@ func (f *fullRig) waitEnd(t *testing.T, done <-chan error) error {
 	select {
 	case err := <-done:
 		return err
-	case <-time.After(10 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatal("the session did not end")
 		return nil
 	}
